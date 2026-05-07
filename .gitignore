@@ -38,4 +38,8 @@ coverage/
 
 # Misc
 .turbo/
-EOF
+
+# Claude Code (personal local overrides / skill outputs / actual MCP config)
+.claude/settings.local.json
+.claude/output/
+.mcp.json

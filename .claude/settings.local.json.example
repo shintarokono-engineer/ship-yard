@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "_comment": "Copy to settings.local.json (already gitignored). Personal overrides only — do not commit. Examples below.",
+
+  "_example_permissions": {
+    "allow": [
+      "Bash(docker *)",
+      "Bash(make *)"
+    ]
+  },
+
+  "_example_env": {
+    "MY_PERSONAL_API_TOKEN": "..."
+  }
+}
