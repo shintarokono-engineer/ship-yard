@@ -55,9 +55,9 @@ flowchart TD
     ProjectDetail --> ChooseAction{次のアクション?}
     ChooseAction -->|競合調査| Research[AI 競合調査]
     ChooseAction -->|チェックリスト生成| Checklist[AI チェックリスト]
-    ChooseAction -->|ドキュメント生成| Doc[AI ドキュメント生成]
+    ChooseAction -->|ドキュメント生成| Doc[ドキュメント生成(AI 支援)]
     Research --> StreamResearch[ストリーミング表示<br/>競合プロダクト一覧]
-    StreamResearch --> SaveResearch[結果を AIDocument 保存]
+    StreamResearch --> SaveResearch[結果を ProjectDocument 保存]
     SaveResearch --> ProjectDetail
     Checklist --> SelectType[プロジェクトタイプ選択<br/>Web/CLI/拡張機能等]
     SelectType --> GenChecklist[AI チェックリスト生成<br/>Tool Use]
@@ -123,7 +123,7 @@ flowchart TD
 - 成功画面に戻った時点では Webhook 未着の可能性があるため、画面側でポーリングまたは「処理中」表示
 - Webhook の Idempotency Key は `event.id` を WebhookEvent テーブルにユニーク保存
 
-## フロー5: AI ドキュメント生成と RAG 検索
+## フロー5: ドキュメント生成(AI 支援)と RAG 検索
 
 ```mermaid
 flowchart TD
@@ -137,14 +137,14 @@ flowchart TD
     RAGSearch -->|なし| AICallNoRAG[Anthropic API<br/>Sonnet 4 のみ]
     AICall --> Stream[ストリーミング応答]
     AICallNoRAG --> Stream
-    Stream --> SaveDoc[AIDocument 保存<br/>version インクリメント]
+    Stream --> SaveDoc[ProjectDocument 保存<br/>version インクリメント]
     SaveDoc --> EmbedNew[新文書をベクトル化]
     EmbedNew --> ProjectDetail
 ```
 
 ### 設計ポイント
 
-- 既存の AIDocument(同 tenant の他プロジェクト含む)からの RAG で「自分の過去」を活かす
+- 既存の ProjectDocument(同 tenant の他プロジェクト含む)からの RAG で「自分の過去」を活かす
 - バージョン管理で推敲履歴を残す(v1, v2, v3...)
 - 生成完了後に新ドキュメントを Embedding 化して次回以降の RAG 対象に追加
 

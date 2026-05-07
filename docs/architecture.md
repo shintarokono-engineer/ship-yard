@@ -121,7 +121,7 @@ C4Container
 - **責務**: リレーショナルデータ + ベクトルデータ
 - **特徴**:
   - Aurora Serverless v2 でアイドル時 0.5 ACU まで縮退、コスト最適化
-  - pgvector で AIDocument の embedding を保存・検索
+  - pgvector で ProjectDocument の embedding を保存・検索
   - Pool model で全テナント共有、tenantId カラムで分離
 
 #### Cache & Queue(Redis / ElastiCache)
