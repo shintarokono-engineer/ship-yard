@@ -1,0 +1,61 @@
+{
+  // tsconfig.json の自動補完用スキーマ(VS Code 等の IDE で利用)
+  "$schema": "https://json.schemastore.org/tsconfig",
+
+  "compilerOptions": {
+    // ===== 出力ターゲット =====
+
+    // コンパイル後の JavaScript バージョン。Node 22 / モダンブラウザが完全対応
+    "target": "ES2022",
+
+    // モジュールシステム。Node 22 の ESM/CommonJS 両対応の最新仕様
+    "module": "NodeNext",
+
+    // モジュール解決方式。module と組で使う(NodeNext と揃える)
+    "moduleResolution": "NodeNext",
+
+    // 利用可能な組み込み型定義。ブラウザ向け workspace は ["ES2022", "DOM"] に上書き
+    "lib": ["ES2022"],
+
+    // ===== Strict 系(全部 ON で型安全を最大化)=====
+
+    // strictNullChecks / strictFunctionTypes 等の strict 系を一括 ON
+    "strict": true,
+
+    // 配列・オブジェクトのインデックスアクセスを undefined 含みに
+    // 例: const arr: number[] = [1,2,3]; arr[0] の型が number → number | undefined
+    "noUncheckedIndexedAccess": true,
+
+    // 親クラスのメソッドを上書きする時に override キーワードを必須化(継承時のタイポ検知)
+    "noImplicitOverride": true,
+
+    // switch 文で break 忘れをエラー化(意図的なフォールスルーには // fallthrough コメントが必要)
+    "noFallthroughCasesInSwitch": true,
+
+    // 未使用のローカル変数をエラー化
+    "noUnusedLocals": true,
+
+    // 未使用の関数引数をエラー化(意図的に未使用なら名前を _ で始める)
+    "noUnusedParameters": true,
+
+    // ===== モジュール互換性 =====
+
+    // CommonJS の default export を ES Modules 風に import 可能にする
+    // 例: import express from 'express'(esModuleInterop: false だと import * as express になる)
+    "esModuleInterop": true,
+
+    // ファイル名の大文字小文字差異をエラー化
+    // Windows(大小区別なし)で開発したコードが Linux(区別あり)で壊れる事故を防ぐ
+    "forceConsistentCasingInFileNames": true,
+
+    // node_modules 内の .d.ts の型チェックをスキップ(コンパイル高速化、業界標準)
+    "skipLibCheck": true,
+
+    // 各ファイルが単独でコンパイル可能であることを保証
+    // swc / esbuild / Next.js Turbopack 等の高速ビルダーが要求する設定
+    "isolatedModules": true,
+
+    // import data from './data.json' のように JSON を直接 import 可能にする
+    "resolveJsonModule": true
+  }
+}
