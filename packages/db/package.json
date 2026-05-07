@@ -1,0 +1,6 @@
+{
+  "name": "@shipyard/db",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shipyard データベース層(Prisma スキーマと Client)"
+}

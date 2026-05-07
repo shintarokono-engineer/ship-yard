@@ -1,0 +1,6 @@
+{
+  "name": "@shipyard/web",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shipyard フロントエンド(Next.js App Router)"
+}

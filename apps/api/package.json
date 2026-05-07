@@ -1,0 +1,6 @@
+{
+  "name": "@shipyard/api",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shipyard バックエンド(NestJS)"
+}

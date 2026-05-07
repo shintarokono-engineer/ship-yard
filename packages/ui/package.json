@@ -1,0 +1,6 @@
+{
+  "name": "@shipyard/ui",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shipyard 共通 UI コンポーネント(Tailwind + shadcn/ui ベース)"
+}

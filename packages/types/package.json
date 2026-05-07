@@ -1,0 +1,6 @@
+{
+  "name": "@shipyard/types",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shipyard 共通型定義(フロント↔バック共有)"
+}
