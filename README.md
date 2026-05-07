@@ -62,6 +62,7 @@ pnpm dev
 
 | ファイル                                            | 内容                                                                |
 | --------------------------------------------------- | ------------------------------------------------------------------- |
+| [docs/OVERVIEW.md](./docs/OVERVIEW.md)              | プロダクト概要(まずこれを読めば全体像が掴める)                    |
 | [docs/PROJECT_STATUS.md](./docs/PROJECT_STATUS.md) | プロジェクト全体の状況・決定事項・ロードマップ(Single Source of Truth) |
 | [docs/GOALS.md](./docs/GOALS.md)                    | 目標体系                                                            |
 | [docs/adr/](./docs/adr/)                            | Architecture Decision Records(設計判断の言語化、5 本)              |
