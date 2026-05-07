@@ -22,9 +22,11 @@ disable-model-invocation: true
    - **対象環境**: ローカル実行 / プロジェクトが React でない可能性を先に確認
 
 2. **react-doctor を実行** — プロジェクトルートから:
+
    ```bash
    npx -y react-doctor@latest .
    ```
+
    - スコープ絞り: `--changed`
    - 機械可読: `--json`
    - 最新フラグは `npx -y react-doctor@latest --help` で確認
@@ -43,17 +45,21 @@ disable-model-invocation: true
 # react-doctor: <スコア>/100
 
 ## 最優先で直したい指摘
+
 1. **<file.tsx:line>** — <問題サマリ>
    <1 行修正案>
 2. ...
 
 ## 優先度低
+
 - <file:line> — <問題>（修正は任意）
 
 ## 健全な点
+
 <監査が良好と判定したもの — 水増しせず簡潔に>
 
 ## 詳細を再取得するなら
+
 `npx -y react-doctor@latest --json .` で機械可読フルレポート。
 ```
 

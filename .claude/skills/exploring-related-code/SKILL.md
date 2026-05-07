@@ -46,6 +46,7 @@ disable-model-invocation: true
 # 探索対象: <機能/領域名>
 
 ## アーキテクチャ
+
 <1 段落: SPA / モノレポ / RSC など、主要 FW、パッケージマネージャ>
 
 ## 構成
@@ -53,10 +54,10 @@ disable-model-invocation: true
 \`\`\`
 project/
 ├── src/
-│   ├── components/    # 表示用 UI 部品
-│   ├── features/      # 機能スコープのロジック
-│   ├── hooks/         # 共有フック
-│   └── api/           # API クライアント + 型
+│ ├── components/ # 表示用 UI 部品
+│ ├── features/ # 機能スコープのロジック
+│ ├── hooks/ # 共有フック
+│ └── api/ # API クライアント + 型
 └── tests/
 \`\`\`
 
@@ -64,15 +65,17 @@ project/
 
 \`\`\`mermaid
 flowchart LR
-  components --> hooks
-  features --> components
-  features --> api
+components --> hooks
+features --> components
+features --> api
 \`\`\`
 
 ## 知っておくべき規約
+
 - <事項>: <場所>
 
 ## どこから読み始めるか
+
 1. `<エントリポイント>` — 機能ブート
 2. `<主要 feature フォルダ>` — 1 機能を端から端まで
 3. `<テストセットアップ>` — テスト方針

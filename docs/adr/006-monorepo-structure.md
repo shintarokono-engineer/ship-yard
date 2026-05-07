@@ -79,10 +79,10 @@ apps/api/src/db/client.ts       # API 内のみで利用
 
 加えて `apps/` と `packages/` の責務分担を以下とする:
 
-| 階層        | 性質                                              | 配置されるもの                              |
-| ----------- | ------------------------------------------------- | ------------------------------------------- |
-| `apps/`     | **実行可能アプリケーション**(プロセスを起動)    | `apps/web`(Next.js)、`apps/api`(NestJS) |
-| `packages/` | **共有ライブラリ**(他から import される)       | `packages/db`、`packages/ui`、`packages/types` |
+| 階層        | 性質                                         | 配置されるもの                                 |
+| ----------- | -------------------------------------------- | ---------------------------------------------- |
+| `apps/`     | **実行可能アプリケーション**(プロセスを起動) | `apps/web`(Next.js)、`apps/api`(NestJS)        |
+| `packages/` | **共有ライブラリ**(他から import される)     | `packages/db`、`packages/ui`、`packages/types` |
 
 依存方向は `apps/* → packages/*` の片方向のみとし、`apps/* → apps/*` および `packages/* → apps/*` は禁止する。
 

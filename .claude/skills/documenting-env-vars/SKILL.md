@@ -24,6 +24,7 @@ disable-model-invocation: true
    - **取得方法の記載**: 必要 / 不要（インフラ管轄なので別ドキュメント）
 
 2. **対象ファイルを読み込み**:
+
    ```
    .env.example
    .env.sample
@@ -52,22 +53,22 @@ disable-model-invocation: true
 
 ## 必須
 
-| 変数名 | 用途 | 取得方法 | 例 |
-|---|---|---|---|
-| `DATABASE_URL` | DB 接続文字列 | 社内 vault: `<path>` | `postgres://localhost:5432/dev` |
-| `API_KEY_X` | 外部 API X の認証 | 個人で <URL> から生成 | `xxx****` |
+| 変数名         | 用途              | 取得方法              | 例                              |
+| -------------- | ----------------- | --------------------- | ------------------------------- |
+| `DATABASE_URL` | DB 接続文字列     | 社内 vault: `<path>`  | `postgres://localhost:5432/dev` |
+| `API_KEY_X`    | 外部 API X の認証 | 個人で <URL> から生成 | `xxx****`                       |
 
 ## 任意
 
-| 変数名 | 用途 | デフォルト | 例 |
-|---|---|---|---|
-| `LOG_LEVEL` | ログレベル | `info` | `debug` |
-| `PORT` | サーバーポート | `3000` | `8080` |
+| 変数名      | 用途           | デフォルト | 例      |
+| ----------- | -------------- | ---------- | ------- |
+| `LOG_LEVEL` | ログレベル     | `info`     | `debug` |
+| `PORT`      | サーバーポート | `3000`     | `8080`  |
 
 ## 環境別の差分
 
-| 変数名 | dev | staging | production |
-|---|---|---|---|
+| 変数名         | dev              | staging                   | production        |
+| -------------- | ---------------- | ------------------------- | ----------------- |
 | `API_BASE_URL` | `localhost:3001` | `staging.api.example.com` | `api.example.com` |
 
 ## セットアップ手順

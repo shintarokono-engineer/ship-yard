@@ -529,16 +529,16 @@ model InvitationToken {
 
 ### 主要なインデックス
 
-| テーブル      | インデックス                   | 用途                                 |
-| ------------- | ------------------------------ | ------------------------------------ |
-| Tenant        | slug                           | サブパス `/w/{slug}` からの解決      |
-| TenantMember  | (tenantId, userId) PK          | テナント所属チェック                 |
-| TenantMember  | userId                         | ユーザーの所属テナント一覧           |
-| Project       | (tenantId, status)             | ダッシュボードでのステータス絞り込み |
-| ChecklistItem | (projectId, position)          | チェックリストの順序保証付き取得     |
-| ProjectDocument    | (projectId, type, version)     | 文書タイプ別最新版取得               |
-| AIUsage       | (tenantId, createdAt)          | 月次集計の高速化                     |
-| AIUsage       | (tenantId, feature, createdAt) | 機能別の使用量分析                   |
+| テーブル        | インデックス                   | 用途                                 |
+| --------------- | ------------------------------ | ------------------------------------ |
+| Tenant          | slug                           | サブパス `/w/{slug}` からの解決      |
+| TenantMember    | (tenantId, userId) PK          | テナント所属チェック                 |
+| TenantMember    | userId                         | ユーザーの所属テナント一覧           |
+| Project         | (tenantId, status)             | ダッシュボードでのステータス絞り込み |
+| ChecklistItem   | (projectId, position)          | チェックリストの順序保証付き取得     |
+| ProjectDocument | (projectId, type, version)     | 文書タイプ別最新版取得               |
+| AIUsage         | (tenantId, createdAt)          | 月次集計の高速化                     |
+| AIUsage         | (tenantId, feature, createdAt) | 機能別の使用量分析                   |
 
 ### pgvector インデックス
 

@@ -14,18 +14,18 @@
 
 ## 技術スタック
 
-| 領域                | 採用                                                            |
-| ------------------- | --------------------------------------------------------------- |
-| フロントエンド      | Next.js (App Router) + TypeScript + Tailwind CSS                |
-| バックエンド        | NestJS + Prisma                                                 |
-| データベース        | PostgreSQL 16 + pgvector                                        |
-| 認証                | Clerk                                                           |
-| 決済                | Stripe Subscriptions                                            |
-| AI                  | Anthropic API(Claude Sonnet 4 + Haiku 4.5)                     |
-| キュー / キャッシュ | Redis(ElastiCache)+ BullMQ                                     |
-| ストレージ          | AWS S3                                                          |
+| 領域                | 採用                                                        |
+| ------------------- | ----------------------------------------------------------- |
+| フロントエンド      | Next.js (App Router) + TypeScript + Tailwind CSS            |
+| バックエンド        | NestJS + Prisma                                             |
+| データベース        | PostgreSQL 16 + pgvector                                    |
+| 認証                | Clerk                                                       |
+| 決済                | Stripe Subscriptions                                        |
+| AI                  | Anthropic API(Claude Sonnet 4 + Haiku 4.5)                  |
+| キュー / キャッシュ | Redis(ElastiCache)+ BullMQ                                  |
+| ストレージ          | AWS S3                                                      |
 | インフラ            | Vercel(Web)+ AWS ECS Fargate(API)+ RDS Aurora Serverless v2 |
-| Monorepo            | Turborepo + pnpm                                                |
+| Monorepo            | Turborepo + pnpm                                            |
 
 詳細は [docs/adr/001-tech-stack.md](./docs/adr/001-tech-stack.md) を参照してください。
 
@@ -60,17 +60,17 @@ pnpm dev
 
 ## ドキュメント
 
-| ファイル                                            | 内容                                                                |
-| --------------------------------------------------- | ------------------------------------------------------------------- |
-| [docs/OVERVIEW.md](./docs/OVERVIEW.md)              | プロダクト概要(まずこれを読めば全体像が掴める)                    |
+| ファイル                                           | 内容                                                                   |
+| -------------------------------------------------- | ---------------------------------------------------------------------- |
+| [docs/OVERVIEW.md](./docs/OVERVIEW.md)             | プロダクト概要(まずこれを読めば全体像が掴める)                         |
 | [docs/PROJECT_STATUS.md](./docs/PROJECT_STATUS.md) | プロジェクト全体の状況・決定事項・ロードマップ(Single Source of Truth) |
-| [docs/GOALS.md](./docs/GOALS.md)                    | 目標体系                                                            |
-| [docs/adr/](./docs/adr/)                            | Architecture Decision Records(設計判断の言語化、5 本)              |
-| [docs/data-model.md](./docs/data-model.md)          | ER 図 + Prisma スキーマ + インデックス戦略                          |
-| [docs/architecture.md](./docs/architecture.md)      | C4 Context / Container + AWS デプロイ構成                           |
-| [docs/screen-flow.md](./docs/screen-flow.md)        | 6 つの主要ユーザーフロー(オンボーディング・招待・課金 等)          |
-| [docs/api.md](./docs/api.md)                        | API 仕様(OpenAPI 自動生成)                                        |
-| [docs/deployment.md](./docs/deployment.md)          | デプロイ手順                                                        |
+| [docs/GOALS.md](./docs/GOALS.md)                   | 目標体系                                                               |
+| [docs/adr/](./docs/adr/)                           | Architecture Decision Records(設計判断の言語化、5 本)                  |
+| [docs/data-model.md](./docs/data-model.md)         | ER 図 + Prisma スキーマ + インデックス戦略                             |
+| [docs/architecture.md](./docs/architecture.md)     | C4 Context / Container + AWS デプロイ構成                              |
+| [docs/screen-flow.md](./docs/screen-flow.md)       | 6 つの主要ユーザーフロー(オンボーディング・招待・課金 等)              |
+| [docs/api.md](./docs/api.md)                       | API 仕様(OpenAPI 自動生成)                                             |
+| [docs/deployment.md](./docs/deployment.md)         | デプロイ手順                                                           |
 
 ## ライセンス
 

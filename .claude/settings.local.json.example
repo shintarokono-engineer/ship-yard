@@ -3,10 +3,7 @@
   "_comment": "Copy to settings.local.json (already gitignored). Personal overrides only — do not commit. Examples below.",
 
   "_example_permissions": {
-    "allow": [
-      "Bash(docker *)",
-      "Bash(make *)"
-    ]
+    "allow": ["Bash(docker *)", "Bash(make *)"]
   },
 
   "_example_env": {

@@ -36,6 +36,7 @@ model: sonnet
 ## 出力
 
 書き終えたら:
+
 ```
 ## 追加したテスト
 - file.test.ts: <N> tests — <1 行サマリ>

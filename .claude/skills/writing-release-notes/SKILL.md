@@ -25,6 +25,7 @@ disable-model-invocation: true
    - **出力形式**: Markdown（CHANGELOG.md 用） / プレーンテキスト（Slack/メール） / 両方
 
 2. **履歴取得**:
+
    ```bash
    git log <prev-tag>..HEAD --oneline
    git log <prev-tag>..HEAD --format="%H %s%n%b"
@@ -57,24 +58,31 @@ disable-model-invocation: true
 ## <version> — <YYYY-MM-DD>
 
 ### Breaking changes
+
 - <変更>: <影響>。<移行手順>
 
 ### Features
+
 - <機能>: <ユーザー視点の説明>
 
 ### Improvements
+
 - <改善>
 
 ### Bug fixes
+
 - <修正>
 
 ### Deprecations
+
 - <非推奨化>: <代替> に置き換え予定（<削除予定バージョン>）
 
 ### Security
+
 - <修正内容>（CVE があれば併記）
 
 ### Known issues
+
 - <既知の問題>: <ワークアラウンド>
 ```
 

@@ -23,6 +23,7 @@ disable-model-invocation: true
    - **緊急度**: 当日中 / 数日OK
 
 2. **コメント取得**:
+
    ```bash
    gh pr view <num> --comments
    gh api repos/<owner>/<repo>/pulls/<num>/comments
@@ -52,15 +53,18 @@ disable-model-invocation: true
 # PR #<num> レビュー対応
 
 ## サマリ
+
 - コメント数: <N> ([修正] X, [反論] Y, [質問] Z, [別PR] W, [既対応] V)
 
 ## [修正]
 
 ### <file:line> @reviewer
+
 > <元コメント要約>
 
 **対応**: <修正方針>
 **返信案**:
+
 > 修正します。<追加コメントあれば>
 
 ### ...
@@ -68,35 +72,43 @@ disable-model-invocation: true
 ## [反論]
 
 ### <file:line> @reviewer
+
 > <元コメント要約>
 
 **理由**: <なぜ反論するか、根拠>
 **返信案**:
+
 > <丁寧な反論文。代替案を含む>
 
 ## [質問]
 
 ### <file:line> @reviewer
+
 > <元コメント要約>
 
 **確認したいこと**: <質問の要点>
 **返信案**:
+
 > <YES/NO で答えやすい質問形式>
 
 ## [別PR]
 
 ### <file:line> @reviewer
+
 > <元コメント要約>
 
 **返信案**:
+
 > 同意します。スコープ外なので別 PR (<issue-id>) で対応します。
 
 ## [既対応]
 
 ### <file:line>
+
 **返信案**: 修正済みです（commit <sha>）
 
 ## 修正実装の優先順位
+
 1. <file>: <修正内容> — blocker
 2. <file>: <修正内容> — nit
 ```

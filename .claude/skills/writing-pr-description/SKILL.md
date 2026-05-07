@@ -25,6 +25,7 @@ disable-model-invocation: true
    - **関連リンク**: チケット ID / Figma / ADR / 他 PR
 
 2. **差分とコミット履歴を取得**:
+
    ```bash
    git diff <base>...HEAD --stat
    git log <base>..HEAD --oneline

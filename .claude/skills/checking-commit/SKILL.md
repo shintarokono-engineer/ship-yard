@@ -26,10 +26,12 @@ disable-model-invocation: true
    - 非 JS: `pyproject.toml`（ruff/mypy/pytest）, `Cargo.toml`（clippy/cargo test）, `go.mod`（go vet/go test）
 
 3. **何が変わったかを特定**:
+
    ```bash
    git diff --name-only --staged       # ステージあり
    git diff --name-only                  # なければ作業ツリー差分
    ```
+
    どちらも空なら「チェック対象なし」と報告して終わる。
 
 4. **チェックを実行**（変更ファイルにスコープを絞る）:
@@ -39,12 +41,14 @@ disable-model-invocation: true
    - **テスト** — `npm test -- --findRelatedTests <files>`（Jest）/ `npx vitest run --related <files>`。関連検出ツールがなければ変更パッケージの全テストにフォールバック
 
 5. **シークレットスキャン** — 高リスクパターンを grep:
+
    ```
    AKIA[0-9A-Z]{16}             # AWS access key
    sk_live_[0-9a-zA-Z]{24,}     # Stripe live key
    ghp_[0-9a-zA-Z]{36}          # GitHub PAT
    -----BEGIN.*PRIVATE KEY-----
    ```
+
    加えて `.env*`, `*.pem`, `*.key` がステージされていないかをヒューリスティック確認。
 
 6. **巨大ファイルチェック** — 1 MB 超のステージ済みファイルを警告。
