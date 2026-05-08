@@ -1,0 +1,43 @@
+{
+  // ルート tsconfig.base.json を継承しつつ、Next.js 用に上書き
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // ===== Next.js 用の上書き =====
+
+    // Next.js は esnext モジュール + bundler 解決(NodeNext は Next と非互換)
+    "module": "esnext",
+    "moduleResolution": "bundler",
+
+    // ブラウザ向けなので DOM 型を追加
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+
+    // JSX は Next.js 側で変換するため preserve(コンパイラは型チェックのみ)
+    "jsx": "preserve",
+
+    // 型チェックのみ実施(ビルドは Next.js のバンドラに任せる)
+    "noEmit": true,
+
+    // 増分ビルドで tsc を高速化
+    "incremental": true,
+
+    // App Router で .tsx の React 19 の型推論が正しく効くよう許可
+    "allowJs": true,
+
+    // パスエイリアス: @/* → src/* (shadcn/ui 標準)
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
+    // Next.js プラグイン(型補完が効く)
+    "plugins": [{ "name": "next" }]
+  },
+  "include": [
+    "next-env.d.ts",
+    "next.config.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".next", "out"]
+}
