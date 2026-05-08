@@ -2,7 +2,7 @@
 
 個人開発者および小規模開発チーム(2〜10 人)向けの、「アイデア → 設計 → 開発 → リリース → 初期ユーザー獲得」までを一元管理する AI 支援付き B2B SaaS です。
 
-> **現在のステータス**: Week 1 / Day 3 完了(開発環境構築済み)。`apps/web`(Next.js)・`apps/api`(NestJS)の実コードは Day 4 以降に導入予定。
+> **現在のステータス**: Week 1 / Day 4 完了。`apps/web` に Next.js 15 + React 19 + Tailwind CSS v4 + shadcn/ui + Clerk 認証を統合済み。Vercel に Production / Preview の両方でデプロイ動作確認済み。`apps/api`(NestJS)+ `packages/db`(Prisma)は Day 5 で実装予定。
 
 ## 主要機能
 
@@ -37,7 +37,7 @@
 
 ## セットアップ
 
-### Day 3 完了時点で動作する手順
+### Day 4 完了時点で動作する手順
 
 ```bash
 # 1. リポジトリをクローン
@@ -52,29 +52,32 @@ pnpm install
 
 # 4. ローカル DB の起動(PostgreSQL 16 + pgvector)
 docker compose up -d
+docker compose ps   # postgres が "healthy" であることを確認
 
-# 5. ヘルスチェック
-docker compose ps   # postgres が "healthy" 状態であることを確認
+# 5. apps/web の環境変数を設定(Clerk)
+cp apps/web/.env.example apps/web/.env.local
+# apps/web/.env.local を編集して Clerk の publishable key / secret key を貼る
+# (https://clerk.com で Application を作成して取得)
 
-# 6. lint と format チェック
+# 6. lint / format / type-check
 pnpm lint
 pnpm format:check
+pnpm --filter @shipyard/web type-check
+
+# 7. 開発サーバー起動 → http://localhost:3000
+pnpm --filter @shipyard/web dev
 ```
 
-### Day 4 以降に動作するようになる手順
+### Day 5 以降で追加される予定の手順
 
-> 以下は Next.js / NestJS / Prisma 雛形が導入された後で動作します。
+> NestJS(`apps/api`) と Prisma(`packages/db`) が導入された後で動作します。
 
 ```bash
-# 環境変数設定(.env.example は Day 4 で作成予定)
-cp .env.example .env.local
-# .env.local を編集し、Clerk / Stripe / Anthropic の各 API キーを設定
-
 # DB マイグレーション + Seed(Day 5 以降)
 pnpm db:migrate
 pnpm db:seed
 
-# 開発サーバー起動(Day 4 以降)
+# Web + API を同時起動(Day 5 以降)
 pnpm dev
 ```
 
@@ -84,29 +87,33 @@ pnpm dev
 
 ルート `package.json` 経由で実行可能なコマンド:
 
-| コマンド            | 内容                                                     |
-| ------------------- | -------------------------------------------------------- |
-| `pnpm install`      | 全 workspace の依存をインストール                        |
-| `pnpm lint`         | ESLint(`eslint .`)を実行                                 |
-| `pnpm lint:fix`     | ESLint の自動修正(`eslint . --fix`)                      |
-| `pnpm format`       | Prettier で自動整形(`prettier --write .`)                |
-| `pnpm format:check` | Prettier の整形チェック(差分があれば exit 1)             |
-| `pnpm build`        | Turborepo 経由で全 workspace の build を実行(Day 4 以降) |
-| `pnpm dev`          | Turborepo 経由で全 workspace の dev を起動(Day 4 以降)   |
-| `pnpm test`         | Turborepo 経由で全 workspace の test を実行(Day 4 以降)  |
+| コマンド                                 | 内容                                                                       |
+| ---------------------------------------- | -------------------------------------------------------------------------- |
+| `pnpm install`                           | 全 workspace の依存をインストール                                          |
+| `pnpm lint`                              | ESLint(`eslint .`)を実行                                                   |
+| `pnpm lint:fix`                          | ESLint の自動修正(`eslint . --fix`)                                        |
+| `pnpm format`                            | Prettier で自動整形(`prettier --write .`)                                  |
+| `pnpm format:check`                      | Prettier の整形チェック(差分があれば exit 1)                               |
+| `pnpm build`                             | Turborepo 経由で全 workspace の build を実行(現状 `apps/web` のみ対象)     |
+| `pnpm dev`                               | Turborepo 経由で全 workspace の dev を起動(NestJS は Day 5 以降で参加)     |
+| `pnpm test`                              | Turborepo 経由で全 workspace の test を実行(テスト雛形は Day 5 以降で導入) |
+| `pnpm --filter @shipyard/web dev`        | `apps/web` だけを起動(http://localhost:3000)                               |
+| `pnpm --filter @shipyard/web build`      | `apps/web` だけを Production build                                         |
+| `pnpm --filter @shipyard/web type-check` | `apps/web` の TypeScript 型チェック(`tsc --noEmit`)                        |
 
 ## モノレポ構造
 
 ```
 ship-yard/
 ├── apps/
-│   ├── web/        @shipyard/web   - Next.js フロントエンド(Day 4 で実装)
-│   └── api/        @shipyard/api   - NestJS バックエンド(Day 4 で実装)
+│   ├── web/        @shipyard/web   - Next.js 15 + Tailwind v4 + shadcn/ui + Clerk(Day 4 完了)
+│   └── api/        @shipyard/api   - NestJS バックエンド(Day 5 で実装)
 ├── packages/
 │   ├── db/         @shipyard/db    - Prisma スキーマ + Client(Day 5 で実装)
-│   ├── ui/         @shipyard/ui    - 共通 UI(shadcn/ui ベース、Day 4-5 で実装)
-│   └── types/      @shipyard/types - フロント↔バック共有型定義
+│   ├── ui/         @shipyard/ui    - 共通 UI(packages/ui への切り出しは Day 5 以降)
+│   └── types/      @shipyard/types - フロント↔バック共有型定義(Day 5 以降)
 ├── docs/                            - 設計・運用ドキュメント
+├── .vscode/                         - 推奨 IDE 設定(Tailwind v4 at-rule の警告抑制等)
 └── docker-compose.yml               - ローカル DB(PostgreSQL + pgvector)
 ```
 
@@ -123,7 +130,7 @@ ship-yard/
 | [docs/data-model.md](./docs/data-model.md)         | ER 図 + Prisma スキーマ + インデックス戦略                             |
 | [docs/architecture.md](./docs/architecture.md)     | C4 Context / Container + AWS デプロイ構成                              |
 | [docs/screen-flow.md](./docs/screen-flow.md)       | 6 つの主要ユーザーフロー(オンボーディング・招待・課金 等)              |
-| [docs/setup-vercel.md](./docs/setup-vercel.md)     | Vercel セットアップ手順(Day 4 で実行)                                  |
+| [docs/setup-vercel.md](./docs/setup-vercel.md)     | Vercel セットアップ手順(Day 4 で実行済み)                              |
 
 ## CI
 
