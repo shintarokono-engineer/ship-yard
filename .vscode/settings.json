@@ -1,0 +1,5 @@
+{
+  // Tailwind CSS v4 の `@theme` / `@custom-variant` / `@apply` 等は
+  // VS Code 標準 CSS 言語サーバーが「Unknown at rule」と誤検知するため抑制
+  "css.lint.unknownAtRules": "ignore"
+}
