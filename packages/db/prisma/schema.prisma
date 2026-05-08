@@ -1,0 +1,27 @@
+// Shipyard データベーススキーマ(ADR-002 / docs/data-model.md)
+//
+// 現在は Day 5 Task 8 の動作確認用に最小モデル 1 個のみ。
+// Task 9 で docs/data-model.md の全モデルに置き換える。
+
+generator client {
+  provider        = "prisma-client-js"
+  // pgvector 拡張(ADR-005、RAG 用)を Prisma 側でも認識させるための preview
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  // pgvector 拡張を Prisma migrate が自動で CREATE EXTENSION してくれる
+  extensions = [vector]
+}
+
+// ----------------------------------------------------------------------------
+// 動作確認用モデル(Task 9 で全置換)
+// ----------------------------------------------------------------------------
+
+/// Day 5 Task 8 で prisma generate が通ることを確認するための一時モデル
+model HealthCheck {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+}
