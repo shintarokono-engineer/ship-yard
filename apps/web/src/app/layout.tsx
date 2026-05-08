@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { ClerkProvider } from '@clerk/nextjs';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -13,8 +14,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja">
-      <body className="antialiased">{children}</body>
-    </html>
+    <ClerkProvider>
+      <html lang="ja">
+        {/* ブラウザ拡張(ColorZilla 等)が body に属性注入することによる
+            hydration mismatch を抑制(1 階層のみ。子要素の警告は引き続き出る) */}
+        <body className="antialiased" suppressHydrationWarning>
+          {children}
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
