@@ -21,9 +21,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup pnpm
+        # version は package.json の `packageManager` フィールドから自動取得
+        # (action-setup v4 では明示指定すると packageManager と二重管理エラーになる)
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
