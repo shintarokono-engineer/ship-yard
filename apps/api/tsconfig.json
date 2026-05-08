@@ -1,0 +1,38 @@
+{
+  // ルート tsconfig.base.json を継承しつつ、NestJS 用に上書き
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // ===== NestJS 用の上書き =====
+
+    // NestJS 標準の CommonJS(decorator + DI が最も安定動作)
+    "module": "commonjs",
+    "moduleResolution": "node",
+
+    // Decorator サポート(NestJS の DI / @Controller / @Module 等で必須)
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    // 出力先と挙動
+    "outDir": "./dist",
+    "noEmit": false,
+    "sourceMap": true,
+    "declaration": false,
+    "removeComments": true,
+    "incremental": true,
+
+    // CommonJS で `import x from 'y'` を許可
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+
+    // NestJS の DI コンストラクタ注入で「定義時の代入」が省略できるように
+    // (例: constructor(private readonly svc: SomeService) {} の svc が undefined 初期化扱いされない)
+    "strictPropertyInitialization": false,
+
+    // pnpm のシンボリックリンク構造下で IDE 側の TS Server が @types を auto-discovery
+    // できない事象があるため、明示する(CLI tsc は問題なく解決できるが、IDE 表示の安定化目的)。
+    // 必要な型パッケージを増やしたら、ここに追記する
+    "types": ["node", "express"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
