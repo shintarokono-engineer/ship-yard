@@ -14,18 +14,18 @@
 
 ## 技術スタック
 
-| 領域                | 採用                                                              |
-| ------------------- | ----------------------------------------------------------------- |
-| フロントエンド      | Next.js (App Router) + TypeScript + Tailwind CSS + shadcn/ui      |
-| バックエンド        | NestJS + Prisma                                                   |
-| データベース        | PostgreSQL 16 + pgvector                                          |
-| 認証                | Clerk                                                             |
-| 決済                | Stripe Subscriptions                                              |
-| AI                  | Anthropic API(Claude Sonnet 4 + Haiku 4.5)                        |
-| キュー / キャッシュ | Redis(ElastiCache)+ BullMQ                                        |
-| ストレージ          | AWS S3                                                            |
-| インフラ            | Vercel(Web)+ AWS ECS Fargate(API)+ RDS Aurora Serverless v2     |
-| Monorepo            | Turborepo + pnpm                                                  |
+| 領域                | 採用                                                         |
+| ------------------- | ------------------------------------------------------------ |
+| フロントエンド      | Next.js (App Router) + TypeScript + Tailwind CSS + shadcn/ui |
+| バックエンド        | NestJS + Prisma                                              |
+| データベース        | PostgreSQL 16 + pgvector                                     |
+| 認証                | Clerk                                                        |
+| 決済                | Stripe Subscriptions                                         |
+| AI                  | Anthropic API(Claude Sonnet 4 + Haiku 4.5)                   |
+| キュー / キャッシュ | Redis(ElastiCache)+ BullMQ                                   |
+| ストレージ          | AWS S3                                                       |
+| インフラ            | Vercel(Web)+ AWS ECS Fargate(API)+ RDS Aurora Serverless v2  |
+| Monorepo            | Turborepo + pnpm                                             |
 
 詳細は [docs/adr/001-tech-stack.md](./docs/adr/001-tech-stack.md) を参照してください。
 
@@ -84,16 +84,16 @@ pnpm dev
 
 ルート `package.json` 経由で実行可能なコマンド:
 
-| コマンド             | 内容                                                          |
-| -------------------- | ------------------------------------------------------------- |
-| `pnpm install`       | 全 workspace の依存をインストール                            |
-| `pnpm lint`          | ESLint(`eslint .`)を実行                                     |
-| `pnpm lint:fix`      | ESLint の自動修正(`eslint . --fix`)                         |
-| `pnpm format`        | Prettier で自動整形(`prettier --write .`)                  |
-| `pnpm format:check`  | Prettier の整形チェック(差分があれば exit 1)               |
-| `pnpm build`         | Turborepo 経由で全 workspace の build を実行(Day 4 以降)  |
-| `pnpm dev`           | Turborepo 経由で全 workspace の dev を起動(Day 4 以降)    |
-| `pnpm test`          | Turborepo 経由で全 workspace の test を実行(Day 4 以降)   |
+| コマンド            | 内容                                                     |
+| ------------------- | -------------------------------------------------------- |
+| `pnpm install`      | 全 workspace の依存をインストール                        |
+| `pnpm lint`         | ESLint(`eslint .`)を実行                                 |
+| `pnpm lint:fix`     | ESLint の自動修正(`eslint . --fix`)                      |
+| `pnpm format`       | Prettier で自動整形(`prettier --write .`)                |
+| `pnpm format:check` | Prettier の整形チェック(差分があれば exit 1)             |
+| `pnpm build`        | Turborepo 経由で全 workspace の build を実行(Day 4 以降) |
+| `pnpm dev`          | Turborepo 経由で全 workspace の dev を起動(Day 4 以降)   |
+| `pnpm test`         | Turborepo 経由で全 workspace の test を実行(Day 4 以降)  |
 
 ## モノレポ構造
 
@@ -116,14 +116,14 @@ ship-yard/
 
 | ファイル                                           | 内容                                                                   |
 | -------------------------------------------------- | ---------------------------------------------------------------------- |
-| [docs/OVERVIEW.md](./docs/OVERVIEW.md)             | プロダクト概要(まずこれを読めば全体像が掴める)                       |
+| [docs/OVERVIEW.md](./docs/OVERVIEW.md)             | プロダクト概要(まずこれを読めば全体像が掴める)                         |
 | [docs/PROJECT_STATUS.md](./docs/PROJECT_STATUS.md) | プロジェクト全体の状況・決定事項・ロードマップ(Single Source of Truth) |
 | [docs/GOALS.md](./docs/GOALS.md)                   | 目標体系                                                               |
-| [docs/adr/](./docs/adr/)                           | Architecture Decision Records(設計判断の言語化、6 本)                |
+| [docs/adr/](./docs/adr/)                           | Architecture Decision Records(設計判断の言語化、6 本)                  |
 | [docs/data-model.md](./docs/data-model.md)         | ER 図 + Prisma スキーマ + インデックス戦略                             |
 | [docs/architecture.md](./docs/architecture.md)     | C4 Context / Container + AWS デプロイ構成                              |
-| [docs/screen-flow.md](./docs/screen-flow.md)       | 6 つの主要ユーザーフロー(オンボーディング・招待・課金 等)             |
-| [docs/setup-vercel.md](./docs/setup-vercel.md)     | Vercel セットアップ手順(Day 4 で実行)                              |
+| [docs/screen-flow.md](./docs/screen-flow.md)       | 6 つの主要ユーザーフロー(オンボーディング・招待・課金 等)              |
+| [docs/setup-vercel.md](./docs/setup-vercel.md)     | Vercel セットアップ手順(Day 4 で実行)                                  |
 
 ## CI
 

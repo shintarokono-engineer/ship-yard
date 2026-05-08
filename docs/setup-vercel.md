@@ -39,12 +39,12 @@
 
 #### Build & Development Settings
 
-| 項目                  | 値                                                              | 備考                                                                  |
-| --------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------- |
-| Build Command         | `cd ../.. && pnpm turbo run build --filter=@shipyard/web`     | Turborepo ルートからフィルタビルド                                  |
-| Output Directory      | `.next`(デフォルト)                                          | Next.js 標準                                                          |
-| Install Command       | `cd ../.. && pnpm install --frozen-lockfile`                   | モノレポルートで pnpm install                                        |
-| Development Command   | `pnpm dev`                                                      | `vercel dev` 用(任意)                                              |
+| 項目                | 値                                                        | 備考                               |
+| ------------------- | --------------------------------------------------------- | ---------------------------------- |
+| Build Command       | `cd ../.. && pnpm turbo run build --filter=@shipyard/web` | Turborepo ルートからフィルタビルド |
+| Output Directory    | `.next`(デフォルト)                                       | Next.js 標準                       |
+| Install Command     | `cd ../.. && pnpm install --frozen-lockfile`              | モノレポルートで pnpm install      |
+| Development Command | `pnpm dev`                                                | `vercel dev` 用(任意)              |
 
 > 上記 Build Command / Install Command は明示的に書く形で記載しています。Vercel のモノレポ自動検出に任せても動く可能性がありますが、**明示する方が事故が少ない** ため推奨します。
 
@@ -52,11 +52,11 @@
 
 Day 4 で Clerk 統合する際に以下を Vercel ダッシュボードに登録:
 
-| 変数名                            | スコープ            | 用途                                |
-| --------------------------------- | ------------------- | ----------------------------------- |
+| 変数名                              | スコープ             | 用途                               |
+| ----------------------------------- | -------------------- | ---------------------------------- |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Production / Preview | Clerk のクライアント側キー         |
-| `CLERK_SECRET_KEY`                | Production / Preview | Clerk のサーバー側シークレットキー |
-| `CLERK_WEBHOOK_SECRET`            | Production          | Clerk Webhook 検証用                |
+| `CLERK_SECRET_KEY`                  | Production / Preview | Clerk のサーバー側シークレットキー |
+| `CLERK_WEBHOOK_SECRET`              | Production           | Clerk Webhook 検証用               |
 
 > `NEXT_PUBLIC_` プレフィックス付きのみブラウザに公開される。シークレット系には絶対に付けないこと。
 
