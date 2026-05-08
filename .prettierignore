@@ -13,3 +13,7 @@ pnpm-lock.yaml
 
 # Claude Code outputs
 .claude/output
+
+# 自動生成ファイル(整形は生成元ツールに委ねる)
+**/*.generated.md
+packages/db/prisma/migrations

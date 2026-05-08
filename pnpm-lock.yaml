@@ -122,9 +122,6 @@ importers:
         specifier: ^6.0.0
         version: 6.19.3(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3)
     devDependencies:
-      '@mermaid-js/mermaid-cli':
-        specifier: ^11.0.0
-        version: 11.14.0(@types/react@19.2.14)(puppeteer@24.43.0(typescript@5.9.3))
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.18

@@ -10,16 +10,15 @@ generator client {
   previewFeatures = ["postgresqlExtensions"]
 }
 
-// schema 変更時に SVG 形式の ER 図を自動生成。docs/data-model.svg はリポジトリ内で
-// そのまま開いてビジュアル確認できる(GitHub もインライン表示する)。
-// 内部で Mermaid CLI(mmdc + Puppeteer)を使うため node_modules がやや重くなるが、
-// ローカル / レビュー時の即時可視化のメリットを優先。
+// schema 変更時に Mermaid 形式の ER 図(Markdown)を自動生成。
+// docs/data-model-erd.generated.md は GitHub 上でインラインレンダーされ、
+// VS Code でも Markdown プレビューで Mermaid 図として表示される。
 //
 // docs/data-model.md の手動 Mermaid セクションが SSoT(セマンティックなラベル付き)、
 // 本ファイルは schema との整合性を保証する補助資料。
 generator erd {
   provider = "prisma-erd-generator"
-  output   = "../../../docs/data-model.svg"
+  output   = "../../../docs/data-model-erd.generated.md"
   theme    = "neutral"
 }
 
