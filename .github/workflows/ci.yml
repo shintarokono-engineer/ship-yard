@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
 
 # 同じブランチで連続して push された場合、古い実行をキャンセル
 concurrency:

@@ -127,7 +127,7 @@ ship-yard/
 
 ## CI
 
-GitHub Actions で `master` への push と PR ごとに自動実行:
+GitHub Actions で `main` への push と PR ごとに自動実行:
 
 - ESLint チェック
 - Prettier フォーマットチェック
