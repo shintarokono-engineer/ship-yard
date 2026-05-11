@@ -17,3 +17,6 @@ export { PrismaClient } from '@prisma/client';
 
 // マルチテナントのリクエストコンテキスト(ADR-002)
 export { runWithTenant, getTenantId, getTenantIdOrThrow } from './tenant-context';
+
+// マルチテナント分離のための Prisma Client Extension(ADR-002)
+export { tenantExtension } from './tenant-extension';
