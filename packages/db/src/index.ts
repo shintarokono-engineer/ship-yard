@@ -13,3 +13,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 export type { Prisma } from '@prisma/client';
+export { PrismaClient } from '@prisma/client';
+
+// マルチテナントのリクエストコンテキスト(ADR-002)
+export { runWithTenant, getTenantId, getTenantIdOrThrow } from './tenant-context';

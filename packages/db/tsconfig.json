@@ -2,10 +2,14 @@
   // ルート tsconfig.base.json を継承
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    // Prisma Client はランタイム JS なので、apps/api(commonjs)からも apps/web(esnext)
-    // からも互換に import できる NodeNext を維持(base のまま)。
+    // packages/db は apps/api(CommonJS)からも apps/web からも import されるため、
+    // dist/ に JS + .d.ts を出力して「コンパイル済みパッケージ」として配布する。
     "outDir": "./dist",
-    "noEmit": true,
+    "rootDir": "./src",
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
     "incremental": true,
 
     // pnpm の symlink 構造下で IDE 側の TS Server が @types を auto-discovery
