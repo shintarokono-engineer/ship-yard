@@ -1,12 +1,18 @@
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 
 import { AppController } from './app.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { TenantMiddleware } from './tenant/tenant.middleware';
+import { WorkspacesController } from './workspaces/workspaces.controller';
 
 @Module({
-  imports: [PrismaModule],
-  controllers: [AppController],
+  imports: [
+    // .env.local を読んで process.env に展開(CLERK_SECRET_KEY / DATABASE_URL / PORT)
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env.local' }),
+    PrismaModule,
+  ],
+  controllers: [AppController, WorkspacesController],
   providers: [],
 })
 export class AppModule implements NestModule {
