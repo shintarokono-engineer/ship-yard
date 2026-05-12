@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 
 import { Plan, SubStatus } from '@shipyard/db';
 
+import { dayjs } from '../common/time';
 import { PrismaService } from '../prisma/prisma.service';
 import { type PaidPlan, StripeService } from '../stripe/stripe.service';
 import type { Stripe } from '../stripe/stripe.types';
@@ -136,8 +137,8 @@ export class BillingService {
     const item = sub.items.data[0];
     const plan: Plan = this.planForPriceId(item?.price?.id) ?? Plan.FREE;
     const status = this.mapStatus(sub.status);
-    const currentPeriodEnd = item ? new Date(item.current_period_end * 1000) : null;
-    const canceledAt = sub.canceled_at ? new Date(sub.canceled_at * 1000) : null;
+    const currentPeriodEnd = item ? dayjs.unix(item.current_period_end).toDate() : null;
+    const canceledAt = sub.canceled_at ? dayjs.unix(sub.canceled_at).toDate() : null;
     const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
 
     await this.prisma.subscription.upsert({
