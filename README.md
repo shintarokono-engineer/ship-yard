@@ -2,7 +2,7 @@
 
 個人開発者および小規模開発チーム(2〜10 人)向けの、「アイデア → 設計 → 開発 → リリース → 初期ユーザー獲得」までを一元管理する AI 支援付き B2B SaaS です。
 
-> **現在のステータス**: Week 1 / Day 6 完了。`apps/web`(Next.js 15 + Tailwind v4 + shadcn/ui + Clerk)+ `apps/api`(NestJS 11)+ `packages/db`(Prisma 6 / PostgreSQL 16 + pgvector)が稼働。マルチテナント基盤(Prisma Client Extension で `tenantId` 自動注入、`TenantMiddleware`、Clerk JWT Guard)+ Stripe 課金基盤(`POST /webhooks/stripe` の署名検証 + Idempotency、`BillingService` で Subscription / `Tenant.plan` 同期、`POST /workspaces/:slug/checkout-session`)実装済み・stripe-cli で E2E 確認済み。残りは Day 7(AI)。
+> **現在のステータス**: Week 1 完了(Day 7 完了)。`apps/web`(Next.js 15 + Tailwind v4 + shadcn/ui + Clerk)+ `apps/api`(NestJS 11)+ `packages/db`(Prisma 6 / PostgreSQL 16 + pgvector)が稼働。マルチテナント基盤(Prisma Client Extension で `tenantId` 自動注入、`TenantMiddleware`、Clerk JWT Guard)+ Stripe 課金基盤(Webhook 署名検証 + Idempotency、`BillingService` で Subscription / `Tenant.plan` 同期、Checkout)+ AI 基盤(Anthropic SDK、`AIUsage` 記録 + Free 月 20 回上限、`POST .../documents/generate` で Sonnet 4 + Tool Use による README/LP 生成)実装済み・実 API で E2E 確認済み。次は Week 2(コア機能 / RAG。Day 7 の embedding 挿入も繰越)。
 
 ## 主要機能
 
@@ -37,7 +37,7 @@
 
 ## セットアップ
 
-### Day 6 完了時点で動作する手順
+### Day 7 完了時点で動作する手順
 
 ```bash
 # 1. リポジトリをクローン
@@ -54,15 +54,16 @@ pnpm install
 docker compose up -d
 docker compose ps   # postgres が "healthy" であることを確認
 
-# 5. 環境変数を設定(Clerk / DB / Stripe)
+# 5. 環境変数を設定(Clerk / DB / Stripe / AI)
 cp apps/web/.env.example  apps/web/.env.local   # Clerk publishable/secret key, API_URL
-cp apps/api/.env.example  apps/api/.env.local   # DATABASE_URL, CLERK_SECRET_KEY, PORT, STRIPE_*, APP_BASE_URL
+cp apps/api/.env.example  apps/api/.env.local   # DATABASE_URL, CLERK_SECRET_KEY, PORT, STRIPE_*, APP_BASE_URL, ANTHROPIC_API_KEY
 cp packages/db/.env.example packages/db/.env    # DATABASE_URL(Prisma CLI 用)
 # 各 .env.local / .env を編集:
 #  - Clerk の API キー(https://clerk.com で Application を作成)
 #  - Stripe のシークレットキーと Price ID(https://dashboard.stripe.com、テストモード)。
 #    課金フローを動かさないなら .env.example のプレースホルダのままでも起動はする
 #  - STRIPE_WEBHOOK_SECRET は `stripe listen`(下記)の出力 whsec_... を貼る
+#  - ANTHROPIC_API_KEY(https://console.anthropic.com)。AI 機能を動かさないならプレースホルダのままでも起動はする
 
 # 6. DB マイグレーション適用 + Prisma Client 生成
 pnpm --filter @shipyard/db migrate:dev   # 初回は migrations/ を適用
@@ -127,7 +128,7 @@ Checkout の動作確認は `POST /workspaces/{slug}/checkout-session`(Clerk JWT
 ship-yard/
 ├── apps/
 │   ├── web/        @shipyard/web   - Next.js 15 + Tailwind v4 + shadcn/ui + Clerk(Day 4 完了)
-│   └── api/        @shipyard/api   - NestJS 11 + Prisma 統合 + TenantMiddleware + Clerk JWT Guard + Stripe(Webhook 署名検証 / Idempotency / Subscription 同期 / Checkout)(Day 6 完了)
+│   └── api/        @shipyard/api   - NestJS 11 + Prisma 統合 + TenantMiddleware + Clerk JWT Guard + Stripe(Webhook / Subscription 同期 / Checkout)+ AI(Anthropic SDK / AIUsage / README・LP 生成)(Day 7 完了)
 ├── packages/
 │   ├── db/         @shipyard/db    - Prisma 6 schema + Client + マイグレーション + tenant 分離 Extension(Day 5 完了)
 │   ├── ui/         @shipyard/ui    - 共通 UI(packages/ui への切り出しは Week 2 以降)
