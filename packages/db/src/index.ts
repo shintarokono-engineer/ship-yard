@@ -15,6 +15,19 @@ if (process.env.NODE_ENV !== 'production') {
 export type { Prisma } from '@prisma/client';
 export { PrismaClient } from '@prisma/client';
 
+// schema.prisma の enum 群(値 + 型)。アプリ側はマジック文字列ではなくこれを使う。
+export {
+  Plan,
+  Role,
+  ProjectStatus,
+  ItemStatus,
+  Category,
+  DocType,
+  Feature,
+  SubStatus,
+  WebhookStatus,
+} from '@prisma/client';
+
 // マルチテナントのリクエストコンテキスト(ADR-002)
 export { runWithTenant, getTenantId, getTenantIdOrThrow } from './tenant-context';
 

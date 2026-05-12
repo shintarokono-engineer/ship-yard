@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 
+import { Plan } from '@shipyard/db';
+
+/** 有料プラン(Free には Stripe の Price が無い) */
+export type PaidPlan = Exclude<Plan, typeof Plan.FREE>;
+
 /**
  * Stripe SDK クライアントのラッパー(ADR-004)。
  * - シークレットキー(`STRIPE_SECRET_KEY`)で初期化
@@ -16,13 +21,14 @@ export class StripeService {
   readonly client: Stripe.Stripe;
 
   constructor(private readonly config: ConfigService) {
-    // apiVersion は省略 = Stripe アカウントの既定バージョンに追従(MVP では十分。本番安定後に固定を検討)
+    // 【Stripe SDK 初期化】Stripe REST API への HTTP クライアント + Webhook 署名検証ヘルパーを兼ねる。
+    // apiVersion は省略 = Stripe アカウントの既定 API バージョンに追従(MVP では十分。本番安定後に固定を検討)。
     this.client = new Stripe(this.config.getOrThrow<string>('STRIPE_SECRET_KEY'));
   }
 
   /** Checkout の line_items に渡す Price ID をプランから解決する(FREE には Price が無い)。 */
-  priceIdForPlan(plan: 'PRO' | 'TEAM'): string {
-    const key = plan === 'PRO' ? 'STRIPE_PRICE_PRO' : 'STRIPE_PRICE_TEAM';
+  priceIdForPlan(plan: PaidPlan): string {
+    const key = plan === Plan.PRO ? 'STRIPE_PRICE_PRO' : 'STRIPE_PRICE_TEAM';
     return this.config.getOrThrow<string>(key);
   }
 
