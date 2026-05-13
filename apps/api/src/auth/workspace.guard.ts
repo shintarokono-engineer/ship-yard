@@ -10,22 +10,15 @@ import type { Request } from 'express';
 
 import type { Role } from '@shipyard/db';
 
-import { MembershipService, type WorkspaceAccess } from '../workspaces/membership.service';
+import { MembershipService } from '../workspaces/membership.service';
 import './auth-user';
 import { ROLES_KEY } from './roles';
-
-declare module 'express' {
-  interface Request {
-    /** `WorkspaceGuard` が解決した、現在のユーザーの当該ワークスペースに対するアクセス情報。 */
-    workspaceAccess?: WorkspaceAccess;
-  }
-}
 
 /**
  * `workspaces/:slug/...` 配下のルートに付ける Guard。前段の `ClerkAuthGuard` で認証済みである前提で:
  *  1. URL の `:slug` と Clerk ユーザー ID から `MembershipService.resolveAccess` で所属を解決(未所属 / slug 不在は 404)
  *  2. ハンドラ/コントローラに `@Roles(...)` があれば、`access.role` がそれに含まれるか検証(含まれなければ 403)
- *  3. 解決した `access` を `request.workspaceAccess` に載せる(ハンドラは `@CurrentWorkspace()` で取得)
+ *  3. 解決した `access` を `request.workspaceAccess` に載せる(`Request` 拡張は `./auth-user.ts`、ハンドラは `@CurrentWorkspace()` で取得)
  *
  * 使い方: `@UseGuards(ClerkAuthGuard, WorkspaceGuard)`(順序が重要 — `ClerkAuthGuard` が先で `request.user` をセットする)。
  */

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
-import type { DocType, Prisma } from '@shipyard/db';
+import { type DocType, isPrismaError, type Prisma, PrismaErrorCode } from '@shipyard/db';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectsService } from '../projects/projects.service';
@@ -52,9 +52,13 @@ export class DocumentsService {
     return document;
   }
 
+  /** `createDraft` の version 競合時に数え直す最大回数。 */
+  private static readonly CREATE_DRAFT_MAX_RETRIES = 3;
+
   /**
-   * AI が生成したドラフトを保存する。`version` は同一 type 内で v1, v2, ... と増加(schema コメント)。
-   * `embedding` は後続タスク(OpenAI text-embedding-3-small)で別途埋める。
+   * AI が生成したドラフトを保存する。`version` は同一 (projectId, type) 内で v1, v2, ... と増加
+   * (schema の `@@unique([projectId, type, version])` で担保。並行生成で同じ version を取り合った場合は
+   * P2002 になるので、数え直してリトライする)。`embedding` は後続タスク(OpenAI text-embedding-3-small)で別途埋める。
    */
   async createDraft(params: {
     tenantId: string;
@@ -64,20 +68,31 @@ export class DocumentsService {
     title: string;
     content: string;
   }) {
-    const priorCount = await this.prisma.projectDocument.count({
-      where: { tenantId: params.tenantId, projectId: params.projectId, type: params.type },
-    });
-    return this.prisma.projectDocument.create({
-      data: {
-        tenantId: params.tenantId,
-        projectId: params.projectId,
-        type: params.type,
-        title: params.title,
-        content: params.content,
-        version: priorCount + 1,
-        createdById: params.userId,
-      },
-      select: DOCUMENT_DETAIL_SELECT,
-    });
+    for (let attempt = 0; attempt < DocumentsService.CREATE_DRAFT_MAX_RETRIES; attempt++) {
+      const priorCount = await this.prisma.projectDocument.count({
+        where: { tenantId: params.tenantId, projectId: params.projectId, type: params.type },
+      });
+      try {
+        return await this.prisma.projectDocument.create({
+          data: {
+            tenantId: params.tenantId,
+            projectId: params.projectId,
+            type: params.type,
+            title: params.title,
+            content: params.content,
+            version: priorCount + 1,
+            createdById: params.userId,
+          },
+          select: DOCUMENT_DETAIL_SELECT,
+        });
+      } catch (e) {
+        // unique 制約違反(version の取り合い)→ 数え直して再試行。それ以外はそのまま投げる。
+        if (isPrismaError(e, PrismaErrorCode.UNIQUE_VIOLATION)) {
+          continue;
+        }
+        throw e;
+      }
+    }
+    throw new Error('Failed to assign a unique version for the generated document after retries');
   }
 }

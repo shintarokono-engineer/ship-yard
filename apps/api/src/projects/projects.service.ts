@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
-import type { Prisma, ProjectStatus } from '@shipyard/db';
+import { isPrismaError, type Prisma, PrismaErrorCode, type ProjectStatus } from '@shipyard/db';
 
 import { dayjs } from '../common/time';
 import { PrismaService } from '../prisma/prisma.service';
@@ -80,23 +80,38 @@ export class ProjectsService {
   }
 
   async update(tenantId: string, projectId: string, dto: UpdateProjectDto) {
-    // 先に所属確認(404)。id は PK なので以降の where は id だけで十分。
-    await this.assertExists(tenantId, projectId);
-    return this.prisma.project.update({
-      where: { id: projectId },
-      data: {
-        name: dto.name,
-        description: dto.description,
-        status: dto.status,
-        launchDate: this.toLaunchDate(dto.launchDate),
-      },
-      select: PROJECT_DETAIL_SELECT,
-    });
+    // extendedWhereUnique で id(ユニーク)+ tenantId(分離キー)を一括指定。
+    // 該当が無ければ Prisma が P2025 を投げるので 404 に変換する(原子的・テナント外のレコードは触れない)。
+    try {
+      return await this.prisma.project.update({
+        where: { id: projectId, tenantId },
+        data: {
+          name: dto.name,
+          description: dto.description,
+          status: dto.status,
+          launchDate: this.toLaunchDate(dto.launchDate),
+        },
+        select: PROJECT_DETAIL_SELECT,
+      });
+    } catch (e) {
+      this.throwNotFoundIfMissing(e);
+    }
   }
 
   async remove(tenantId: string, projectId: string): Promise<void> {
-    await this.assertExists(tenantId, projectId);
-    // ChecklistItem / ProjectDocument は schema 側 onDelete: Cascade で連鎖削除される。
-    await this.prisma.project.delete({ where: { id: projectId } });
+    try {
+      // ChecklistItem / ProjectDocument は schema 側 onDelete: Cascade で連鎖削除される。
+      await this.prisma.project.delete({ where: { id: projectId, tenantId } });
+    } catch (e) {
+      this.throwNotFoundIfMissing(e);
+    }
+  }
+
+  /** Prisma の「対象レコードなし」を 404 に変換。それ以外はそのまま再 throw。 */
+  private throwNotFoundIfMissing(e: unknown): never {
+    if (isPrismaError(e, PrismaErrorCode.RECORD_NOT_FOUND)) {
+      throw new NotFoundException();
+    }
+    throw e;
   }
 }

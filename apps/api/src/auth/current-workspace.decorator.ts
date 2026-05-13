@@ -2,7 +2,7 @@ import { createParamDecorator, type ExecutionContext } from '@nestjs/common';
 import type { Request } from 'express';
 
 import type { WorkspaceAccess } from '../workspaces/membership.service';
-import './workspace.guard';
+import './auth-user';
 
 /**
  * `WorkspaceGuard` が解決してリクエストに載せた「現在のユーザーの当該ワークスペースへのアクセス情報」

@@ -3,10 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { DocType } from '@shipyard/db';
 
 import { AnthropicService } from './anthropic.service';
-import { AI_MODEL_SONNET } from './ai.constants';
-
-/** 本機能(DRAFT_GEN)が生成対象とする ProjectDocument の種別。 */
-export type DocKind = typeof DocType.README | typeof DocType.LANDING_PAGE;
+import { AI_MODEL_SONNET, type DocKind } from './ai.constants';
 
 interface ProjectContext {
   name: string;

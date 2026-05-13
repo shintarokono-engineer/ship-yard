@@ -15,7 +15,8 @@ import type { WorkspaceAccess } from './membership.service';
  * - apps/web の /w/[slug] ページが所属チェックに使う(ADR-002 / ADR-003)
  * - プラン変更(Checkout)は OWNER のみ(`@Roles(Role.OWNER)`、ADR-004 / Role 定義)
  *
- * 認証 → 所属解決 → ロール検証は `ClerkAuthGuard` → `WorkspaceGuard` が担い、解決済みの所属情報は `@CurrentWorkspace()` で受け取る。
+ * 認証 → 所属解決 → ロール検証は `ClerkAuthGuard` → `WorkspaceGuard` が担い、解決済みの所属情報は `@CurrentWorkspace()` で受け取る
+ * (slug は path の `:slug` をそのまま `@Param` で受ける — `WorkspaceGuard` が解決に使うのと同じ値)。
  */
 @Controller('workspaces')
 @UseGuards(ClerkAuthGuard, WorkspaceGuard)
