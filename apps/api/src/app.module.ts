@@ -7,7 +7,11 @@ import { DraftGenController } from './ai/draft-gen.controller';
 import { DraftGenService } from './ai/draft-gen.service';
 import { AppController } from './app.controller';
 import { BillingService } from './billing/billing.service';
+import { DocumentsController } from './documents/documents.controller';
+import { DocumentsService } from './documents/documents.service';
 import { PrismaModule } from './prisma/prisma.module';
+import { ProjectsController } from './projects/projects.controller';
+import { ProjectsService } from './projects/projects.service';
 import { StripeModule } from './stripe/stripe.module';
 import { TenantMiddleware } from './tenant/tenant.middleware';
 import { StripeWebhookService } from './webhooks/stripe-webhook.service';
@@ -23,11 +27,20 @@ import { WorkspacesController } from './workspaces/workspaces.controller';
     StripeModule,
     AnthropicModule,
   ],
-  controllers: [AppController, WorkspacesController, WebhooksController, DraftGenController],
+  controllers: [
+    AppController,
+    WorkspacesController,
+    WebhooksController,
+    ProjectsController,
+    DocumentsController,
+    DraftGenController,
+  ],
   providers: [
     MembershipService,
     BillingService,
     StripeWebhookService,
+    ProjectsService,
+    DocumentsService,
     AIUsageService,
     DraftGenService,
   ],

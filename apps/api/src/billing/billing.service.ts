@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { Plan, SubStatus } from '@shipyard/db';
@@ -72,18 +72,30 @@ export class BillingService {
   /**
    * 指定プランの Stripe Checkout Session(subscription モード)を作成し、リダイレクト先 URL を返す。
    * TEAM は quantity をテナントのメンバー数にする(Subscription Quantity による人数課金、ADR-004)。
+   * 呼び出し側(コントローラ)は所属・権限を確認済みである前提。owner の連絡先とメンバー数はここで取得する。
    */
   async createCheckoutSession(params: {
-    tenant: {
-      id: string;
-      slug: string;
-      name: string;
-      owner: { email: string; name: string | null };
-    };
+    tenantId: string;
+    slug: string;
+    name: string;
     plan: PaidPlan;
-    quantity: number;
   }): Promise<{ url: string }> {
-    const customerId = await this.ensureStripeCustomer(params.tenant);
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: params.tenantId },
+      select: {
+        owner: { select: { email: true, name: true } },
+        _count: { select: { members: true } },
+      },
+    });
+    if (!tenant) {
+      throw new NotFoundException();
+    }
+
+    const customerId = await this.ensureStripeCustomer({
+      id: params.tenantId,
+      name: params.name,
+      owner: tenant.owner,
+    });
     const appBaseUrl = this.config.getOrThrow<string>('APP_BASE_URL');
 
     // 【Stripe API 呼び出し】ホスト型決済ページ(Checkout Session)を作成する。
@@ -95,13 +107,13 @@ export class BillingService {
       line_items: [
         {
           price: this.stripe.priceIdForPlan(params.plan),
-          quantity: params.plan === Plan.TEAM ? Math.max(1, params.quantity) : 1,
+          quantity: params.plan === Plan.TEAM ? Math.max(1, tenant._count.members) : 1,
         },
       ],
-      metadata: { [META_TENANT_ID]: params.tenant.id },
-      subscription_data: { metadata: { [META_TENANT_ID]: params.tenant.id } },
-      success_url: `${appBaseUrl}/w/${params.tenant.slug}?checkout=success`,
-      cancel_url: `${appBaseUrl}/w/${params.tenant.slug}?checkout=cancel`,
+      metadata: { [META_TENANT_ID]: params.tenantId },
+      subscription_data: { metadata: { [META_TENANT_ID]: params.tenantId } },
+      success_url: `${appBaseUrl}/w/${params.slug}?checkout=success`,
+      cancel_url: `${appBaseUrl}/w/${params.slug}?checkout=cancel`,
     });
     if (!session.url) {
       throw new Error('Stripe did not return a Checkout Session URL');

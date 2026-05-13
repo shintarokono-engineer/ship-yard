@@ -1,62 +1,40 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  ForbiddenException,
-  Get,
-  NotFoundException,
-  Param,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 
-import { Plan, Role } from '@shipyard/db';
+import { Role } from '@shipyard/db';
 
-import type { AuthUser } from '../auth/auth-user';
 import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { CurrentWorkspace } from '../auth/current-workspace.decorator';
+import { Roles } from '../auth/roles';
+import { WorkspaceGuard } from '../auth/workspace.guard';
 import { BillingService } from '../billing/billing.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { MembershipService } from './membership.service';
-
-/** Checkout 作成リクエストのボディ */
-interface CreateCheckoutBody {
-  plan?: string;
-}
+import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
+import type { WorkspaceAccess } from './membership.service';
 
 /**
  * ワークスペース(テナント)の参照 + 課金操作 API。
  * - apps/web の /w/[slug] ページが所属チェックに使う(ADR-002 / ADR-003)
- * - プラン変更(Checkout)は OWNER のみ(Role 定義: プラン変更権限は OWNER のみ)
+ * - プラン変更(Checkout)は OWNER のみ(`@Roles(Role.OWNER)`、ADR-004 / Role 定義)
  *
- * 所属チェックは `MembershipService.resolveAccess` に共通化(DraftGenController 等でも同じものを使う)。
+ * 認証 → 所属解決 → ロール検証は `ClerkAuthGuard` → `WorkspaceGuard` が担い、解決済みの所属情報は `@CurrentWorkspace()` で受け取る。
  */
 @Controller('workspaces')
-@UseGuards(ClerkAuthGuard)
+@UseGuards(ClerkAuthGuard, WorkspaceGuard)
 export class WorkspacesController {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly billing: BillingService,
-    private readonly membership: MembershipService,
-  ) {}
+  constructor(private readonly billing: BillingService) {}
 
   /**
    * GET /workspaces/:slug
-   * - slug が存在しない / 現在のユーザーが TenantMember でない → 404(存在の有無を漏らさない、ADR-003)
+   * - slug が存在しない / 現在のユーザーが TenantMember でない → 404(`WorkspaceGuard`、ADR-003)
    * - 所属している → { id, slug, name, plan, role }
    */
   @Get(':slug')
-  async getWorkspace(@Param('slug') slug: string, @CurrentUser() user: AuthUser) {
-    const access = await this.membership.resolveAccess(slug, user.clerkUserId);
-    if (!access) {
-      throw new NotFoundException();
-    }
+  getWorkspace(@CurrentWorkspace() ws: WorkspaceAccess, @Param('slug') slug: string) {
     return {
-      id: access.tenantId,
+      id: ws.tenantId,
       slug,
-      name: access.name,
-      plan: access.plan,
-      role: access.role,
+      name: ws.name,
+      plan: ws.plan,
+      role: ws.role,
     };
   }
 
@@ -64,44 +42,21 @@ export class WorkspacesController {
    * POST /workspaces/:slug/checkout-session
    * 指定プラン(PRO / TEAM)の Stripe Checkout Session を作り、リダイレクト先 URL を返す。
    * - 未所属 / slug 不在 → 404
-   * - OWNER 以外 → 403(プラン変更は OWNER のみ、ADR-004 / Role 定義)
-   * - plan が PRO / TEAM 以外 → 400
+   * - OWNER 以外 → 403(`@Roles(Role.OWNER)`、ADR-004 / Role 定義)
+   * - plan が PRO / TEAM 以外 → 400(`CreateCheckoutSessionDto`)
    */
   @Post(':slug/checkout-session')
-  async createCheckoutSession(
+  @Roles(Role.OWNER)
+  createCheckoutSession(
+    @CurrentWorkspace() ws: WorkspaceAccess,
     @Param('slug') slug: string,
-    @CurrentUser() user: AuthUser,
-    @Body() body: CreateCheckoutBody,
+    @Body() dto: CreateCheckoutSessionDto,
   ): Promise<{ url: string }> {
-    const plan = body?.plan;
-    if (plan !== Plan.PRO && plan !== Plan.TEAM) {
-      throw new BadRequestException(`plan must be "${Plan.PRO}" or "${Plan.TEAM}"`);
-    }
-
-    const access = await this.membership.resolveAccess(slug, user.clerkUserId);
-    if (!access) {
-      throw new NotFoundException();
-    }
-    if (access.role !== Role.OWNER) {
-      throw new ForbiddenException('Only the workspace owner can change the plan');
-    }
-
-    // Checkout には owner の連絡先と現メンバー数(TEAM の quantity)が要るので、それだけ追加で取る。
-    const extra = await this.prisma.tenant.findUnique({
-      where: { id: access.tenantId },
-      select: {
-        owner: { select: { email: true, name: true } },
-        _count: { select: { members: true } },
-      },
-    });
-    if (!extra) {
-      throw new NotFoundException();
-    }
-
     return this.billing.createCheckoutSession({
-      tenant: { id: access.tenantId, slug, name: access.name, owner: extra.owner },
-      plan,
-      quantity: extra._count.members,
+      tenantId: ws.tenantId,
+      slug,
+      name: ws.name,
+      plan: dto.plan,
     });
   }
 }
