@@ -7,6 +7,8 @@ import { DraftGenController } from './ai/draft-gen.controller';
 import { DraftGenService } from './ai/draft-gen.service';
 import { AppController } from './app.controller';
 import { BillingService } from './billing/billing.service';
+import { ChecklistController } from './checklist/checklist.controller';
+import { ChecklistService } from './checklist/checklist.service';
 import { DocumentsController } from './documents/documents.controller';
 import { DocumentsService } from './documents/documents.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -32,6 +34,7 @@ import { WorkspacesController } from './workspaces/workspaces.controller';
     WorkspacesController,
     WebhooksController,
     ProjectsController,
+    ChecklistController,
     DocumentsController,
     DraftGenController,
   ],
@@ -40,6 +43,7 @@ import { WorkspacesController } from './workspaces/workspaces.controller';
     BillingService,
     StripeWebhookService,
     ProjectsService,
+    ChecklistService,
     DocumentsService,
     AIUsageService,
     DraftGenService,
