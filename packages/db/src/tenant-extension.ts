@@ -34,15 +34,34 @@ type AnyArgs = Record<string, unknown> & {
   create?: Record<string, unknown>;
 };
 
+/**
+ * `obj` に ALS コンテキストの `tenantId` を注入する。
+ * 既に別の `tenantId` が入っている場合は「リクエストコンテキストのテナント」と
+ * 「クエリ/データが明示したテナント」が食い違っている(= バグ or テナント越境の試み)とみなして throw する。
+ * 同じ値が明示されている分には許容(path slug ベースのルートが明示注入するパターンと共存させるため)。
+ */
+function mergeTenantId(
+  obj: Record<string, unknown> | undefined,
+  tenantId: string,
+): Record<string, unknown> {
+  const existing = obj?.tenantId;
+  if (typeof existing === 'string' && existing !== tenantId) {
+    throw new Error(
+      `tenant mismatch: ${existing} (specified in query/data) vs ${tenantId} (request tenant context)`,
+    );
+  }
+  return { ...(obj ?? {}), tenantId };
+}
+
 function withTenantWhere(args: AnyArgs | undefined, tenantId: string): AnyArgs {
-  return { ...args, where: { ...(args?.where ?? {}), tenantId } };
+  return { ...args, where: mergeTenantId(args?.where, tenantId) };
 }
 
 function withTenantData(data: AnyArgs['data'], tenantId: string): AnyArgs['data'] {
   if (Array.isArray(data)) {
-    return data.map((item) => ({ ...item, tenantId }));
+    return data.map((item) => mergeTenantId(item, tenantId));
   }
-  return { ...(data ?? {}), tenantId };
+  return mergeTenantId(data, tenantId);
 }
 
 function injectTenantId(operation: string, args: AnyArgs | undefined, tenantId: string): AnyArgs {
@@ -73,8 +92,8 @@ function injectTenantId(operation: string, args: AnyArgs | undefined, tenantId: 
     case 'upsert':
       return {
         ...args,
-        where: { ...(args?.where ?? {}), tenantId },
-        create: { ...(args?.create ?? {}), tenantId },
+        where: mergeTenantId(args?.where, tenantId),
+        create: mergeTenantId(args?.create, tenantId),
       };
 
     default:

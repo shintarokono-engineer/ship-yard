@@ -401,7 +401,7 @@ model ProjectDocument {
   title        String
   /// Markdown 本文
   content      String   @db.Text
-  /// 推敲履歴用バージョン番号(同一 type 内で v1, v2, ... と増加)
+  /// 推敲履歴用バージョン番号(同一 (projectId, type) 内で v1, v2, ... と増加。一意制約あり)
   version      Int      @default(1)
   /// text-embedding-3-small の 1536 次元ベクトル(RAG 検索用、HNSW インデックス)
   embedding    Unsupported("vector(1536)")?
@@ -413,8 +413,9 @@ model ProjectDocument {
   project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   createdBy    User     @relation(fields: [createdById], references: [id])
 
+  /// 同一プロジェクト・同一タイプ内で version は一意(並行生成時の version 重複を DB レベルで防止)
+  @@unique([projectId, type, version])
   @@index([tenantId])
-  @@index([projectId, type, version])
 }
 
 /// AI API 呼び出しのテナント単位ログ。
@@ -529,16 +530,16 @@ model InvitationToken {
 
 ### 主要なインデックス
 
-| テーブル        | インデックス                   | 用途                                 |
-| --------------- | ------------------------------ | ------------------------------------ |
-| Tenant          | slug                           | サブパス `/w/{slug}` からの解決      |
-| TenantMember    | (tenantId, userId) PK          | テナント所属チェック                 |
-| TenantMember    | userId                         | ユーザーの所属テナント一覧           |
-| Project         | (tenantId, status)             | ダッシュボードでのステータス絞り込み |
-| ChecklistItem   | (projectId, position)          | チェックリストの順序保証付き取得     |
-| ProjectDocument | (projectId, type, version)     | 文書タイプ別最新版取得               |
-| AIUsage         | (tenantId, createdAt)          | 月次集計の高速化                     |
-| AIUsage         | (tenantId, feature, createdAt) | 機能別の使用量分析                   |
+| テーブル        | インデックス                      | 用途                                      |
+| --------------- | --------------------------------- | ----------------------------------------- |
+| Tenant          | slug                              | サブパス `/w/{slug}` からの解決           |
+| TenantMember    | (tenantId, userId) PK             | テナント所属チェック                      |
+| TenantMember    | userId                            | ユーザーの所属テナント一覧                |
+| Project         | (tenantId, status)                | ダッシュボードでのステータス絞り込み      |
+| ChecklistItem   | (projectId, position)             | チェックリストの順序保証付き取得          |
+| ProjectDocument | (projectId, type, version) UNIQUE | 文書タイプ別最新版取得 + version 重複防止 |
+| AIUsage         | (tenantId, createdAt)             | 月次集計の高速化                          |
+| AIUsage         | (tenantId, feature, createdAt)    | 機能別の使用量分析                        |
 
 ### pgvector インデックス
 

@@ -12,8 +12,8 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
 
-export type { Prisma } from '@prisma/client';
-export { PrismaClient } from '@prisma/client';
+// 名前空間として型(`Prisma.ProjectSelect` 等)とランタイム値(`Prisma.PrismaClientKnownRequestError` 等)の両方を再エクスポート。
+export { Prisma, PrismaClient } from '@prisma/client';
 
 // schema.prisma の enum 群(値 + 型)。アプリ側はマジック文字列ではなくこれを使う。
 export {
@@ -33,3 +33,7 @@ export { runWithTenant, getTenantId, getTenantIdOrThrow } from './tenant-context
 
 // マルチテナント分離のための Prisma Client Extension(ADR-002)
 export { tenantExtension } from './tenant-extension';
+
+// Prisma エラーコードの定数 + 判定ヘルパー(マジック文字列 'P2025' 等を避ける)
+export { PrismaErrorCode, isPrismaError } from './prisma-errors';
+export type { PrismaErrorCodeValue } from './prisma-errors';
