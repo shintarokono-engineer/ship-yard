@@ -34,9 +34,16 @@ const PROJECT_DETAIL_SELECT = {
 export class ProjectsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** リリース日文字列(任意)を Date に変換。未指定は undefined(= Prisma で「更新しない/null」)。 */
-  private toLaunchDate(value: string | undefined): Date | undefined {
-    return value ? dayjs.utc(value).toDate() : undefined;
+  /**
+   * リリース日入力を Prisma 用に正規化する。
+   * - `undefined` … キー自体送られていない → そのまま undefined を返す(Prisma は更新スキップ)
+   * - `null` … 明示的な null クリア → そのまま null を返す(Prisma は列を null に更新)
+   * - 文字列 … `dayjs.utc()` で UTC Date に変換して返す
+   */
+  private toLaunchDate(value: string | null | undefined): Date | null | undefined {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    return dayjs.utc(value).toDate();
   }
 
   create(tenantId: string, userId: string, dto: CreateProjectDto) {
