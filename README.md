@@ -102,25 +102,45 @@ Checkout の動作確認は `POST /workspaces/{slug}/checkout-session`(Clerk JWT
 
 ## 利用可能な scripts
 
-ルート `package.json` 経由で実行可能なコマンド:
+ルート `package.json` 経由で実行可能なコマンド(`pnpm run` で一覧表示)。
 
-| コマンド                                 | 内容                                                                                  |
-| ---------------------------------------- | ------------------------------------------------------------------------------------- |
-| `pnpm install`                           | 全 workspace の依存をインストール                                                     |
-| `pnpm lint`                              | ESLint(`eslint .`)を実行                                                              |
-| `pnpm lint:fix`                          | ESLint の自動修正(`eslint . --fix`)                                                   |
-| `pnpm format`                            | Prettier で自動整形(`prettier --write .`)                                             |
-| `pnpm format:check`                      | Prettier の整形チェック(差分があれば exit 1)                                          |
-| `pnpm build`                             | Turborepo 経由で全 workspace の build を実行(`apps/web` / `apps/api` / `packages/db`) |
-| `pnpm dev`                               | Turborepo 経由で `apps/web`(3000)+ `apps/api`(4000)を同時起動                         |
-| `pnpm test`                              | Turborepo 経由で全 workspace の test を実行(テスト雛形は Week 2 以降で導入)           |
-| `pnpm --filter @shipyard/web dev`        | `apps/web` だけを起動(http://localhost:3000)                                          |
-| `pnpm --filter @shipyard/api dev`        | `apps/api` だけを起動(http://localhost:4000、NestJS watch モード)                     |
-| `pnpm --filter @shipyard/db migrate:dev` | Prisma マイグレーションを生成・適用(`packages/db/.env` の `DATABASE_URL`)             |
-| `pnpm --filter @shipyard/db generate`    | Prisma Client + ER 図(`docs/data-model-erd.generated.md`)を生成                       |
-| `pnpm --filter @shipyard/db studio`      | Prisma Studio を起動(http://localhost:5555 で DB を GUI 操作)                         |
-| `pnpm --filter @shipyard/db build`       | `packages/db` を `dist/` にビルド(apps/api が import するため)                        |
-| `pnpm --filter <pkg> type-check`         | 各 workspace の TypeScript 型チェック(`tsc --noEmit`)                                 |
+### ビルド / lint / format / test
+
+| コマンド             | 内容                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------- |
+| `pnpm install`       | 全 workspace の依存をインストール                                                     |
+| `pnpm build`         | Turborepo 経由で全 workspace の build を実行(`apps/web` / `apps/api` / `packages/db`) |
+| `pnpm test`          | Turborepo 経由で全 workspace の test を実行(テスト雛形は Week 2 以降で導入)           |
+| `pnpm lint`          | ESLint(`eslint .`)を実行                                                              |
+| `pnpm lint:fix`      | ESLint の自動修正(`eslint . --fix`)                                                   |
+| `pnpm format`        | Prettier で自動整形(`prettier --write .`)                                             |
+| `pnpm format:check`  | Prettier の整形チェック(差分があれば exit 1)                                          |
+| `pnpm typecheck:api` | `apps/api` の TypeScript 型チェック(`tsc --noEmit`)                                   |
+
+### 開発サーバー
+
+| コマンド       | 内容                                                              |
+| -------------- | ----------------------------------------------------------------- |
+| `pnpm dev`     | Turborepo 経由で `apps/web`(3000)+ `apps/api`(4000)を同時起動     |
+| `pnpm dev:api` | `apps/api` だけを起動(http://localhost:4000、NestJS watch モード) |
+| `pnpm dev:web` | `apps/web` だけを起動(http://localhost:3000)                      |
+
+### DB(PostgreSQL + Prisma)
+
+| コマンド          | 内容                                                                      |
+| ----------------- | ------------------------------------------------------------------------- |
+| `pnpm db:up`      | Docker で PostgreSQL コンテナ起動(`docker compose up -d`)                 |
+| `pnpm db:down`    | DB コンテナ停止(`docker compose down`、ボリュームは保持)                  |
+| `pnpm db:migrate` | Prisma マイグレーションを生成・適用(`packages/db/.env` の `DATABASE_URL`) |
+| `pnpm db:gen`     | Prisma Client + ER 図(`docs/data-model-erd.generated.md`)を生成           |
+| `pnpm db:studio`  | Prisma Studio を起動(http://localhost:5555 で DB を GUI 操作)             |
+
+### 運用 / 補助
+
+| コマンド                                | 内容                                                                                                                                   |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm backfill <slug> <fallbackUserId>` | `embedding IS NULL` の ProjectDocument を OpenAI text-embedding-3-small で埋め直す(冪等)。例: `pnpm backfill my-workspace usr_real001` |
+| `pnpm --filter <pkg> <script>`          | 任意 workspace の script を直叩き(例: `pnpm --filter @shipyard/db build`、上記エイリアスで間に合わない時のフォールバック)              |
 
 ## モノレポ構造
 
