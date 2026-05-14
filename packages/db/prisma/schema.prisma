@@ -310,13 +310,20 @@ model ProjectDocument {
   createdById String
   /// 作成日時
   createdAt   DateTime                     @default(now())
+  /// 論理削除日時(NULL = 生存)。物理削除はせず、ここに UTC now を入れて非表示化する(append-only ポリシー)。
+  /// 一覧/取得は常に `where: { deletedAt: null }` を付ける。
+  deletedAt   DateTime?
 
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   createdBy User    @relation(fields: [createdById], references: [id])
 
-  /// 同一プロジェクト・同一タイプ内で version は一意(並行生成時の version 重複を DB レベルで防止)
+  /// 同一プロジェクト・同一タイプ内で version は一意(並行生成時の version 重複を DB レベルで防止)。
+  /// 注: deletedAt は含めない。soft delete 後の version 再利用は許さず、欠番を許して常にインクリメント続行する
+  /// (例: v3 を soft delete → 次の新版は v4。v3 を作り直さない)
   @@unique([projectId, type, version])
   @@index([tenantId])
+  /// 一覧クエリの絞り込み(deletedAt: null + projectId + type)を支援
+  @@index([projectId, type, deletedAt])
 }
 
 /// AI API 呼び出しのテナント単位ログ。

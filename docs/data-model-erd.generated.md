@@ -145,6 +145,7 @@ RETRYING RETRYING
     String content 
     Int version 
     DateTime createdAt 
+    DateTime deletedAt "❓"
     }
   
 
