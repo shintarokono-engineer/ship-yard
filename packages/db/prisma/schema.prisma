@@ -322,8 +322,10 @@ model ProjectDocument {
   /// (例: v3 を soft delete → 次の新版は v4。v3 を作り直さない)
   @@unique([projectId, type, version])
   @@index([tenantId])
-  /// 一覧クエリの絞り込み(deletedAt: null + projectId + type)を支援
-  @@index([projectId, type, deletedAt])
+  /// 一覧クエリの絞り込み(deletedAt IS NULL + projectId + type)を支援する partial index は
+  /// `migrations/20260514130000_partial_index_for_active_documents/migration.sql` で raw SQL 管理。
+  /// Prisma schema は partial index を表現できないため、HNSW と同じパターンで Prisma 管理外にしている
+  /// (今後 `prisma migrate diff` が「未知の index」として DROP 提案するが、手作業で除外する)。
 }
 
 /// AI API 呼び出しのテナント単位ログ。
