@@ -48,6 +48,37 @@ export class ChecklistService {
     });
   }
 
+  /**
+   * 複数の ChecklistItem を一括作成して、作成行を一覧 SELECT 相当の形で返す(AI 生成からの呼び出しを想定)。
+   * `createManyAndReturn` は 1 トランザクションで原子的に挿入するため、途中失敗で半端に行が残らない。
+   * `position` は配列インデックス順に割り振り(`baseOffset + index`)、表示順をそのまま反映させる。
+   */
+  async bulkCreate(
+    tenantId: string,
+    projectId: string,
+    items: readonly {
+      category: Category;
+      title: string;
+      description?: string;
+    }[],
+    options: { baseOffset?: number } = {},
+  ) {
+    await this.projects.assertExists(tenantId, projectId);
+    if (items.length === 0) return [];
+    const baseOffset = options.baseOffset ?? 0;
+    return this.prisma.checklistItem.createManyAndReturn({
+      data: items.map((item, index) => ({
+        tenantId,
+        projectId,
+        category: item.category,
+        title: item.title,
+        description: item.description,
+        position: baseOffset + index,
+      })),
+      select: CHECKLIST_ITEM_SELECT,
+    });
+  }
+
   async list(tenantId: string, projectId: string, category?: Category) {
     await this.projects.assertExists(tenantId, projectId);
     return this.prisma.checklistItem.findMany({

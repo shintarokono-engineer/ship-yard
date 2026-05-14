@@ -38,3 +38,9 @@ export const GENERATABLE_DOC_TYPES = [DocType.README, DocType.LANDING_PAGE] as c
 
 /** AI 生成に対応している DocType のユニオン型(= `GENERATABLE_DOC_TYPES` の要素型)。 */
 export type DocKind = (typeof GENERATABLE_DOC_TYPES)[number];
+
+/** CHECKLIST_GEN で 1 回の生成で出力できる ChecklistItem の最大数。Tool 入力スキーマの `maxItems` にも反映する。 */
+export const CHECKLIST_GEN_MAX_ITEMS = 30;
+
+/** CHECKLIST_GEN の Anthropic API `max_tokens`。30 件 × 平均 80 トークン + 余裕 ≈ 4000。 */
+export const CHECKLIST_GEN_MAX_TOKENS = 4096;

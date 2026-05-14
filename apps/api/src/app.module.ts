@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 
 import { AIUsageService } from './ai/ai-usage.service';
 import { AnthropicModule } from './ai/anthropic.module';
+import { ChecklistGenController } from './ai/checklist-gen.controller';
+import { ChecklistGenService } from './ai/checklist-gen.service';
 import { DraftGenController } from './ai/draft-gen.controller';
 import { DraftGenService } from './ai/draft-gen.service';
 import { AppController } from './app.controller';
@@ -35,6 +37,7 @@ import { WorkspacesController } from './workspaces/workspaces.controller';
     WebhooksController,
     ProjectsController,
     ChecklistController,
+    ChecklistGenController,
     DocumentsController,
     DraftGenController,
   ],
@@ -47,6 +50,7 @@ import { WorkspacesController } from './workspaces/workspaces.controller';
     DocumentsService,
     AIUsageService,
     DraftGenService,
+    ChecklistGenService,
   ],
 })
 export class AppModule implements NestModule {
