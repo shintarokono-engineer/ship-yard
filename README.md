@@ -2,7 +2,7 @@
 
 個人開発者および小規模開発チーム(2〜10 人)向けの、「アイデア → 設計 → 開発 → リリース → 初期ユーザー獲得」までを一元管理する AI 支援付き B2B SaaS です。
 
-> **現在のステータス**: Week 2 進行中(Day 11 完了)。`apps/web`(Next.js 15 + Tailwind v4 + shadcn/ui + Clerk)+ `apps/api`(NestJS 11)+ `packages/db`(Prisma 6 / PostgreSQL 16 + pgvector)が稼働。マルチテナント基盤(Prisma Client Extension で `tenantId` 自動注入、`TenantMiddleware`、Clerk JWT Guard)+ Stripe 課金基盤(Webhook 署名検証 + Idempotency、`BillingService` で Subscription / `Tenant.plan` 同期、Checkout)+ AI 基盤(Anthropic SDK、`AIUsage` 記録 + Free 月 20 回上限、`POST .../documents/generate` で Sonnet 4 + Tool Use による README/LP 生成、`POST .../checklist/generate` で Haiku 4.5 + Tool Use による ChecklistItem 一括生成)+ Project / ChecklistItem の CRUD API・ProjectDocument の閲覧/編集(append-only)/削除(soft delete)API(`class-validator` でリクエスト検証、`@Roles` + `WorkspaceGuard` による RBAC、コントローラ/サービス層分離、partial index で生存行のみ index 化)実装済み・実 API で E2E 確認済み。次は Day 12〜(AI 推敲 / RAG / embedding 挿入)。
+> **現在のステータス**: Week 2 進行中(Day 12 完了)。`apps/web`(Next.js 15 + Tailwind v4 + shadcn/ui + Clerk)+ `apps/api`(NestJS 11)+ `packages/db`(Prisma 6 / PostgreSQL 16 + pgvector)が稼働。マルチテナント基盤(Prisma Client Extension で `tenantId` 自動注入、`TenantMiddleware`、Clerk JWT Guard)+ Stripe 課金基盤(Webhook 署名検証 + Idempotency、`BillingService` で Subscription / `Tenant.plan` 同期、Checkout)+ AI 基盤(Anthropic SDK、`AIUsage` 記録 + Free 月 20 回上限、`POST .../documents/generate` で Sonnet 4 + Tool Use による README/LP 生成、`POST .../checklist/generate` で Haiku 4.5 + Tool Use による ChecklistItem 一括生成、OpenAI text-embedding-3-small で ProjectDocument 自動 embedding + `backfill:embeddings` CLI)+ Project / ChecklistItem の CRUD API・ProjectDocument の閲覧/編集(append-only)/削除(soft delete)API(`class-validator` でリクエスト検証、`@Roles` + `WorkspaceGuard` による RBAC、コントローラ/サービス層分離、partial index で生存行のみ index 化)実装済み・実 API で E2E 確認済み。次は Day 13〜(RAG 検索 / AI 推敲)。
 
 ## 主要機能
 
@@ -37,7 +37,7 @@
 
 ## セットアップ
 
-### Day 11 完了時点で動作する手順
+### Day 12 完了時点で動作する手順
 
 ```bash
 # 1. リポジトリをクローン
@@ -128,7 +128,7 @@ Checkout の動作確認は `POST /workspaces/{slug}/checkout-session`(Clerk JWT
 ship-yard/
 ├── apps/
 │   ├── web/        @shipyard/web   - Next.js 15 + Tailwind v4 + shadcn/ui + Clerk(Day 4 完了)
-│   └── api/        @shipyard/api   - NestJS 11 + Prisma 統合 + TenantMiddleware + Clerk JWT Guard + Stripe(Webhook / Subscription 同期 / Checkout)+ AI(Anthropic SDK / AIUsage / README・LP 生成 / ChecklistItem 一括生成)+ Project / ChecklistItem の CRUD API + ProjectDocument の閲覧/編集(append-only)/削除(soft delete)API(class-validator / RBAC ガード / コントローラ・サービス層分離 / partial index / クロスフィールド検証)(Day 11 完了)
+│   └── api/        @shipyard/api   - NestJS 11 + Prisma 統合 + TenantMiddleware + Clerk JWT Guard + Stripe(Webhook / Subscription 同期 / Checkout)+ AI(Anthropic SDK / OpenAI SDK / AIUsage / README・LP 生成 / ChecklistItem 一括生成 / 自動 embedding + backfill CLI)+ Project / ChecklistItem の CRUD API + ProjectDocument の閲覧/編集(append-only)/削除(soft delete)API(class-validator / RBAC ガード / コントローラ・サービス層分離 / partial index / クロスフィールド検証)(Day 12 完了)
 ├── packages/
 │   ├── db/         @shipyard/db    - Prisma 6 schema + Client + マイグレーション + tenant 分離 Extension(Day 5 完了)
 │   ├── ui/         @shipyard/ui    - 共通 UI(packages/ui への切り出しは Week 2 以降)
