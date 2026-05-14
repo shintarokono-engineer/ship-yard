@@ -7,6 +7,8 @@ import { ChecklistGenController } from './ai/checklist-gen.controller';
 import { ChecklistGenService } from './ai/checklist-gen.service';
 import { DraftGenController } from './ai/draft-gen.controller';
 import { DraftGenService } from './ai/draft-gen.service';
+import { EmbeddingService } from './ai/embedding.service';
+import { OpenAIModule } from './ai/openai.module';
 import { AppController } from './app.controller';
 import { BillingService } from './billing/billing.service';
 import { ChecklistController } from './checklist/checklist.controller';
@@ -25,11 +27,12 @@ import { WorkspacesController } from './workspaces/workspaces.controller';
 
 @Module({
   imports: [
-    // .env.local を読んで process.env に展開(CLERK_SECRET_KEY / DATABASE_URL / PORT / STRIPE_* / APP_BASE_URL / ANTHROPIC_API_KEY)
+    // .env.local を読んで process.env に展開(CLERK_SECRET_KEY / DATABASE_URL / PORT / STRIPE_* / APP_BASE_URL / ANTHROPIC_API_KEY / OPENAI_API_KEY)
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env.local' }),
     PrismaModule,
     StripeModule,
     AnthropicModule,
+    OpenAIModule,
   ],
   controllers: [
     AppController,
@@ -51,6 +54,7 @@ import { WorkspacesController } from './workspaces/workspaces.controller';
     AIUsageService,
     DraftGenService,
     ChecklistGenService,
+    EmbeddingService,
   ],
 })
 export class AppModule implements NestModule {

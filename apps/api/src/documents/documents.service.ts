@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { type DocType, isPrismaError, type Prisma, PrismaErrorCode } from '@shipyard/db';
 
+import { EmbeddingService } from '../ai/embedding.service';
 import { dayjs } from '../common/time';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectsService } from '../projects/projects.service';
@@ -42,6 +43,7 @@ export class DocumentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly projects: ProjectsService,
+    private readonly embeddings: EmbeddingService,
   ) {}
 
   async list(tenantId: string, projectId: string, type?: DocType) {
@@ -69,7 +71,8 @@ export class DocumentsService {
   /**
    * AI が生成したドラフトを `(projectId, type)` の新しい version として保存する。
    * version 採番と並行衝突リトライは `appendNewVersion` に委譲。
-   * `embedding` は後続タスク(OpenAI `text-embedding-3-small`)で別途埋める。
+   * INSERT 後に `embedAfterWrite` フックで OpenAI text-embedding-3-small で `embedding` を埋める
+   * (失敗は `EmbeddingService` 内で握りつぶし、後で `backfill:embeddings` CLI で取り戻し)。
    */
   async createDraft(params: {
     tenantId: string;
@@ -79,7 +82,7 @@ export class DocumentsService {
     title: string;
     content: string;
   }) {
-    return this.appendNewVersion({
+    const document = await this.appendNewVersion({
       tenantId: params.tenantId,
       projectId: params.projectId,
       type: params.type,
@@ -93,6 +96,8 @@ export class DocumentsService {
         createdById: params.userId,
       }),
     });
+    await this.embedAfterWrite(params.tenantId, params.userId, document);
+    return document;
   }
 
   /**
@@ -114,7 +119,7 @@ export class DocumentsService {
     });
     if (!original) throw new NotFoundException();
 
-    return this.appendNewVersion({
+    const document = await this.appendNewVersion({
       tenantId,
       projectId,
       type: original.type,
@@ -127,6 +132,27 @@ export class DocumentsService {
         version: nextVersion,
         createdById: userId,
       }),
+    });
+    await this.embedAfterWrite(tenantId, userId, document);
+    return document;
+  }
+
+  /**
+   * 新版作成後に embedding を裏で更新する共通フック。
+   * `EmbeddingService` 側で OpenAI 障害は握りつぶす(AI 生成 / 編集自体は成功扱い)ため、ここで例外は出ない。
+   * 失敗分は `pnpm --filter @shipyard/api backfill:embeddings` で後追い更新する。
+   */
+  private async embedAfterWrite(
+    tenantId: string,
+    userId: string,
+    document: { id: string; title: string; content: string },
+  ): Promise<void> {
+    await this.embeddings.upsertForDocument({
+      tenantId,
+      userId,
+      documentId: document.id,
+      title: document.title,
+      content: document.content,
     });
   }
 
