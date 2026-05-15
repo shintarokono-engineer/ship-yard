@@ -45,8 +45,14 @@ export const CHECKLIST_GEN_MAX_ITEMS = 30;
 /** CHECKLIST_GEN の Anthropic API `max_tokens`。30 件 × 平均 80 トークン + 余裕 ≈ 4000。 */
 export const CHECKLIST_GEN_MAX_TOKENS = 4096;
 
-/** RAG 検索で取得する類似ドキュメントの上限件数。多すぎると prompt を圧迫し、少なすぎると関連を逃す。 */
-export const RAG_TOP_K = 3;
+/**
+ * RAG 検索で取得する類似ドキュメントの上限件数。
+ *
+ * 5 件 × `RAG_CONTENT_TRUNCATE_CHARS`(800)≈ 2000 tokens は Sonnet 4 の context window
+ * 200K に対して 1% 未満、入力コストも約 1 円/回で誤差レベル。ノイズ対策は件数削減より
+ * `distance` 閾値による選別の方が本筋(MVP 後に検討)。
+ */
+export const RAG_TOP_K = 5;
 
 /** RAG context として LLM に渡す各ドキュメントの本文切り詰め文字数(prompt 圧迫対策)。 */
 export const RAG_CONTENT_TRUNCATE_CHARS = 800;
