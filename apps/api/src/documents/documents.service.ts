@@ -6,7 +6,6 @@ import { EmbeddingService } from '../ai/embedding.service';
 import { dayjs } from '../common/time';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectsService } from '../projects/projects.service';
-import type { UpdateProjectDocumentDto } from './dto/update-project-document.dto';
 
 /** 一覧で返すフィールド(本文 content は大きくなりがちなので含めない)。 */
 const DOCUMENT_LIST_SELECT = {
@@ -102,15 +101,18 @@ export class DocumentsService {
 
   /**
    * 既存ドキュメントを編集する(append-only)。元行は変更せず、同じ `(projectId, type)` で新しい version の行を作る。
-   * 送られなかったフィールド(title / content)は元行から引き継ぐ。両方欠落は DTO 側の `AtLeastOneFieldDefined`
-   * で 400(ValidationPipe で先に弾かれる)。AIUsage は記録しない(AI を介さない手動編集のため)。
+   * 送られなかったフィールド(title / content)は元行から引き継ぐ。両方欠落は HTTP 経路では DTO 側の
+   * `AtLeastOneFieldDefined` で 400(ValidationPipe で先に弾かれる)。`patch` は構造的型なので
+   * HTTP 用 DTO クラスインスタンスでも、AI 経路の plain object でも受け取れる(DTO クラスを引数型に固定すると
+   * 後者で `new UpdateProjectDocumentDto()` の中継インスタンス化が必要になり責務が崩れるため)。
+   * AIUsage は記録しない(本メソッドは AI を意識しない、呼び出し側で必要に応じて記録)。
    */
   async edit(
     tenantId: string,
     projectId: string,
     documentId: string,
     userId: string,
-    dto: UpdateProjectDocumentDto,
+    patch: { title?: string; content?: string },
   ) {
     // 元行(soft delete されていないもの)から type / title / content を引き継ぐため取得。同時に存在チェックも兼ねる。
     const original = await this.prisma.projectDocument.findFirst({
@@ -127,8 +129,8 @@ export class DocumentsService {
         tenantId,
         projectId,
         type: original.type,
-        title: dto.title ?? original.title,
-        content: dto.content ?? original.content,
+        title: patch.title ?? original.title,
+        content: patch.content ?? original.content,
         version: nextVersion,
         createdById: userId,
       }),
