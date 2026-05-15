@@ -12,6 +12,7 @@ import type { WorkspaceAccess } from '../workspaces/membership.service';
 import { AIUsageService } from './ai-usage.service';
 import { DraftGenService } from './draft-gen.service';
 import { GenerateDocumentDto } from './dto/generate-document.dto';
+import { RagSearchService } from './rag-search.service';
 
 /**
  * AI によるドキュメントドラフト生成 API(DRAFT_GEN、ADR-005)。
@@ -29,6 +30,7 @@ export class DraftGenController {
     private readonly documents: DocumentsService,
     private readonly draftGen: DraftGenService,
     private readonly aiUsage: AIUsageService,
+    private readonly ragSearch: RagSearchService,
   ) {}
 
   /**
@@ -50,10 +52,23 @@ export class DraftGenController {
     // Free プランの月次 AI 上限チェック(超過なら 403)。AI を呼ぶ前に。
     await this.aiUsage.assertWithinFreeQuota({ id: ws.tenantId, plan: ws.plan });
 
+    const instructions = dto.instructions?.trim() || undefined;
+
+    // RAG: 過去ドキュメントを意味検索して prompt に注入(ADR-005 の独自性コア)。
+    // クエリは「プロジェクト名 + 概要 + 追加指示」で構成。自プロジェクトのドキュメントは除外。
+    // 失敗してもメイン生成は止めない方針(EmbeddingService と同じ「主処理を守る」設計)。
+    const searchQuery = [project.name, project.description ?? '', instructions ?? '']
+      .filter((s) => s && s.trim())
+      .join('\n');
+    const rag = await this.ragSearch.searchSimilar(ws.tenantId, searchQuery, {
+      excludeProjectId: project.id,
+    });
+
     const draft = await this.draftGen.generate({
       project: { name: project.name, description: project.description, status: project.status },
       kind: dto.docType,
-      instructions: dto.instructions?.trim() || undefined,
+      instructions,
+      references: rag.hits.map((hit) => ({ title: hit.title, content: hit.content })),
     });
 
     const document = await this.documents.createDraft({
@@ -66,6 +81,17 @@ export class DraftGenController {
     });
 
     // AI 利用記録(課金・Free 上限判定の根拠なので取りこぼし禁止、ADR-005)
+    // 検索クエリの embedding と本生成は別 record(model が異なるため、単価計算が分岐する)
+    if (rag.tokensIn > 0) {
+      await this.aiUsage.record({
+        tenantId: ws.tenantId,
+        userId: ws.userId,
+        model: rag.model,
+        feature: Feature.OTHER,
+        tokensIn: rag.tokensIn,
+        tokensOut: 0,
+      });
+    }
     await this.aiUsage.record({
       tenantId: ws.tenantId,
       userId: ws.userId,

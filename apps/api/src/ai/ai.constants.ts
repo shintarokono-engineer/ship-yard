@@ -44,3 +44,9 @@ export const CHECKLIST_GEN_MAX_ITEMS = 30;
 
 /** CHECKLIST_GEN の Anthropic API `max_tokens`。30 件 × 平均 80 トークン + 余裕 ≈ 4000。 */
 export const CHECKLIST_GEN_MAX_TOKENS = 4096;
+
+/** RAG 検索で取得する類似ドキュメントの上限件数。多すぎると prompt を圧迫し、少なすぎると関連を逃す。 */
+export const RAG_TOP_K = 3;
+
+/** RAG context として LLM に渡す各ドキュメントの本文切り詰め文字数(prompt 圧迫対策)。 */
+export const RAG_CONTENT_TRUNCATE_CHARS = 800;

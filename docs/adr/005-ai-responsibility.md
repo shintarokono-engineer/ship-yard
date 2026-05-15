@@ -56,7 +56,7 @@ Shipyard は AI 機能を主要差別化として位置付ける。Anthropic API
 
 - pgvector + text-embedding-3-small(1536次元)
 - Project ドキュメント、リリース履歴、トラブルログをベクトル化
-- HNSW インデックスで近傍検索、上位5件を context に注入
+- HNSW インデックスで近傍検索、**上位 3 件** を context に注入(MVP、prompt 圧迫対策で削減。再評価は MVP リリース後)
 
 ### コスト管理
 
