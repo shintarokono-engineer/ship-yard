@@ -12,6 +12,14 @@ interface ProjectContext {
   status: string;
 }
 
+/** `DraftGenService.generate` の引数。`references` は `RagSearchHit[]` をそのまま渡せる(`RagSearchHit extends RagReference`)。 */
+export interface GenerateDraftInput {
+  project: ProjectContext;
+  kind: DocKind;
+  instructions?: string;
+  references?: readonly RagReference[];
+}
+
 /** 生成結果 + AIUsage 記録用のトークン数。 */
 export interface GeneratedDraft {
   title: string;
@@ -45,12 +53,7 @@ const SUBMIT_DOCUMENT_TOOL = {
 export class DraftGenService {
   constructor(private readonly anthropic: AnthropicService) {}
 
-  async generate(input: {
-    project: ProjectContext;
-    kind: DocKind;
-    instructions?: string;
-    references?: readonly RagReference[];
-  }): Promise<GeneratedDraft> {
+  async generate(input: GenerateDraftInput): Promise<GeneratedDraft> {
     const { project, kind, instructions, references } = input;
     const kindLabel =
       kind === DocType.README ? 'README(GitHub のプロジェクト説明文)' : 'ランディングページ本文';

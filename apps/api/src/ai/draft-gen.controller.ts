@@ -64,11 +64,12 @@ export class DraftGenController {
       excludeProjectId: project.id,
     });
 
+    // RagSearchHit extends RagReference なので rag.hits をそのまま references に渡せる。
     const draft = await this.draftGen.generate({
       project: { name: project.name, description: project.description, status: project.status },
       kind: dto.docType,
       instructions,
-      references: rag.hits.map((hit) => ({ title: hit.title, content: hit.content })),
+      references: rag.hits,
     });
 
     const document = await this.documents.createDraft({

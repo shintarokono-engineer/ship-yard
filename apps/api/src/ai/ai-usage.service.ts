@@ -23,6 +23,16 @@ function startOfMonthUtc(): Date {
   return dayjs.utc().startOf('month').toDate();
 }
 
+/** `AIUsageService.record` の引数。1 回の AI 呼び出しを集計テーブルに記録するための情報。 */
+export interface RecordAIUsageInput {
+  tenantId: string;
+  userId: string;
+  model: string;
+  feature: Feature;
+  tokensIn: number;
+  tokensOut: number;
+}
+
 /**
  * AI 呼び出しのテナント単位ログ(`AIUsage`)の記録と、Free プランの月次上限チェック(ADR-005)。
  *
@@ -59,14 +69,7 @@ export class AIUsageService {
   }
 
   /** AI 呼び出し 1 回分をテナント単位で記録する。 */
-  async record(usage: {
-    tenantId: string;
-    userId: string;
-    model: string;
-    feature: Feature;
-    tokensIn: number;
-    tokensOut: number;
-  }): Promise<void> {
+  async record(usage: RecordAIUsageInput): Promise<void> {
     await this.prisma.aIUsage.create({
       data: {
         tenantId: usage.tenantId,

@@ -12,6 +12,15 @@ interface ProjectContext {
   status: string;
 }
 
+/** `ChecklistGenService.generate` の引数。`references` は `RagSearchHit[]` をそのまま渡せる(`RagSearchHit extends RagReference`)。 */
+export interface GenerateChecklistInput {
+  project: ProjectContext;
+  instructions?: string;
+  /** 生成カテゴリの絞り込み(指定なしなら全カテゴリ)。 */
+  categories?: Category[];
+  references?: readonly RagReference[];
+}
+
 /** 1 件の生成済みチェックリスト項目(DB 保存前の中間表現)。 */
 export interface GeneratedChecklistItem {
   category: Category;
@@ -79,13 +88,7 @@ const SUBMIT_CHECKLIST_TOOL = {
 export class ChecklistGenService {
   constructor(private readonly anthropic: AnthropicService) {}
 
-  async generate(input: {
-    project: ProjectContext;
-    instructions?: string;
-    /** 生成カテゴリの絞り込み(指定なしなら全カテゴリ)。 */
-    categories?: Category[];
-    references?: readonly RagReference[];
-  }): Promise<GeneratedChecklist> {
+  async generate(input: GenerateChecklistInput): Promise<GeneratedChecklist> {
     const { project, instructions, categories, references } = input;
     // categories は DTO の `@ArrayMinSize(1)` で空配列が弾かれているため、未指定 = undefined のみ全カテゴリにフォールバック。
     const targetCategories = categories ?? (CATEGORY_VALUES as Category[]);

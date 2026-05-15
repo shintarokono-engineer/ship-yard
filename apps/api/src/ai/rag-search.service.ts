@@ -4,16 +4,18 @@ import { DocType, Prisma } from '@shipyard/db';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { EMBEDDING_MODEL, RAG_CONTENT_TRUNCATE_CHARS, RAG_TOP_K } from './ai.constants';
+import type { RagReference } from './format-reference';
 import { OpenAIService } from './openai.service';
 
-/** RAG 検索のヒット 1 件。本文は prompt 注入用に切り詰め済み。 */
-export interface RagSearchHit {
+/**
+ * RAG 検索のヒット 1 件。本文は prompt 注入用に切り詰め済み。
+ * `RagReference` を継承するため、結果配列(`RagSearchResult.hits`)をそのまま
+ * `formatReferenceSection` の `references` に渡せる(マッピング不要)。
+ */
+export interface RagSearchHit extends RagReference {
   id: string;
   projectId: string;
   type: DocType;
-  title: string;
-  /** 切り詰め済み本文(`RAG_CONTENT_TRUNCATE_CHARS` 以内、超過時は末尾に「…」付与)。 */
-  content: string;
   /** pgvector の `<=>` が返す cosine distance(0=完全一致, 2=逆向き)。デバッグ / ログ用。 */
   distance: number;
 }

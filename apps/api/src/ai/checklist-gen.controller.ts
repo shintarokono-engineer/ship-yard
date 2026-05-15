@@ -66,11 +66,12 @@ export class ChecklistGenController {
       excludeProjectId: project.id,
     });
 
+    // RagSearchHit extends RagReference なので rag.hits をそのまま references に渡せる。
     const generated = await this.checklistGen.generate({
       project: { name: project.name, description: project.description, status: project.status },
       instructions,
       categories: dto.categories,
-      references: rag.hits.map((hit) => ({ title: hit.title, content: hit.content })),
+      references: rag.hits,
     });
 
     // position は既存項目の最大値 + 1 から振り直す(既存項目より後ろに並ぶ)。
