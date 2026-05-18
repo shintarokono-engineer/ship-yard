@@ -40,7 +40,7 @@ export default async function WorkspaceLayout({
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3">
           <Link
             href={`/w/${workspace.slug}`}
-            className="flex items-center gap-2 text-sm font-semibold"
+            className="flex items-center gap-2 text-sm font-semibold [&_*]:cursor-pointer"
           >
             <Rocket className="size-4" />
             <span>{workspace.name}</span>
