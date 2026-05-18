@@ -4,7 +4,10 @@ import { Category } from '@shipyard/db';
 
 import { AnthropicService } from './anthropic.service';
 import { AI_MODEL_HAIKU, TASK_SPLIT_MAX_ITEMS, TASK_SPLIT_MAX_TOKENS } from './ai.constants';
+import { AIBadResponseError } from './ai-error';
 import { formatReferenceSection, type RagReference } from './format-reference';
+import { AI_PERSONA_INTRO, taskItemGuidance } from './prompts';
+import { extractToolUseBlock } from './tool-use';
 
 interface ProjectContext {
   name: string;
@@ -92,14 +95,13 @@ export class TaskSplitService {
     const { project, parent, instructions, references } = input;
 
     const systemPrompt = [
-      'あなたは個人開発者・小規模チームのプロダクトリリースを支援するアシスタントです。',
+      AI_PERSONA_INTRO,
       '与えられた親タスクをより小さな実行可能なサブタスクに分解し、',
       `submit_subtasks ツールに渡してください。最大 ${TASK_SPLIT_MAX_ITEMS} 件まで。`,
-      '各サブタスクの title は実行可能な短い動詞句(例: 「サインアップ画面のレイアウトを実装する」)。',
-      'description は補足が必要な場合のみ書き、自明な項目は省略してください。',
+      taskItemGuidance('サインアップ画面のレイアウトを実装する'),
       '実行順に並べてください(依存関係がある場合は先に来るものから)。',
       '親タスクと同じ抽象度のサブタスクは作らない(意味のある分解粒度に)。',
-    ].join('');
+    ].join('\n');
 
     // RAG 参考(過去プロジェクトのドキュメント)。空(コールドスタート)なら何も注入しない。
     // TASK_SPLIT では「過去 README/LP に書かれた類似機能の実装ステップ」のヒントとして使う。
@@ -135,14 +137,11 @@ export class TaskSplitService {
       messages: [{ role: 'user', content: userText }],
     });
 
-    const block = res.content.find((b) => b.type === 'tool_use');
-    if (!block || block.type !== 'tool_use') {
-      throw new Error('Claude did not return the expected tool_use block');
-    }
+    const block = extractToolUseBlock(res, 'TASK_SPLIT');
 
     const items = TaskSplitService.parseAndValidate(block.input);
     if (items.length === 0) {
-      throw new Error('Claude returned no subtasks');
+      throw new AIBadResponseError('Claude returned no subtasks (TASK_SPLIT)');
     }
 
     return {

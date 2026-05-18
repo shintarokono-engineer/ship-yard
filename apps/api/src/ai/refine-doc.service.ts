@@ -4,7 +4,10 @@ import { DocType } from '@shipyard/db';
 
 import { AnthropicService } from './anthropic.service';
 import { AI_MODEL_SONNET } from './ai.constants';
+import { AIBadResponseError } from './ai-error';
 import { formatReferenceSection, type RagReference } from './format-reference';
+import { AI_PERSONA_INTRO } from './prompts';
+import { extractToolUseBlock } from './tool-use';
 
 /** 推敲対象のドキュメント(タイトル + 本文 + 種別)。 */
 interface OriginalDocument {
@@ -78,15 +81,15 @@ export class RefineDocService {
           : 'ドキュメント';
 
     const systemPrompt = [
-      'あなたは個人開発者・小規模チームのプロダクトリリースを支援するアシスタントです。',
-      `以下の${kindLabel}を推敲し、submit_refined_document ツールに { title, content } として提出してください。`,
+      AI_PERSONA_INTRO,
+      `以下の${kindLabel}を推敲し、submit_document ツールに { title, content } として提出してください。`,
       '推敲のポリシー: 元ドキュメントの意図と事実を保ちつつ、文章の明瞭さ・簡潔さ・トーンを改善する。',
       '無関係な情報の追加や、根拠のない断定は避ける。',
       '元のタイトルが妥当ならそのまま、より良い表現があれば差し替えてよい。',
       goal ? `今回の推敲の重点: ${goal}` : '',
     ]
       .filter(Boolean)
-      .join('');
+      .join('\n');
 
     // injection 対策の文言は format-reference.ts 側で自動付与される(SECURITY_GUIDANCE)。
     const referenceSection = formatReferenceSection(references, {
@@ -124,16 +127,13 @@ export class RefineDocService {
       messages: [{ role: 'user', content: userText }],
     });
 
-    const block = res.content.find((b) => b.type === 'tool_use');
-    if (!block || block.type !== 'tool_use') {
-      throw new Error('Claude did not return the expected tool_use block');
-    }
+    const block = extractToolUseBlock(res, 'REFINE_DOC');
     const args = block.input as { title?: unknown; content?: unknown };
     const title =
       typeof args.title === 'string' && args.title.trim() ? args.title.trim() : original.title;
     const content = typeof args.content === 'string' ? args.content.trim() : '';
     if (!content) {
-      throw new Error('Claude returned empty refined content');
+      throw new AIBadResponseError('Claude returned empty refined content (REFINE_DOC)');
     }
 
     return {

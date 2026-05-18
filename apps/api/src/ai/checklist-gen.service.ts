@@ -4,7 +4,10 @@ import { Category } from '@shipyard/db';
 
 import { AnthropicService } from './anthropic.service';
 import { AI_MODEL_HAIKU, CHECKLIST_GEN_MAX_ITEMS, CHECKLIST_GEN_MAX_TOKENS } from './ai.constants';
+import { AIBadResponseError } from './ai-error';
 import { formatReferenceSection, type RagReference } from './format-reference';
+import { AI_PERSONA_INTRO, taskItemGuidance } from './prompts';
+import { extractToolUseBlock } from './tool-use';
 
 interface ProjectContext {
   name: string;
@@ -94,14 +97,13 @@ export class ChecklistGenService {
     const targetCategories = categories ?? (CATEGORY_VALUES as Category[]);
 
     const systemPrompt = [
-      'あなたは個人開発者・小規模チームのプロダクトリリースを支援するアシスタントです。',
-      '与えられたプロジェクト情報をもとに、リリース前にやるべきタスクを ChecklistItem の配列として ',
+      AI_PERSONA_INTRO,
+      '与えられたプロジェクト情報をもとに、リリース前にやるべきタスクを ChecklistItem の配列として',
       `submit_checklist ツールに渡してください。最大 ${CHECKLIST_GEN_MAX_ITEMS} 件まで。`,
-      '各項目の title は実行可能な短い動詞句(例: 「OG 画像を用意する」)。',
-      'description は補足が必要な場合のみ書き、自明な項目は省略してください。',
+      taskItemGuidance('OG 画像を用意する'),
       `カテゴリは ${targetCategories.join(' / ')} の中から選んでください。`,
       '優先度の高いものから順に並べてください。',
-    ].join('');
+    ].join('\n');
 
     // RAG 参考(過去プロジェクトのドキュメント)。空(コールドスタート)なら何も注入しない。
     // CHECKLIST_GEN では「過去 README/LP に書かれた機能 → 抜けがちなタスクの示唆」として使う。
@@ -132,14 +134,11 @@ export class ChecklistGenService {
       messages: [{ role: 'user', content: userText }],
     });
 
-    const block = res.content.find((b) => b.type === 'tool_use');
-    if (!block || block.type !== 'tool_use') {
-      throw new Error('Claude did not return the expected tool_use block');
-    }
+    const block = extractToolUseBlock(res, 'CHECKLIST_GEN');
 
     const items = ChecklistGenService.parseAndValidate(block.input, targetCategories);
     if (items.length === 0) {
-      throw new Error('Claude returned no checklist items');
+      throw new AIBadResponseError('Claude returned no checklist items (CHECKLIST_GEN)');
     }
 
     return {

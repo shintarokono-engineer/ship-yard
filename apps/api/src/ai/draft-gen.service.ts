@@ -4,7 +4,10 @@ import { DocType } from '@shipyard/db';
 
 import { AnthropicService } from './anthropic.service';
 import { AI_MODEL_SONNET, type DocKind } from './ai.constants';
+import { AIBadResponseError } from './ai-error';
 import { formatReferenceSection, type RagReference } from './format-reference';
+import { AI_PERSONA_INTRO } from './prompts';
+import { extractToolUseBlock } from './tool-use';
 
 interface ProjectContext {
   name: string;
@@ -63,11 +66,11 @@ export class DraftGenService {
         : '「キャッチコピー」「課題提起」「解決策」「主要機能」「CTA(行動喚起)」の流れで構成すること。';
 
     const systemPrompt = [
-      'あなたは個人開発者・小規模チームのプロダクトリリースを支援するアシスタントです。',
+      AI_PERSONA_INTRO,
       `与えられたプロジェクト情報をもとに、${kindLabel}のドラフトを日本語の Markdown で作成してください。`,
       '簡潔かつ訴求力のある内容にし、事実が不明な箇所は無理に断定せずプレースホルダ(例: 「(ここに〜を記載)」)を置いてください。',
       structureHint,
-    ].join('');
+    ].join('\n');
 
     // RAG 参考(過去プロジェクト)。空(コールドスタート)なら何も注入しない。
     // injection 対策の文言は format-reference.ts 側で自動付与される(SECURITY_GUIDANCE)。
@@ -97,16 +100,13 @@ export class DraftGenService {
       messages: [{ role: 'user', content: userText }],
     });
 
-    const block = res.content.find((b) => b.type === 'tool_use');
-    if (!block || block.type !== 'tool_use') {
-      throw new Error('Claude did not return the expected tool_use block');
-    }
+    const block = extractToolUseBlock(res, 'DRAFT_GEN');
     const args = block.input as { title?: unknown; content?: unknown };
     const title =
       typeof args.title === 'string' && args.title.trim() ? args.title.trim() : project.name;
     const content = typeof args.content === 'string' ? args.content.trim() : '';
     if (!content) {
-      throw new Error('Claude returned empty document content');
+      throw new AIBadResponseError('Claude returned empty document content (DRAFT_GEN)');
     }
 
     return {
