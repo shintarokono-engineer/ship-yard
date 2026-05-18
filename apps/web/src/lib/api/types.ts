@@ -19,9 +19,20 @@ export type Role = (typeof ROLES)[number];
  */
 export const WRITER_ROLES: readonly Role[] = ['OWNER', 'ADMIN', 'DEVELOPER'];
 
+/**
+ * 管理権限を持つロール一覧(apps/api の `ADMIN_ROLES` と同期)。
+ * プロジェクト削除など、子リソースが連鎖削除される破壊的操作・メンバー管理に必要。
+ */
+export const ADMIN_ROLES: readonly Role[] = ['OWNER', 'ADMIN'];
+
 /** メンバーロールが書き込み権限を持つかを判定。 */
 export function isWriterRole(role: Role): boolean {
   return (WRITER_ROLES as readonly string[]).includes(role);
+}
+
+/** メンバーロールが管理権限を持つかを判定。 */
+export function isAdminRole(role: Role): boolean {
+  return (ADMIN_ROLES as readonly string[]).includes(role);
 }
 
 /** プロジェクトのライフサイクル状態(`ProjectStatus` enum と同期)。 */
