@@ -31,8 +31,13 @@
     // pnpm のシンボリックリンク構造下で IDE 側の TS Server が @types を auto-discovery
     // できない事象があるため、明示する(CLI tsc は問題なく解決できるが、IDE 表示の安定化目的)。
     // 必要な型パッケージを増やしたら、ここに追記する
-    "types": ["node", "express"]
+    "types": ["node", "express"],
+
+    // React Email テンプレート(`src/mail/emails/*.tsx`)用の JSX 設定
+    // backend 内で JSX を扱うのはメールテンプレートのレンダリング目的のみ。
+    // `react-jsx` は新しい JSX 変換(React 17+ 推奨、import React 不要)。
+    "jsx": "react-jsx"
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["node_modules", "dist"]
 }

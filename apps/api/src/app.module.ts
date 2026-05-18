@@ -20,6 +20,9 @@ import { ChecklistController } from './checklist/checklist.controller';
 import { ChecklistService } from './checklist/checklist.service';
 import { DocumentsController } from './documents/documents.controller';
 import { DocumentsService } from './documents/documents.service';
+import { InvitationsController } from './invitations/invitations.controller';
+import { InvitationsService } from './invitations/invitations.service';
+import { MailModule } from './mail/mail.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsController } from './projects/projects.controller';
 import { ProjectsService } from './projects/projects.service';
@@ -32,12 +35,13 @@ import { WorkspacesController } from './workspaces/workspaces.controller';
 
 @Module({
   imports: [
-    // .env.local を読んで process.env に展開(CLERK_SECRET_KEY / DATABASE_URL / PORT / STRIPE_* / APP_BASE_URL / ANTHROPIC_API_KEY / OPENAI_API_KEY)
+    // .env.local を読んで process.env に展開(CLERK_SECRET_KEY / DATABASE_URL / PORT / STRIPE_* / APP_BASE_URL / ANTHROPIC_API_KEY / OPENAI_API_KEY / RESEND_API_KEY / MAIL_FROM)
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env.local' }),
     PrismaModule,
     StripeModule,
     AnthropicModule,
     OpenAIModule,
+    MailModule,
   ],
   controllers: [
     AppController,
@@ -50,6 +54,7 @@ import { WorkspacesController } from './workspaces/workspaces.controller';
     DraftGenController,
     RefineDocController,
     TaskSplitController,
+    InvitationsController,
   ],
   providers: [
     MembershipService,
@@ -65,6 +70,7 @@ import { WorkspacesController } from './workspaces/workspaces.controller';
     RagSearchService,
     RefineDocService,
     TaskSplitService,
+    InvitationsService,
   ],
 })
 export class AppModule implements NestModule {
