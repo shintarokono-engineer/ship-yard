@@ -45,6 +45,12 @@ export const CHECKLIST_GEN_MAX_ITEMS = 30;
 /** CHECKLIST_GEN の Anthropic API `max_tokens`。30 件 × 平均 80 トークン + 余裕 ≈ 4000。 */
 export const CHECKLIST_GEN_MAX_TOKENS = 4096;
 
+/** TASK_SPLIT で 1 回の分解で出力できるサブタスクの最大数。Tool 入力スキーマの `maxItems` にも反映する。 */
+export const TASK_SPLIT_MAX_ITEMS = 10;
+
+/** TASK_SPLIT の Anthropic API `max_tokens`。10 件 × 平均 80 トークン + 余裕 ≈ 2000。 */
+export const TASK_SPLIT_MAX_TOKENS = 2048;
+
 /**
  * RAG 検索で取得する類似ドキュメントの上限件数。
  *

@@ -270,6 +270,9 @@ model ChecklistItem {
   tenantId    String
   /// 所属プロジェクト ID
   projectId   String
+  /// 親 ChecklistItem の ID(TASK_SPLIT で分解された子サブタスクのみセット、手動作成では null)。
+  /// 親が削除されたら子も Cascade で削除(意図しない一括削除リスクはあるが、ユーザー選択で許容)。
+  parentId    String?
   /// 項目カテゴリ(TECH / LEGAL / MARKETING / UX / OTHER)
   category    Category
   /// 項目タイトル(短文)
@@ -283,10 +286,13 @@ model ChecklistItem {
   /// 作成日時
   createdAt   DateTime   @default(now())
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project  Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent   ChecklistItem?  @relation("ChecklistSubtasks", fields: [parentId], references: [id], onDelete: Cascade)
+  subtasks ChecklistItem[] @relation("ChecklistSubtasks")
 
   @@index([tenantId])
   @@index([projectId, position])
+  @@index([parentId])
 }
 
 /// AI が生成 or ユーザーが編集した文書(README / LP / 告知文 等)。

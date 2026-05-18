@@ -12,6 +12,8 @@ import { OpenAIModule } from './ai/openai.module';
 import { RagSearchService } from './ai/rag-search.service';
 import { RefineDocController } from './ai/refine-doc.controller';
 import { RefineDocService } from './ai/refine-doc.service';
+import { TaskSplitController } from './ai/task-split.controller';
+import { TaskSplitService } from './ai/task-split.service';
 import { AppController } from './app.controller';
 import { BillingService } from './billing/billing.service';
 import { ChecklistController } from './checklist/checklist.controller';
@@ -47,6 +49,7 @@ import { WorkspacesController } from './workspaces/workspaces.controller';
     DocumentsController,
     DraftGenController,
     RefineDocController,
+    TaskSplitController,
   ],
   providers: [
     MembershipService,
@@ -61,6 +64,7 @@ import { WorkspacesController } from './workspaces/workspaces.controller';
     EmbeddingService,
     RagSearchService,
     RefineDocService,
+    TaskSplitService,
   ],
 })
 export class AppModule implements NestModule {

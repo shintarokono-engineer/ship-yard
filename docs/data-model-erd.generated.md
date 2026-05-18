@@ -203,6 +203,7 @@ RETRYING RETRYING
     "ChecklistItem" |o--|| "Category" : "enum:category"
     "ChecklistItem" |o--|| "ItemStatus" : "enum:status"
     "ChecklistItem" }o--|| "Project" : "project"
+    "ChecklistItem" |o--|o "ChecklistItem" : "parent"
     "ProjectDocument" |o--|| "DocType" : "enum:type"
     "ProjectDocument" }o--|| "Project" : "project"
     "ProjectDocument" }o--|| "User" : "createdBy"

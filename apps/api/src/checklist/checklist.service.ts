@@ -11,6 +11,7 @@ import type { UpdateChecklistItemDto } from './dto/update-checklist-item.dto';
 const CHECKLIST_ITEM_SELECT = {
   id: true,
   projectId: true,
+  parentId: true,
   category: true,
   title: true,
   description: true,
@@ -52,6 +53,9 @@ export class ChecklistService {
    * 複数の ChecklistItem を一括作成して、作成行を一覧 SELECT 相当の形で返す(AI 生成からの呼び出しを想定)。
    * `createManyAndReturn` は 1 トランザクションで原子的に挿入するため、途中失敗で半端に行が残らない。
    * `position` は配列インデックス順に割り振り(`baseOffset + index`)、表示順をそのまま反映させる。
+   *
+   * `parentId` を渡すと全項目が同じ親 ChecklistItem に紐付く(TASK_SPLIT のサブタスク用)。
+   * 渡さなければ NULL のまま(CHECKLIST_GEN のフラット生成用)。
    */
   async bulkCreate(
     tenantId: string,
@@ -61,15 +65,17 @@ export class ChecklistService {
       title: string;
       description?: string;
     }[],
-    options: { baseOffset?: number } = {},
+    options: { baseOffset?: number; parentId?: string } = {},
   ) {
     await this.projects.assertExists(tenantId, projectId);
     if (items.length === 0) return [];
     const baseOffset = options.baseOffset ?? 0;
+    const parentId = options.parentId;
     return this.prisma.checklistItem.createManyAndReturn({
       data: items.map((item, index) => ({
         tenantId,
         projectId,
+        parentId,
         category: item.category,
         title: item.title,
         description: item.description,
