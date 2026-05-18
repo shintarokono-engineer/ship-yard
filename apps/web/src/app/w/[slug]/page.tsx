@@ -1,59 +1,58 @@
-import { auth } from '@clerk/nextjs/server';
 import { notFound } from 'next/navigation';
 
-import { isValidTenantSlug } from '@/lib/tenant-slug';
+import { isWriterRole } from '@/lib/api/types';
+import { fetchWorkspace, listProjects } from '@/lib/api/workspaces';
 
-interface Workspace {
-  id: string;
-  slug: string;
-  name: string;
-  plan: string;
-  role: string;
-}
+import { EmptyState } from './_components/empty-state';
+import { NewProjectDialog } from './_components/new-project-dialog';
+import { ProjectCard } from './_components/project-card';
 
 /**
- * 現在のユーザーがその slug のテナントに所属しているかを apps/api に確認する。
- * - 所属していれば Workspace を返す
- * - slug 不在 / 未所属 / 認証不可 → null(呼び出し側で notFound() する)
+ * ワークスペースのダッシュボード(プロジェクト一覧)。
  *
- * データアクセスは apps/api 経由(architecture.md: Web=BFF、DB は API のみ)。
+ * 所属チェックは layout.tsx で済んでいる前提だが、ここでも `workspace.role` を引いて
+ * 書き込み権限(`WRITER_ROLES`)で UI 出し分けを行う。`fetchWorkspace` は
+ * `React.cache` でラップ済みなので、layout と合わせて API 通信は 1 回に dedup される。
  */
-async function fetchWorkspace(slug: string): Promise<Workspace | null> {
-  const { getToken } = await auth();
-  const token = await getToken();
-  if (!token) return null;
-
-  const res = await fetch(`${process.env.API_URL}/workspaces/${slug}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store',
-  });
-  if (!res.ok) return null; // 404(未所属 or 不在)/ 401 等
-  return (await res.json()) as Workspace;
-}
-
-export default async function WorkspacePage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function WorkspaceProjectsPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
 
-  // 形式不正な slug は 404(ADR-003)
-  if (!isValidTenantSlug(slug)) {
+  // layout で所属チェック済みなので通常 null は来ないが、race condition 等に備える。
+  const workspace = await fetchWorkspace(slug);
+  if (!workspace) {
     notFound();
   }
 
-  const workspace = await fetchWorkspace(slug);
-  if (!workspace) {
-    notFound(); // 所属していない slug は 404(存在の有無を漏らさない、ADR-003)
-  }
+  const canWrite = isWriterRole(workspace.role);
+  const projects = await listProjects(slug);
+  const hasProjects = projects.length > 0;
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-8">
-      <h1 className="text-3xl font-bold">{workspace.name}</h1>
-      <p className="text-muted-foreground text-sm">
-        slug: <code>{workspace.slug}</code> / plan: <code>{workspace.plan}</code> / あなたのロール:{' '}
-        <code>{workspace.role}</code>
-      </p>
-      <p className="text-muted-foreground">
-        所属チェックは apps/api 経由(ADR-002 / ADR-003)。ワークスペース内の画面は今後実装します。
-      </p>
-    </main>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">プロジェクト</h1>
+          <p className="text-muted-foreground text-sm">
+            アイデアから運用まで、リリース工程を 1 箇所で管理します。
+          </p>
+        </div>
+        {/* 空状態のときは中央 CTA だけで十分なので、ヘッダー CTA は projects 件数 > 0 のときのみ */}
+        {canWrite && hasProjects && <NewProjectDialog slug={slug} />}
+      </div>
+
+      {hasProjects ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {projects.map((p) => (
+            <ProjectCard key={p.id} slug={slug} project={p} />
+          ))}
+        </div>
+      ) : (
+        <EmptyState>{canWrite ? <NewProjectDialog slug={slug} /> : null}</EmptyState>
+      )}
+    </div>
   );
 }

@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { ClerkProvider } from '@clerk/nextjs';
 import './globals.css';
 
+import { Toaster } from '@/components/ui/sonner';
+
 export const metadata: Metadata = {
   title: 'Shipyard',
   description:
@@ -20,6 +22,7 @@ export default function RootLayout({
             hydration mismatch を抑制(1 階層のみ。子要素の警告は引き続き出る) */}
         <body className="antialiased" suppressHydrationWarning>
           {children}
+          <Toaster richColors position="bottom-right" />
         </body>
       </html>
     </ClerkProvider>
