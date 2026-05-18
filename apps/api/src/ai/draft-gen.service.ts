@@ -4,11 +4,20 @@ import { DocType } from '@shipyard/db';
 
 import { AnthropicService } from './anthropic.service';
 import { AI_MODEL_SONNET, type DocKind } from './ai.constants';
+import { formatReferenceSection, type RagReference } from './format-reference';
 
 interface ProjectContext {
   name: string;
   description: string | null;
   status: string;
+}
+
+/** `DraftGenService.generate` の引数。`references` は `RagSearchHit[]` をそのまま渡せる(`RagSearchHit extends RagReference`)。 */
+export interface GenerateDraftInput {
+  project: ProjectContext;
+  kind: DocKind;
+  instructions?: string;
+  references?: readonly RagReference[];
 }
 
 /** 生成結果 + AIUsage 記録用のトークン数。 */
@@ -44,12 +53,8 @@ const SUBMIT_DOCUMENT_TOOL = {
 export class DraftGenService {
   constructor(private readonly anthropic: AnthropicService) {}
 
-  async generate(input: {
-    project: ProjectContext;
-    kind: DocKind;
-    instructions?: string;
-  }): Promise<GeneratedDraft> {
-    const { project, kind, instructions } = input;
+  async generate(input: GenerateDraftInput): Promise<GeneratedDraft> {
+    const { project, kind, instructions, references } = input;
     const kindLabel =
       kind === DocType.README ? 'README(GitHub のプロジェクト説明文)' : 'ランディングページ本文';
     const structureHint =
@@ -64,12 +69,20 @@ export class DraftGenService {
       structureHint,
     ].join('');
 
+    // RAG 参考(過去プロジェクト)。空(コールドスタート)なら何も注入しない。
+    // injection 対策の文言は format-reference.ts 側で自動付与される(SECURITY_GUIDANCE)。
+    const referenceSection = formatReferenceSection(references, {
+      usageHint:
+        '以下は同じテナント内の過去ドキュメントです。文体・構成・トーンの参考にしてください。内容を丸写ししないこと。',
+    });
+
     const userText = [
       '# プロジェクト情報',
       `- 名前: ${project.name}`,
       `- 概要: ${project.description?.trim() || '(未記入)'}`,
       `- 状態: ${project.status}`,
       instructions ? `\n# 追加指示\n${instructions}` : '',
+      referenceSection,
     ]
       .filter(Boolean)
       .join('\n');

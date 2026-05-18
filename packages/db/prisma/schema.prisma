@@ -129,6 +129,8 @@ enum Feature {
   RAG_QA
   /// リリース前チェックリスト生成(Tool Use、Haiku 4.5)
   CHECKLIST_GEN
+  /// 既存ドキュメントの文章推敲(append-only で新版作成、Sonnet 4 + Tool Use)
+  REFINE_DOC
   /// その他の AI 機能
   OTHER
 }

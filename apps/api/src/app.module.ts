@@ -9,6 +9,9 @@ import { DraftGenController } from './ai/draft-gen.controller';
 import { DraftGenService } from './ai/draft-gen.service';
 import { EmbeddingService } from './ai/embedding.service';
 import { OpenAIModule } from './ai/openai.module';
+import { RagSearchService } from './ai/rag-search.service';
+import { RefineDocController } from './ai/refine-doc.controller';
+import { RefineDocService } from './ai/refine-doc.service';
 import { AppController } from './app.controller';
 import { BillingService } from './billing/billing.service';
 import { ChecklistController } from './checklist/checklist.controller';
@@ -43,6 +46,7 @@ import { WorkspacesController } from './workspaces/workspaces.controller';
     ChecklistGenController,
     DocumentsController,
     DraftGenController,
+    RefineDocController,
   ],
   providers: [
     MembershipService,
@@ -55,6 +59,8 @@ import { WorkspacesController } from './workspaces/workspaces.controller';
     DraftGenService,
     ChecklistGenService,
     EmbeddingService,
+    RagSearchService,
+    RefineDocService,
   ],
 })
 export class AppModule implements NestModule {

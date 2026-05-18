@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
-import { type Feature, Plan } from '@shipyard/db';
+import { Feature, Plan } from '@shipyard/db';
 
 import { dayjs } from '../common/time';
 import { PrismaService } from '../prisma/prisma.service';
@@ -23,6 +23,16 @@ function startOfMonthUtc(): Date {
   return dayjs.utc().startOf('month').toDate();
 }
 
+/** `AIUsageService.record` の引数。1 回の AI 呼び出しを集計テーブルに記録するための情報。 */
+export interface RecordAIUsageInput {
+  tenantId: string;
+  userId: string;
+  model: string;
+  feature: Feature;
+  tokensIn: number;
+  tokensOut: number;
+}
+
 /**
  * AI 呼び出しのテナント単位ログ(`AIUsage`)の記録と、Free プランの月次上限チェック(ADR-005)。
  *
@@ -35,11 +45,21 @@ function startOfMonthUtc(): Date {
 export class AIUsageService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** FREE プランのテナントが当月 `FREE_MONTHLY_AI_LIMIT` 回未満かを検証。FREE 以外は無制限。超過なら 403。 */
+  /**
+   * FREE プランのテナントが当月 `FREE_MONTHLY_AI_LIMIT` 回未満かを検証。FREE 以外は無制限。超過なら 403。
+   *
+   * カウントは `Feature.OTHER`(embedding / RAG 検索など、ユーザーが明示的に呼んだ AI 機能ではないもの)を除外。
+   * これがないと 1 回の generate につき検索 embedding と本生成で 2 件積まれ、Free 上限が実質半分になる。
+   * 「20 回 = ユーザー視点の AI 機能を 20 回呼べる」というユーザー体験と一致させる。
+   */
   async assertWithinFreeQuota(tenant: { id: string; plan: Plan }): Promise<void> {
     if (tenant.plan !== Plan.FREE) return;
     const used = await this.prisma.aIUsage.count({
-      where: { tenantId: tenant.id, createdAt: { gte: startOfMonthUtc() } },
+      where: {
+        tenantId: tenant.id,
+        createdAt: { gte: startOfMonthUtc() },
+        feature: { not: Feature.OTHER },
+      },
     });
     if (used >= FREE_MONTHLY_AI_LIMIT) {
       throw new ForbiddenException(
@@ -49,14 +69,7 @@ export class AIUsageService {
   }
 
   /** AI 呼び出し 1 回分をテナント単位で記録する。 */
-  async record(usage: {
-    tenantId: string;
-    userId: string;
-    model: string;
-    feature: Feature;
-    tokensIn: number;
-    tokensOut: number;
-  }): Promise<void> {
+  async record(usage: RecordAIUsageInput): Promise<void> {
     await this.prisma.aIUsage.create({
       data: {
         tenantId: usage.tenantId,
