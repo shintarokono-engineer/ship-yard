@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { type Category, isPrismaError, type Prisma, PrismaErrorCode } from '@shipyard/db';
 
@@ -35,10 +35,14 @@ export class ChecklistService {
 
   async create(tenantId: string, projectId: string, dto: CreateChecklistItemDto) {
     await this.projects.assertExists(tenantId, projectId);
+    if (dto.parentId !== undefined) {
+      await this.assertValidParent(tenantId, projectId, dto.parentId);
+    }
     return this.prisma.checklistItem.create({
       data: {
         tenantId,
         projectId,
+        parentId: dto.parentId,
         category: dto.category,
         title: dto.title,
         description: dto.description,
@@ -130,6 +134,34 @@ export class ChecklistService {
     } catch (e) {
       if (isPrismaError(e, PrismaErrorCode.RECORD_NOT_FOUND)) throw new NotFoundException();
       throw e;
+    }
+  }
+
+  /**
+   * 親候補 ChecklistItem の妥当性チェック(2 階層想定、create 専用)。
+   *
+   * - `parentId` が同テナント・同プロジェクトに存在するか
+   * - 親が既にサブタスク(`parent.parentId !== null`)でないか(孫禁止 = 2 階層制限)
+   *
+   * update から parentId を受け付けない設計のため、自身を親に指定するケースや
+   * 子をもつ項目をサブタスク化するケースは構造上発生せず、追加ガードは不要。
+   */
+  private async assertValidParent(
+    tenantId: string,
+    projectId: string,
+    parentId: string,
+  ): Promise<void> {
+    const parent = await this.prisma.checklistItem.findFirst({
+      where: { id: parentId, tenantId, projectId },
+      select: { id: true, parentId: true },
+    });
+    if (!parent) {
+      throw new BadRequestException('parentId: 指定した親項目が見つかりません。');
+    }
+    if (parent.parentId !== null) {
+      throw new BadRequestException(
+        'parentId: 既にサブタスクの項目を親に指定することはできません(2 階層まで)。',
+      );
     }
   }
 }

@@ -19,9 +19,20 @@ export type Role = (typeof ROLES)[number];
  */
 export const WRITER_ROLES: readonly Role[] = ['OWNER', 'ADMIN', 'DEVELOPER'];
 
+/**
+ * 管理権限を持つロール一覧(apps/api の `ADMIN_ROLES` と同期)。
+ * プロジェクト削除など、子リソースが連鎖削除される破壊的操作・メンバー管理に必要。
+ */
+export const ADMIN_ROLES: readonly Role[] = ['OWNER', 'ADMIN'];
+
 /** メンバーロールが書き込み権限を持つかを判定。 */
 export function isWriterRole(role: Role): boolean {
   return (WRITER_ROLES as readonly string[]).includes(role);
+}
+
+/** メンバーロールが管理権限を持つかを判定。 */
+export function isAdminRole(role: Role): boolean {
+  return (ADMIN_ROLES as readonly string[]).includes(role);
 }
 
 /** プロジェクトのライフサイクル状態(`ProjectStatus` enum と同期)。 */
@@ -75,4 +86,97 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   _count: { checklist: number; documents: number };
+}
+
+/** ChecklistItem のカテゴリ(`Category` enum、packages/db/prisma/schema.prisma)。 */
+export const CATEGORIES = ['TECH', 'LEGAL', 'MARKETING', 'UX', 'OTHER'] as const;
+export type Category = (typeof CATEGORIES)[number];
+
+/** ChecklistItem の進捗状態(`ItemStatus` enum)。 */
+export const ITEM_STATUSES = ['TODO', 'IN_PROGRESS', 'DONE', 'NOT_APPLICABLE'] as const;
+export type ItemStatus = (typeof ITEM_STATUSES)[number];
+
+/** カテゴリの表示ラベル。 */
+export const CATEGORY_META: Record<Category, { label: string }> = {
+  TECH: { label: '技術' },
+  LEGAL: { label: '法務' },
+  MARKETING: { label: 'マーケティング' },
+  UX: { label: 'UX' },
+  OTHER: { label: 'その他' },
+};
+
+/** 進捗状態の表示ラベル + バッジ。 */
+export const ITEM_STATUS_META: Record<
+  ItemStatus,
+  { label: string; badgeVariant: BadgeVariant; badgeClassName?: string }
+> = {
+  TODO: { label: '未着手', badgeVariant: 'outline' },
+  IN_PROGRESS: {
+    label: '着手中',
+    badgeVariant: 'outline',
+    badgeClassName: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  },
+  DONE: {
+    label: '完了',
+    badgeVariant: 'outline',
+    badgeClassName:
+      'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  },
+  NOT_APPLICABLE: { label: '該当なし', badgeVariant: 'secondary' },
+};
+
+/** `GET /workspaces/:slug/projects/:projectId/checklist` のレスポンス 1 件分。 */
+export interface ChecklistItem {
+  id: string;
+  projectId: string;
+  /** TASK_SPLIT で生成された子サブタスクのみセット。手動作成は null。 */
+  parentId: string | null;
+  category: Category;
+  title: string;
+  description: string | null;
+  status: ItemStatus;
+  position: number;
+  createdAt: string;
+}
+
+/** ProjectDocument の種別(`DocType` enum、packages/db/prisma/schema.prisma)。 */
+export const DOC_TYPES = [
+  'README',
+  'LANDING_PAGE',
+  'RELEASE_BLOG',
+  'TWEET',
+  'PRODUCT_HUNT',
+  'EMAIL',
+  'OTHER',
+] as const;
+export type DocType = (typeof DOC_TYPES)[number];
+
+/** Document の種別ごとの表示メタ。 */
+export const DOC_TYPE_META: Record<DocType, { label: string; description: string }> = {
+  README: { label: 'README', description: 'プロジェクト概要' },
+  LANDING_PAGE: { label: 'ランディングページ', description: '訴求 / ファーストビュー' },
+  RELEASE_BLOG: { label: 'リリースブログ', description: '公開時の記事' },
+  TWEET: { label: 'X / Twitter 告知文', description: '短文告知' },
+  PRODUCT_HUNT: { label: 'Product Hunt 投稿', description: 'PH ローンチ用テキスト' },
+  EMAIL: { label: '告知メール', description: 'メーリングリスト用本文' },
+  OTHER: { label: 'その他', description: '汎用ドキュメント' },
+};
+
+/**
+ * `GET /workspaces/:slug/projects/:projectId/documents` のレスポンス 1 件分。
+ * 一覧 API は `content` を含まず、1 件取得 API のみ `content` 込みで返る。
+ */
+export interface ProjectDocument {
+  id: string;
+  projectId: string;
+  type: DocType;
+  title: string;
+  /** 一覧 API では含まれない(null として表現)、1 件取得 API でのみ本文が入る。 */
+  content: string | null;
+  /** 推敲履歴の version 番号。同 (projectId, type) で v1, v2, ... と増加。 */
+  version: number;
+  createdById: string;
+  createdAt: string;
+  /** soft delete されたタイムスタンプ。一覧 / 取得 API ではそもそも 404 になるので null 想定。 */
+  deletedAt: string | null;
 }

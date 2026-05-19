@@ -52,6 +52,14 @@ Shipyard は AI 機能を主要差別化として位置付ける。Anthropic API
 - 自然文応答は通常生成
 - Tool Use 利用箇所は明示的にコードコメントで理由を記録
 
+### タスク分解と ChecklistItem 親子関係(2 階層厳守)
+
+- AI による分解(`TASK_SPLIT`、Haiku 4.5 + Tool Use)を主経路として位置付ける。生成されたサブタスクは `parentId` で親 ChecklistItem に紐付く
+- **手動でのサブタスク作成も許容**: 一覧画面の親直下「+ サブタスクを追加」インラインフォームから create 時に `parentId` を渡す。AI を使わない手動構造化にも対応
+- **`parentId` の変更は update 経由では不可**: 編集ダイアログから親変更 / 親解除の UI は提供しない。`parentId` は新規 create(手動 or TASK_SPLIT)と `ON DELETE CASCADE`(親削除 → 子も消滅)でのみ確定する
+- **2 階層厳守**: 親 → 子の 2 階層まで。孫禁止(UI 複雑化を避ける + AI Tool スキーマも 2 階層前提)
+- API 側ガード(create のみ):親候補が同テナント・同プロジェクトに存在 + 親が parentId=null(=既に子でない、孫禁止)。update から parentId を受け付けないため、自身を親に指定 / 子持ち項目のサブタスク化のケースは構造上発生せず追加ガード不要
+
 ### RAG
 
 - pgvector + text-embedding-3-small(1536次元)
