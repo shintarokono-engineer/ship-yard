@@ -27,14 +27,17 @@ export function InlineAddForm({
   slug,
   projectId,
   category,
+  parentId,
 }: {
   slug: string;
   projectId: string;
   category: Category;
+  /** 指定するとサブタスクとして紐付く。未指定はトップレベル項目として作成。 */
+  parentId?: string;
 }) {
   const boundAction = useMemo(
-    () => createChecklistItemAction.bind(null, slug, projectId, category),
-    [slug, projectId, category],
+    () => createChecklistItemAction.bind(null, slug, projectId, category, parentId),
+    [slug, projectId, category, parentId],
   );
   const [state, formAction, pending] = useActionState<ChecklistItemFormState, FormData>(
     boundAction,

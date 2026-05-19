@@ -45,6 +45,9 @@ import {
  * ChecklistItem 編集ダイアログ。
  *
  * title / category / description / status を一括更新する。
+ * 親子関係(parentId)の編集はここからは行わない:
+ * - 子サブタスクの作成は一覧画面の「+ サブタスク」(SubtaskAddSlot)経由
+ * - 親変更は「現親で削除 → 別親で追加」の 2 ステップで実現
  * 成功で自動 close(`[state]` 依存で連続編集にも対応、Day 19 と同じパターン)。
  */
 export function EditChecklistItemDialog({
@@ -207,4 +210,3 @@ export function EditChecklistItemDialog({
     </Dialog>
   );
 }
-

@@ -137,6 +137,8 @@ export async function createChecklistItem(
     description?: string;
     status?: ItemStatus;
     position?: number;
+    /** 同一プロジェクトのトップレベル項目 ID。指定するとサブタスクとして紐付く(2 階層まで)。 */
+    parentId?: string;
   },
 ): Promise<ChecklistItem> {
   return apiFetch<ChecklistItem>(
@@ -153,6 +155,7 @@ export async function createChecklistItem(
  *
  * 部分更新。`description` は `null` 明示で nullable 列をクリアできる
  * (apps/api `UpdateChecklistItemDto` のセマンティクス)。
+ * `parentId` は update 経由では変更不可(ADR-005、サブタスク作成は新規 create で行う)。
  */
 export async function updateChecklistItem(
   slug: string,

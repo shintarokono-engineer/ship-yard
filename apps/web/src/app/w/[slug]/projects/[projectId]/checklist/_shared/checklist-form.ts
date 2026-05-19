@@ -12,7 +12,10 @@ export const TITLE_MAX_LENGTH = 200;
 /** description の最大長。 */
 export const DESCRIPTION_MAX_LENGTH = 20_000;
 
-/** バリデーション対象フィールド。 */
+/**
+ * バリデーション対象フィールド。
+ * `parentId` は UI から変更経路が無い(create 時のみ bind 引数で渡す、ADR-005)ため含めない。
+ */
 export const FORM_FIELDS = ['title', 'category', 'description', 'status'] as const;
 export type FieldName = (typeof FORM_FIELDS)[number];
 
@@ -21,7 +24,12 @@ export interface ChecklistItemFormState {
   ok: boolean;
   fieldErrors?: Partial<Record<FieldName, string[]>>;
   formError?: string;
-  fields?: { title?: string; category?: string; description?: string; status?: string };
+  fields?: {
+    title?: string;
+    category?: string;
+    description?: string;
+    status?: string;
+  };
 }
 
 export const INITIAL_CHECKLIST_FORM_STATE: ChecklistItemFormState = { ok: false };
@@ -43,7 +51,12 @@ export function parseChecklistItemFormData(
     status: ItemStatus | undefined;
   } | null;
   fieldErrors: Partial<Record<FieldName, string[]>>;
-  fields: { title: string; category: string; description: string; status: string };
+  fields: {
+    title: string;
+    category: string;
+    description: string;
+    status: string;
+  };
 } {
   const title = String(formData.get('title') ?? '').trim();
   const categoryRaw = String(formData.get('category') ?? '').trim();

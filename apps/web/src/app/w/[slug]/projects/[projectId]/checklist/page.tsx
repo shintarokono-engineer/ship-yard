@@ -1,6 +1,6 @@
+import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronLeft } from 'lucide-react';
 
 import {
   CATEGORIES,
@@ -13,6 +13,7 @@ import { fetchProject, fetchWorkspace, listChecklist } from '@/lib/api/workspace
 
 import { ChecklistItemRow } from './_components/checklist-item-row';
 import { InlineAddForm } from './_components/inline-add-form';
+import { SubtaskAddSlot } from './_components/subtask-add-slot';
 
 /**
  * `/w/{slug}/projects/{projectId}/checklist` — チェックリスト一覧。
@@ -92,6 +93,11 @@ export default async function ChecklistPage({
                           canWrite={canWrite}
                         />
                       ))}
+                      {/* 真のトップレベル項目(parentId=null)のみ、その直下に「+ サブタスク」を出す。
+                          孤児サブタスクは parents 配列に居ても parentId !== null なので除外する(API ガードで 400 になる)。 */}
+                      {canWrite && parent.parentId === null && (
+                        <SubtaskAddSlot slug={slug} projectId={projectId} parent={parent} />
+                      )}
                     </div>
                   ))
                 )}
@@ -110,19 +116,11 @@ export default async function ChecklistPage({
 }
 
 interface CategoryGroup {
-  /** トップレベル(parentId=null)の項目、position 昇順。 */
   parents: ChecklistItem[];
-  /** parentId をキーに、その親の直下サブタスクを position 昇順で保持。 */
   subtasks: Map<string, ChecklistItem[]>;
 }
 
-/**
- * フラットな ChecklistItem 配列をカテゴリ別 + 親/子の構造にグループ化する。
- * API は position 昇順で返すので、ここではグルーピングのみで position は維持される。
- *
- * 親が同一カテゴリ内にいないサブタスク(親が別カテゴリに移動された等のエッジケース)は
- * トップレベル扱いで表示する(消失させない)。
- */
+/** カテゴリ別 + 親/子に再構築する(position は API の昇順をそのまま維持)。 */
 function groupByCategory(items: readonly ChecklistItem[]): Record<Category, CategoryGroup> {
   const result: Record<Category, CategoryGroup> = {
     TECH: { parents: [], subtasks: new Map() },
@@ -132,7 +130,6 @@ function groupByCategory(items: readonly ChecklistItem[]): Record<Category, Cate
     OTHER: { parents: [], subtasks: new Map() },
   };
 
-  // parentId → 親項目の category の索引(サブタスクは親と同じカテゴリ群に置く)
   const itemById = new Map(items.map((i) => [i.id, i]));
 
   for (const item of items) {
@@ -142,11 +139,11 @@ function groupByCategory(items: readonly ChecklistItem[]): Record<Category, Cate
     }
     const parent = itemById.get(item.parentId);
     if (!parent) {
-      // 親が同一レスポンス内に居ない孤児サブタスクは、自身の category のトップレベルに
-      // 昇格させて表示する(render から漏れて消失するのを防ぐ)。
+      // 親が同一レスポンスに居ない孤児は render から漏れないようトップレベル化。
       result[item.category].parents.push(item);
       continue;
     }
+    // サブタスクは親の category を継承して同カテゴリ群に置く(API の親 Category 継承仕様と整合)。
     const bag = result[parent.category].subtasks;
     let list = bag.get(item.parentId);
     if (!list) {

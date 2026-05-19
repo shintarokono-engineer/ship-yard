@@ -19,12 +19,17 @@ export type { ChecklistItemFormState };
  * ChecklistItem を作成する Server Action。
  *
  * インラインフォームから呼ばれる前提で **category は bind 引数で渡される**(フォームには category 入力なし)。
+ * `parentId` も bind で渡せる:
+ * - トップレベル追加(カテゴリ末尾フォーム)→ `parentId=undefined`
+ * - サブタスク追加(親直下フォーム)→ `parentId=親 ID`
+ *
  * 成功時は redirect せず `{ ok: true }` を返し、UI 側で入力欄をクリアして連続入力できるようにする。
  */
 export async function createChecklistItemAction(
   slug: string,
   projectId: string,
   category: Category,
+  parentId: string | undefined,
   _prev: ChecklistItemFormState,
   formData: FormData,
 ): Promise<ChecklistItemFormState> {
@@ -44,6 +49,7 @@ export async function createChecklistItemAction(
       category,
       title: parsed.data.title,
       description: parsed.data.description.length > 0 ? parsed.data.description : undefined,
+      parentId,
     });
   } catch (e) {
     if (e instanceof ApiError) {
