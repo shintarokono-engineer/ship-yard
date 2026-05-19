@@ -33,6 +33,7 @@ import { StripeWebhookService } from './webhooks/stripe-webhook.service';
 import { WebhooksController } from './webhooks/webhooks.controller';
 import { MembershipService } from './workspaces/membership.service';
 import { WorkspacesController } from './workspaces/workspaces.controller';
+import { WorkspacesService } from './workspaces/workspaces.service';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { WorkspacesController } from './workspaces/workspaces.controller';
   ],
   providers: [
     MembershipService,
+    WorkspacesService,
     BillingService,
     StripeWebhookService,
     ProjectsService,

@@ -31,6 +31,30 @@ export class BillingService {
   ) {}
 
   // ---------------------------------------------------------------------------
+  // テナント作成時の初期化(`WorkspacesService.create` から呼ばれる)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * 新規テナント作成時に Stripe Customer と FREE 状態の Subscription 行を初期化する。
+   * - 失敗してもベストエフォート(Stripe ダウンでもテナント作成自体は成立させたい)
+   * - 失敗時は `false` を返し、呼び出し側でレスポンスに反映。次回の Checkout 時に `ensureStripeCustomer` で lazy 作成される
+   */
+  async initializeFreeSubscription(tenant: {
+    id: string;
+    name: string;
+    owner: { email: string; name: string | null };
+  }): Promise<boolean> {
+    try {
+      await this.ensureStripeCustomer(tenant);
+      return true;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      this.logger.error(`Failed to initialize Stripe customer for tenant ${tenant.id}: ${msg}`);
+      return false;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Checkout(apps/web からの「アップグレード」操作で呼ばれる)
   // ---------------------------------------------------------------------------
 

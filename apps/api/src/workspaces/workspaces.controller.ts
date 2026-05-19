@@ -2,26 +2,48 @@ import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 
 import { Role } from '@shipyard/db';
 
+import type { AuthUser } from '../auth/auth-user';
 import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
 import { CurrentWorkspace } from '../auth/current-workspace.decorator';
 import { Roles } from '../auth/roles';
 import { WorkspaceGuard } from '../auth/workspace.guard';
 import { BillingService } from '../billing/billing.service';
 import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
+import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import type { WorkspaceAccess } from './membership.service';
+import { WorkspacesService } from './workspaces.service';
 
 /**
- * ワークスペース(テナント)の参照 + 課金操作 API。
- * - apps/web の /w/[slug] ページが所属チェックに使う(ADR-002 / ADR-003)
- * - プラン変更(Checkout)は OWNER のみ(`@Roles(Role.OWNER)`、ADR-004 / Role 定義)
+ * ワークスペース(テナント)の作成 / 参照 / 課金操作 API。
  *
- * 認証 → 所属解決 → ロール検証は `ClerkAuthGuard` → `WorkspaceGuard` が担い、解決済みの所属情報は `@CurrentWorkspace()` で受け取る
- * (slug は path の `:slug` をそのまま `@Param` で受ける — `WorkspaceGuard` が解決に使うのと同じ値)。
+ * Guard 戦略は **method 単位**(class-level は `ClerkAuthGuard` のみ):
+ * - `POST /workspaces`(新規作成):認証のみ — まだ workspace 所属がないので `WorkspaceGuard` は付けない
+ * - `GET /workspaces/:slug`:`WorkspaceGuard`(所属確認、ADR-003)
+ * - `POST /workspaces/:slug/checkout-session`:`WorkspaceGuard` + `@Roles(Role.OWNER)`(ADR-004 / Role 定義)
+ *
  */
 @Controller('workspaces')
-@UseGuards(ClerkAuthGuard, WorkspaceGuard)
+@UseGuards(ClerkAuthGuard)
 export class WorkspacesController {
-  constructor(private readonly billing: BillingService) {}
+  constructor(
+    private readonly billing: BillingService,
+    private readonly workspaces: WorkspacesService,
+  ) {}
+
+  /**
+   * POST /workspaces — ワークスペース(テナント)新規作成。
+   * 認証済みユーザーなら誰でも作成可(1 ユーザー = 何個でも所有可、MVP は制限なし)。
+   * - User 未登録(Clerk Webhook 未同期等) → 403
+   * - slug 指定が既存と衝突 → 409
+   * - 入力検証エラー(name 長さ / slug 形式) → 400
+   * - 成功時は `{ tenant: { id, slug, name, plan, role }, subscriptionInitialized }` を返す。
+   *   `subscriptionInitialized: false` は Stripe Customer 作成失敗(Stripe ダウン等)、Checkout 時に lazy 作成される
+   */
+  @Post()
+  create(@CurrentUser() user: AuthUser, @Body() dto: CreateWorkspaceDto) {
+    return this.workspaces.create(user.clerkUserId, dto);
+  }
 
   /**
    * GET /workspaces/:slug
@@ -29,6 +51,7 @@ export class WorkspacesController {
    * - 所属している → { id, slug, name, plan, role }
    */
   @Get(':slug')
+  @UseGuards(WorkspaceGuard)
   getWorkspace(@CurrentWorkspace() ws: WorkspaceAccess, @Param('slug') slug: string) {
     return {
       id: ws.tenantId,
@@ -47,6 +70,7 @@ export class WorkspacesController {
    * - plan が PRO / TEAM 以外 → 400(`CreateCheckoutSessionDto`)
    */
   @Post(':slug/checkout-session')
+  @UseGuards(WorkspaceGuard)
   @Roles(Role.OWNER)
   createCheckoutSession(
     @CurrentWorkspace() ws: WorkspaceAccess,
