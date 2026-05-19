@@ -9,16 +9,20 @@ import {
   DOC_TYPE_META,
   type DocType,
   type ProjectDocument,
+  isGeneratableDocType,
+  isWriterRole,
 } from '@/lib/api/types';
 import { fetchProject, fetchWorkspace, listDocuments } from '@/lib/api/workspaces';
 import { formatDateTime } from '@/lib/format';
+
+import { GenerateDocumentDialog } from './_components/generate-document-dialog';
 
 /**
  * `/w/{slug}/projects/{projectId}/documents` — ドキュメント一覧。
  *
  * 全 DocType(README / LP / RELEASE_BLOG / TWEET / PRODUCT_HUNT / EMAIL / OTHER)を縦に並べ、
  * 各 type の最新 version のカードを表示する。クリックで詳細ページへ。
- * 新規ドキュメントの作成は AI 経由(DRAFT_GEN、Day 22 で UI 追加予定)。
+ * 未作成 type は破線カードで表示し、AI 生成対応(README / LP)は「AI で生成」ボタンを置く。
  */
 export default async function DocumentsPage({
   params,
@@ -34,6 +38,8 @@ export default async function DocumentsPage({
   ]);
   if (!workspace) notFound();
   if (!project) notFound();
+
+  const canWrite = isWriterRole(workspace.role);
 
   // 同 type で複数 version が返るので、type ごとに version 最大を最新として抽出。
   const latestByType = new Map<DocType, ProjectDocument>();
@@ -110,7 +116,16 @@ export default async function DocumentsPage({
                 <p className="text-muted-foreground mt-1 text-xs">{meta.description}</p>
               </CardContent>
               <CardFooter className="text-muted-foreground/70 text-xs">
-                Day 22 で AI 生成 UI を追加予定。
+                {canWrite && isGeneratableDocType(type) ? (
+                  <GenerateDocumentDialog
+                    slug={slug}
+                    projectId={projectId}
+                    docType={type}
+                    typeLabel={meta.label}
+                  />
+                ) : (
+                  <span>AI 生成は README / ランディングページのみ対応</span>
+                )}
               </CardFooter>
             </Card>
           );

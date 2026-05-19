@@ -6,6 +6,7 @@ import type {
   Category,
   ChecklistItem,
   DocType,
+  GeneratableDocType,
   ItemStatus,
   Project,
   ProjectDocument,
@@ -269,5 +270,49 @@ export async function deleteDocument(
   await apiFetch<void>(
     `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}`,
     { method: 'DELETE' },
+  );
+}
+
+// ----- AI generate -----
+
+/**
+ * `POST /workspaces/:slug/projects/:projectId/documents/generate`
+ *
+ * Sonnet 4 + Tool Use で README / LP の本文を生成し、新規 ProjectDocument(v1 または新 version)
+ * として保存して返す。**append-only**:同 type が既存でも version+1 として並列に積まれる。
+ * Free プランは月 20 回上限(達成時 403 + メッセージに「AI 利用上限」)。
+ */
+export async function generateDocument(
+  slug: string,
+  projectId: string,
+  body: { docType: GeneratableDocType; instructions?: string },
+): Promise<ProjectDocument> {
+  return apiFetch<ProjectDocument>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/documents/generate`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+/**
+ * `POST /workspaces/:slug/projects/:projectId/checklist/generate`
+ *
+ * Haiku 4.5 + Tool Use で最大 30 件の ChecklistItem を `createManyAndReturn` で一括生成。
+ * Project の name / description / status を API 側で自動的に context に含めるので、ここに
+ * 改めて渡す必要は無い。`categories` は未指定で全カテゴリ、空配列は 400。
+ */
+export async function generateChecklist(
+  slug: string,
+  projectId: string,
+  body: { instructions?: string; categories?: Category[] },
+): Promise<{ items: ChecklistItem[] }> {
+  return apiFetch<{ items: ChecklistItem[] }>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/checklist/generate`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
   );
 }

@@ -12,6 +12,7 @@ import {
 import { fetchProject, fetchWorkspace, listChecklist } from '@/lib/api/workspaces';
 
 import { ChecklistItemRow } from './_components/checklist-item-row';
+import { GenerateChecklistDialog } from './_components/generate-checklist-dialog';
 import { InlineAddForm } from './_components/inline-add-form';
 import { SubtaskAddSlot } from './_components/subtask-add-slot';
 
@@ -20,7 +21,7 @@ import { SubtaskAddSlot } from './_components/subtask-add-slot';
  *
  * カテゴリ別の `<details>` セクションを縦に並べ、各セクション内で position 順に親→サブ階層表示。
  * 折りたたみ状態はブラウザネイティブ挙動を活かす(SSR 初期表示は全カテゴリ展開)。
- * AI 生成 / タスク分解は Day 22/23 で追加予定。
+ * AI 一括生成はヘッダの「AI で一括生成」ボタンから(タスク分解は Day 23 で追加予定)。
  */
 export default async function ChecklistPage({
   params,
@@ -49,10 +50,15 @@ export default async function ChecklistPage({
           <ChevronLeft className="size-4" aria-hidden="true" />
           {project.name} の詳細へ戻る
         </Link>
-        <h1 className="text-2xl font-semibold">チェックリスト</h1>
-        <p className="text-muted-foreground text-sm">
-          リリース前に必要な作業をカテゴリ別に管理します。
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold">チェックリスト</h1>
+            <p className="text-muted-foreground text-sm">
+              リリース前に必要な作業をカテゴリ別に管理します。
+            </p>
+          </div>
+          {canWrite && <GenerateChecklistDialog slug={slug} projectId={projectId} />}
+        </div>
       </div>
 
       <div className="space-y-3">
