@@ -8,8 +8,8 @@
     "module": "esnext",
     "moduleResolution": "bundler",
 
-    // ブラウザ向けなので DOM 型を追加
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    // ブラウザ向けなので DOM 型を追加。ES2023.Array は toSorted / toReversed 等の型定義用
+    "lib": ["ES2022", "ES2023.Array", "DOM", "DOM.Iterable"],
 
     // JSX は Next.js 側で変換するため preserve(コンパイラは型チェックのみ)
     "jsx": "preserve",
