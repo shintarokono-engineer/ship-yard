@@ -145,6 +145,44 @@ export class BillingService {
     return { url: session.url };
   }
 
+  /**
+   * Stripe Customer Portal Session を作成し、リダイレクト先 URL を返す。
+   * Portal 内で支払い方法変更 / 請求書履歴 / プラン変更 / 解約をすべて Stripe 側 UI で完結させる
+   * (Notion / Linear / Vercel / Resend 等と同じ標準パターン)。
+   *
+   * - 呼び出し側(コントローラ)は所属・OWNER 権限を確認済みである前提
+   * - `ensureStripeCustomer` で Customer を確保(Day 19 以前のテナント / Stripe 障害復旧時の lazy 作成)
+   * - Stripe Dashboard で Customer Portal の Activation が必要(未設定だと Stripe API が 400 を返す)
+   */
+  async createPortalSession(params: {
+    tenantId: string;
+    slug: string;
+    name: string;
+  }): Promise<{ url: string }> {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: params.tenantId },
+      select: { owner: { select: { email: true, name: true } } },
+    });
+    if (!tenant) {
+      throw new NotFoundException();
+    }
+
+    const customerId = await this.ensureStripeCustomer({
+      id: params.tenantId,
+      name: params.name,
+      owner: tenant.owner,
+    });
+    const appBaseUrl = this.config.getOrThrow<string>('APP_BASE_URL');
+
+    // 【Stripe API 呼び出し】Customer Portal Session を作成。
+    // 戻り値 session.url にユーザーをリダイレクト → Stripe 側で操作 → return_url に戻る。
+    const session = await this.stripe.client.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${appBaseUrl}/w/${params.slug}/settings/billing`,
+    });
+    return { url: session.url };
+  }
+
   // ---------------------------------------------------------------------------
   // Webhook からの DB 同期
   // ---------------------------------------------------------------------------

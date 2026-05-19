@@ -84,4 +84,26 @@ export class WorkspacesController {
       plan: dto.plan,
     });
   }
+
+  /**
+   * POST /workspaces/:slug/portal-session
+   * Stripe Customer Portal Session を作成し、リダイレクト先 URL を返す(支払い方法 / 請求書履歴 /
+   * プラン変更 / 解約を Stripe 側 UI で完結)。
+   * - 未所属 / slug 不在 → 404
+   * - OWNER 以外 → 403(`@Roles(Role.OWNER)`、課金関連は OWNER 権限のみ)
+   * - Stripe Dashboard で Customer Portal が未設定の場合 → 500(Stripe API のエラーが伝播)
+   */
+  @Post(':slug/portal-session')
+  @UseGuards(WorkspaceGuard)
+  @Roles(Role.OWNER)
+  createPortalSession(
+    @CurrentWorkspace() ws: WorkspaceAccess,
+    @Param('slug') slug: string,
+  ): Promise<{ url: string }> {
+    return this.billing.createPortalSession({
+      tenantId: ws.tenantId,
+      slug,
+      name: ws.name,
+    });
+  }
 }
