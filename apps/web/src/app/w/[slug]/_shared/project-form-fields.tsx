@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -12,9 +11,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
 import { PROJECT_STATUSES, PROJECT_STATUS_META } from '@/lib/api/types';
 
+import { FormField } from './form-field';
 import {
   DESCRIPTION_MAX_LENGTH,
   NAME_MAX_LENGTH,
@@ -129,64 +128,6 @@ export function ProjectFormFields({
   );
 }
 
-/**
- * ラベル + カウンタ + 子(Input/Textarea/Select) + フィールド直下のエラーをまとめたレイアウト。
- * a11y: エラー要素 id を `aria-describedby` で結びつける前提(各 Input 側で指定)。
- */
-export function FormField({
-  id,
-  label,
-  required,
-  counter,
-  errors,
-  children,
-}: {
-  id: string;
-  label: string;
-  required?: boolean;
-  counter?: { current: number; max: number };
-  errors?: string[];
-  children: ReactNode;
-}) {
-  return (
-    <div className="space-y-2">
-      <div className="flex items-baseline justify-between gap-2">
-        <Label htmlFor={id}>
-          {label}
-          {required && (
-            <span aria-hidden="true" className="text-destructive ml-0.5">
-              *
-            </span>
-          )}
-        </Label>
-        {counter && <CharCounter current={counter.current} max={counter.max} />}
-      </div>
-      {children}
-      {errors && errors.length > 0 && (
-        <ul id={`${id}-error`} role="alert" className="text-destructive space-y-0.5 text-sm">
-          {errors.map((m) => (
-            <li key={m}>{m}</li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-/**
- * 文字数カウンタ。`current >= max` で `text-destructive` に切り替えて上限到達を可視化する。
- */
-export function CharCounter({ current, max }: { current: number; max: number }) {
-  const reachedLimit = current >= max;
-  return (
-    <span
-      aria-live="polite"
-      className={cn(
-        'text-xs tabular-nums',
-        reachedLimit ? 'text-destructive font-medium' : 'text-muted-foreground',
-      )}
-    >
-      {current} / {max}
-    </span>
-  );
-}
+// FormField / CharCounter は `_shared/form-field.tsx` に移管(ドメイン非依存)。
+// Day 21 以降の Document フォームからも同じ部品を再利用する。
+export { FormField, CharCounter } from './form-field';
