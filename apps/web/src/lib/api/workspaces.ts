@@ -5,8 +5,10 @@ import { ApiError } from './errors';
 import type {
   Category,
   ChecklistItem,
+  DocType,
   ItemStatus,
   Project,
+  ProjectDocument,
   ProjectStatus,
   Workspace,
 } from './types';
@@ -190,6 +192,82 @@ export async function deleteChecklistItem(
 ): Promise<void> {
   await apiFetch<void>(
     `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/checklist/${encodeURIComponent(itemId)}`,
+    { method: 'DELETE' },
+  );
+}
+
+// ----- ProjectDocument -----
+
+/**
+ * `GET /workspaces/:slug/projects/:projectId/documents[?type=...]`
+ *
+ * 一覧は本文(content)を含まない設計(API 側で 200KB 級を毎回返さないため)。
+ * 各 type で複数 version が並ぶことに注意(version 履歴の元データ)。
+ */
+export async function listDocuments(
+  slug: string,
+  projectId: string,
+  type?: DocType,
+): Promise<ProjectDocument[]> {
+  const query = type ? `?type=${encodeURIComponent(type)}` : '';
+  return apiFetch<ProjectDocument[]>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/documents${query}`,
+  );
+}
+
+/**
+ * `GET /workspaces/:slug/projects/:projectId/documents/:documentId`
+ *
+ * 本文込みで 1 件取得。soft delete 済みは 404 → null。
+ * `React.cache` で同一リクエスト内の dedup。
+ */
+export const fetchDocument = cache(
+  async (slug: string, projectId: string, documentId: string): Promise<ProjectDocument | null> => {
+    try {
+      return await apiFetch<ProjectDocument>(
+        `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}`,
+      );
+    } catch (e) {
+      if (e instanceof ApiError && (e.status === 404 || e.status === 401)) return null;
+      throw e;
+    }
+  },
+);
+
+/**
+ * `PATCH /workspaces/:slug/projects/:projectId/documents/:documentId`
+ *
+ * **append-only**: 既存行は変更されず、同 (projectId, type) で `MAX(version)+1` の新行が
+ * 作られて返る。`title` / `content` の少なくとも一方が必要(両方欠落で 400)。
+ */
+export async function editDocument(
+  slug: string,
+  projectId: string,
+  documentId: string,
+  body: { title?: string; content?: string },
+): Promise<ProjectDocument> {
+  return apiFetch<ProjectDocument>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+/**
+ * `DELETE /workspaces/:slug/projects/:projectId/documents/:documentId`
+ *
+ * 行単位 soft delete(`deletedAt` に UTC now)。204 No Content。
+ * 2 回目の DELETE は 404(明示性優先、冪等性ではない)。
+ */
+export async function deleteDocument(
+  slug: string,
+  projectId: string,
+  documentId: string,
+): Promise<void> {
+  await apiFetch<void>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}`,
     { method: 'DELETE' },
   );
 }

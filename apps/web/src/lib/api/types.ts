@@ -138,3 +138,45 @@ export interface ChecklistItem {
   position: number;
   createdAt: string;
 }
+
+/** ProjectDocument の種別(`DocType` enum、packages/db/prisma/schema.prisma)。 */
+export const DOC_TYPES = [
+  'README',
+  'LANDING_PAGE',
+  'RELEASE_BLOG',
+  'TWEET',
+  'PRODUCT_HUNT',
+  'EMAIL',
+  'OTHER',
+] as const;
+export type DocType = (typeof DOC_TYPES)[number];
+
+/** Document の種別ごとの表示メタ。 */
+export const DOC_TYPE_META: Record<DocType, { label: string; description: string }> = {
+  README: { label: 'README', description: 'プロジェクト概要' },
+  LANDING_PAGE: { label: 'ランディングページ', description: '訴求 / ファーストビュー' },
+  RELEASE_BLOG: { label: 'リリースブログ', description: '公開時の記事' },
+  TWEET: { label: 'X / Twitter 告知文', description: '短文告知' },
+  PRODUCT_HUNT: { label: 'Product Hunt 投稿', description: 'PH ローンチ用テキスト' },
+  EMAIL: { label: '告知メール', description: 'メーリングリスト用本文' },
+  OTHER: { label: 'その他', description: '汎用ドキュメント' },
+};
+
+/**
+ * `GET /workspaces/:slug/projects/:projectId/documents` のレスポンス 1 件分。
+ * 一覧 API は `content` を含まず、1 件取得 API のみ `content` 込みで返る。
+ */
+export interface ProjectDocument {
+  id: string;
+  projectId: string;
+  type: DocType;
+  title: string;
+  /** 一覧 API では含まれない(null として表現)、1 件取得 API でのみ本文が入る。 */
+  content: string | null;
+  /** 推敲履歴の version 番号。同 (projectId, type) で v1, v2, ... と増加。 */
+  version: number;
+  createdById: string;
+  createdAt: string;
+  /** soft delete されたタイムスタンプ。一覧 / 取得 API ではそもそも 404 になるので null 想定。 */
+  deletedAt: string | null;
+}
