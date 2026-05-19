@@ -118,25 +118,27 @@ export default async function ProjectDetailPage({
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ListChecks className="size-4" aria-hidden="true" />
-              チェックリスト
-              <span className="text-muted-foreground ml-auto text-xs font-normal">
-                {project._count.checklist} 件
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground text-sm">
-              リリース前に必要な作業を AI で一括生成・分解できます。
-            </p>
-            <p className="text-muted-foreground/70 mt-2 text-xs">
-              Day 20 で CRUD + 親子階層表示を実装予定。
-            </p>
-          </CardContent>
-        </Card>
+        <Link
+          href={`/w/${slug}/projects/${projectId}/checklist`}
+          className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
+        >
+          <Card className="hover:bg-accent/30 cursor-pointer transition-colors [&_*]:cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ListChecks className="size-4" aria-hidden="true" />
+                チェックリスト
+                <span className="text-muted-foreground ml-auto text-xs font-normal">
+                  {project._count.checklist} 件
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-sm">
+                リリース前に必要な作業をカテゴリ別に管理します。
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
     </div>
   );

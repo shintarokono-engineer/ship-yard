@@ -2,7 +2,14 @@ import { cache } from 'react';
 
 import { apiFetch } from './client';
 import { ApiError } from './errors';
-import type { Project, ProjectStatus, Workspace } from './types';
+import type {
+  Category,
+  ChecklistItem,
+  ItemStatus,
+  Project,
+  ProjectStatus,
+  Workspace,
+} from './types';
 
 /**
  * 現在のユーザーが所属する slug の Workspace を取得する。
@@ -98,6 +105,88 @@ export async function updateProject(
 export async function deleteProject(slug: string, projectId: string): Promise<void> {
   await apiFetch<void>(
     `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}`,
+    { method: 'DELETE' },
+  );
+}
+
+// ----- ChecklistItem -----
+
+/**
+ * `GET /workspaces/:slug/projects/:projectId/checklist[?category=...]`
+ *
+ * position 昇順で返る。`parentId` 含むので呼び出し側で親→サブの階層グルーピングが可能。
+ */
+export async function listChecklist(
+  slug: string,
+  projectId: string,
+  category?: Category,
+): Promise<ChecklistItem[]> {
+  const query = category ? `?category=${encodeURIComponent(category)}` : '';
+  return apiFetch<ChecklistItem[]>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/checklist${query}`,
+  );
+}
+
+/** `POST /workspaces/:slug/projects/:projectId/checklist` */
+export async function createChecklistItem(
+  slug: string,
+  projectId: string,
+  body: {
+    category: Category;
+    title: string;
+    description?: string;
+    status?: ItemStatus;
+    position?: number;
+  },
+): Promise<ChecklistItem> {
+  return apiFetch<ChecklistItem>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/checklist`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+/**
+ * `PATCH /workspaces/:slug/projects/:projectId/checklist/:itemId`
+ *
+ * 部分更新。`description` は `null` 明示で nullable 列をクリアできる
+ * (apps/api `UpdateChecklistItemDto` のセマンティクス)。
+ */
+export async function updateChecklistItem(
+  slug: string,
+  projectId: string,
+  itemId: string,
+  body: {
+    category?: Category;
+    title?: string;
+    description?: string | null;
+    status?: ItemStatus;
+    position?: number;
+  },
+): Promise<ChecklistItem> {
+  return apiFetch<ChecklistItem>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/checklist/${encodeURIComponent(itemId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+/**
+ * `DELETE /workspaces/:slug/projects/:projectId/checklist/:itemId`
+ *
+ * 成功時は 204 No Content。サブタスク(`parentId` 経由の子)は API 側で Cascade 削除される。
+ */
+export async function deleteChecklistItem(
+  slug: string,
+  projectId: string,
+  itemId: string,
+): Promise<void> {
+  await apiFetch<void>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/checklist/${encodeURIComponent(itemId)}`,
     { method: 'DELETE' },
   );
 }

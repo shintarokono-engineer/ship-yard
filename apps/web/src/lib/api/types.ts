@@ -87,3 +87,54 @@ export interface Project {
   updatedAt: string;
   _count: { checklist: number; documents: number };
 }
+
+/** ChecklistItem のカテゴリ(`Category` enum、packages/db/prisma/schema.prisma)。 */
+export const CATEGORIES = ['TECH', 'LEGAL', 'MARKETING', 'UX', 'OTHER'] as const;
+export type Category = (typeof CATEGORIES)[number];
+
+/** ChecklistItem の進捗状態(`ItemStatus` enum)。 */
+export const ITEM_STATUSES = ['TODO', 'IN_PROGRESS', 'DONE', 'NOT_APPLICABLE'] as const;
+export type ItemStatus = (typeof ITEM_STATUSES)[number];
+
+/** カテゴリの表示ラベル。 */
+export const CATEGORY_META: Record<Category, { label: string }> = {
+  TECH: { label: '技術' },
+  LEGAL: { label: '法務' },
+  MARKETING: { label: 'マーケティング' },
+  UX: { label: 'UX' },
+  OTHER: { label: 'その他' },
+};
+
+/** 進捗状態の表示ラベル + バッジ。 */
+export const ITEM_STATUS_META: Record<
+  ItemStatus,
+  { label: string; badgeVariant: BadgeVariant; badgeClassName?: string }
+> = {
+  TODO: { label: '未着手', badgeVariant: 'outline' },
+  IN_PROGRESS: {
+    label: '着手中',
+    badgeVariant: 'outline',
+    badgeClassName: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  },
+  DONE: {
+    label: '完了',
+    badgeVariant: 'outline',
+    badgeClassName:
+      'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  },
+  NOT_APPLICABLE: { label: '該当なし', badgeVariant: 'secondary' },
+};
+
+/** `GET /workspaces/:slug/projects/:projectId/checklist` のレスポンス 1 件分。 */
+export interface ChecklistItem {
+  id: string;
+  projectId: string;
+  /** TASK_SPLIT で生成された子サブタスクのみセット。手動作成は null。 */
+  parentId: string | null;
+  category: Category;
+  title: string;
+  description: string | null;
+  status: ItemStatus;
+  position: number;
+  createdAt: string;
+}
