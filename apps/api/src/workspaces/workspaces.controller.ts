@@ -32,6 +32,17 @@ export class WorkspacesController {
   ) {}
 
   /**
+   * GET /workspaces — 現在ユーザーが所属するワークスペース一覧。
+   * - 認証のみ(`WorkspaceGuard` なし、slug を持たない)
+   * - User 行未同期の場合は空配列(オンボーディング前提のため 403 にしない)
+   * - 並び順は `TenantMember.joinedAt` 昇順(最初の所属が先頭)
+   */
+  @Get()
+  listMine(@CurrentUser() user: AuthUser) {
+    return this.workspaces.listMine(user.clerkUserId);
+  }
+
+  /**
    * POST /workspaces — ワークスペース(テナント)新規作成。
    * 認証済みユーザーなら誰でも作成可(1 ユーザー = 何個でも所有可、MVP は制限なし)。
    * - User 未登録(Clerk Webhook 未同期等) → 403
