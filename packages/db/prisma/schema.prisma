@@ -428,6 +428,8 @@ model InvitationToken {
   expiresAt   DateTime
   /// 受諾日時(null = 未受諾)
   acceptedAt  DateTime?
+  /// 取り消し日時(null = 未取り消し)。論理削除で履歴を残す(誰がいつ取り消したかの追跡用)
+  revokedAt   DateTime?
   /// 招待者 User ID
   invitedById String
 

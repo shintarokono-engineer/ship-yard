@@ -22,6 +22,7 @@ import { DocumentsController } from './documents/documents.controller';
 import { DocumentsService } from './documents/documents.service';
 import { InvitationsController } from './invitations/invitations.controller';
 import { InvitationsService } from './invitations/invitations.service';
+import { PublicInvitationsController } from './invitations/public-invitations.controller';
 import { MailModule } from './mail/mail.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsController } from './projects/projects.controller';
@@ -55,6 +56,7 @@ import { WorkspacesController } from './workspaces/workspaces.controller';
     RefineDocController,
     TaskSplitController,
     InvitationsController,
+    PublicInvitationsController,
   ],
   providers: [
     MembershipService,

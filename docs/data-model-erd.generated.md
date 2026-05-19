@@ -191,6 +191,7 @@ RETRYING RETRYING
     String token 
     DateTime expiresAt 
     DateTime acceptedAt "❓"
+    DateTime revokedAt "❓"
     }
   
     "Tenant" |o--|| "Plan" : "enum:plan"
