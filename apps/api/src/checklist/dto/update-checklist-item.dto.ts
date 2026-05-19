@@ -13,6 +13,9 @@ import { Category, ItemStatus } from '@shipyard/db';
  * `@IsOptional()` は `undefined` と `null` の両方を許容するため、`null` は後続のバリデータをスキップして
  * Prisma にそのまま渡り、nullable な `description` は null クリアとして適用される。
  * `category` / `title` / `status` / `position` は schema 上 NOT NULL なので null クリア不可。
+ *
+ * `parentId` は **update では受け取らない**(create と TASK_SPLIT でのみ設定可、ADR-005)。
+ * UI からの親変更経路は無く、サブタスク化したい場合は新規 create で `parentId` を指定する。
  */
 export class UpdateChecklistItemDto {
   @IsOptional()
