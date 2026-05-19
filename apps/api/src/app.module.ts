@@ -24,6 +24,8 @@ import { InvitationsController } from './invitations/invitations.controller';
 import { InvitationsService } from './invitations/invitations.service';
 import { PublicInvitationsController } from './invitations/public-invitations.controller';
 import { MailModule } from './mail/mail.module';
+import { MembersController } from './members/members.controller';
+import { MembersService } from './members/members.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsController } from './projects/projects.controller';
 import { ProjectsService } from './projects/projects.service';
@@ -58,6 +60,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     TaskSplitController,
     InvitationsController,
     PublicInvitationsController,
+    MembersController,
   ],
   providers: [
     MembershipService,
@@ -75,6 +78,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     RefineDocService,
     TaskSplitService,
     InvitationsService,
+    MembersService,
   ],
 })
 export class AppModule implements NestModule {
