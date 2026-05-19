@@ -3,7 +3,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { DocType, Prisma } from '@shipyard/db';
 
 import { PrismaService } from '../prisma/prisma.service';
-import { EMBEDDING_MODEL, RAG_CONTENT_TRUNCATE_CHARS, RAG_TOP_K } from './ai.constants';
+import {
+  EMBEDDING_MODEL,
+  RAG_CONTENT_TRUNCATE_CHARS,
+  RAG_TOP_K,
+  SEED_PUBLIC_TENANT_ID,
+} from './ai.constants';
 import type { RagReference } from './format-reference';
 import { OpenAIService } from './openai.service';
 
@@ -18,6 +23,11 @@ export interface RagSearchHit extends RagReference {
   type: DocType;
   /** pgvector の `<=>` が返す cosine distance(0=完全一致, 2=逆向き)。デバッグ / ログ用。 */
   distance: number;
+  /**
+   * このヒットが運営キュレーション seed コーパス(`SEED_PUBLIC` テナント、ADR-008)由来か。
+   * フロント側で「サンプルテンプレートを参考にしています」 と表示する透明性 + LP メッセージング用。
+   */
+  isSeed: boolean;
 }
 
 /** RAG 検索の結果 + クエリ embed のコスト記録(AIUsage 用)。 */
@@ -28,11 +38,15 @@ export interface RagSearchResult {
 }
 
 /**
- * テナント内の `ProjectDocument` を意味検索するサービス(ADR-005 の独自性コア)。
+ * テナント内の `ProjectDocument` を意味検索するサービス(ADR-005 の独自性コア、ADR-008 で seed テナント横断に拡張)。
  *
  * クエリテキストを `text-embedding-3-small` で埋め込み、pgvector の `<=>`(cosine distance)で
  * 上位 N 件を取得する。`embedding` は `Unsupported("vector(1536)")?` のため Prisma の typed クエリでは
- * 扱えず、raw SQL を使う(ESLint `no-raw-sql-without-tenant-filter` 準拠で `WHERE "tenantId" =` 必須)。
+ * 扱えず、raw SQL を使う(ESLint `no-raw-sql-without-tenant-filter` 準拠で `tenantId` フィルタ必須)。
+ *
+ * **検索範囲(ADR-008)**:
+ * - 既定 (`includeSeed: true`):「呼び出し元テナント + `SEED_PUBLIC` テナント(運営キュレーション seed コーパス)」 を OR で対象
+ * - `includeSeed: false`:従来通り 呼び出し元テナントのみ(seed を混ぜたくない用途、例:同テナント内の自己検索)
  *
  * ヒット 0 件は呼び出し側で「cold start」として無視できるよう空配列を返す(例外にしない)。
  */
@@ -46,20 +60,22 @@ export class RagSearchService {
   ) {}
 
   /**
-   * 意味検索を実行。`query` をベクトル化してテナント内の類似ドキュメント上位 N 件を返す。
+   * 意味検索を実行。`query` をベクトル化して類似ドキュメント上位 N 件を返す。
    *
    * @param tenantId 検索対象テナント(マルチテナント分離、必須)
    * @param query 検索クエリ(プロジェクト名+概要+追加指示などを結合した文字列)
    * @param options.topK 取得件数(既定: `RAG_TOP_K`)
    * @param options.excludeProjectId 自分自身のドキュメントを参考にしないため除外する projectId
+   * @param options.includeSeed 運営キュレーション seed コーパス(`SEED_PUBLIC`)も検索対象に含めるか(既定 `true`、ADR-008)
    */
   async searchSimilar(
     tenantId: string,
     query: string,
-    options: { topK?: number; excludeProjectId?: string } = {},
+    options: { topK?: number; excludeProjectId?: string; includeSeed?: boolean } = {},
   ): Promise<RagSearchResult> {
     const text = query.trim();
     const topK = options.topK ?? RAG_TOP_K;
+    const includeSeed = options.includeSeed ?? true;
     if (!text) {
       return { hits: [], tokensIn: 0, model: EMBEDDING_MODEL };
     }
@@ -85,11 +101,19 @@ export class RagSearchService {
       ? Prisma.sql`AND "projectId" != ${options.excludeProjectId}`
       : Prisma.empty;
 
-    // raw SQL: tenantId フィルタ必須(ADR-002 / ESLint `no-raw-sql-without-tenant-filter`)。
+    // tenantId フィルタ(ESLint `no-raw-sql-without-tenant-filter` 準拠で `tenantId` をクエリ内に含める)。
+    // ADR-008 の例外:`includeSeed=true` なら `SEED_PUBLIC` テナントも対象。それ以外の業務テーブル
+    // (Project / ChecklistItem 等)は依然として完全分離、ベクトル検索のみ横断を許可。
+    const tenantFragment =
+      includeSeed && tenantId !== SEED_PUBLIC_TENANT_ID
+        ? Prisma.sql`"tenantId" IN (${tenantId}, ${SEED_PUBLIC_TENANT_ID})`
+        : Prisma.sql`"tenantId" = ${tenantId}`;
+
     // `embedding <=> ${vec}::vector` で cosine distance、ASC で類似順。`embedding IS NOT NULL` で未 embed を除外。
     const rows = await this.prisma.$queryRaw<
       Array<{
         id: string;
+        tenantId: string;
         projectId: string;
         type: DocType;
         title: string;
@@ -99,13 +123,14 @@ export class RagSearchService {
     >`
       SELECT
         "id",
+        "tenantId",
         "projectId",
         "type",
         "title",
         "content",
         "embedding" <=> ${vectorLiteral}::vector AS "distance"
       FROM "ProjectDocument"
-      WHERE "tenantId" = ${tenantId}
+      WHERE ${tenantFragment}
         AND "deletedAt" IS NULL
         AND "embedding" IS NOT NULL
         ${excludeFragment}
@@ -121,6 +146,7 @@ export class RagSearchService {
       content: truncateContent(row.content, RAG_CONTENT_TRUNCATE_CHARS),
       // PostgreSQL の数値が string で返るケースに備えて Number 化
       distance: Number(row.distance),
+      isSeed: row.tenantId === SEED_PUBLIC_TENANT_ID,
     }));
 
     if (hits.length === 0) {

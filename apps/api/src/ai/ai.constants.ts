@@ -62,3 +62,15 @@ export const RAG_TOP_K = 5;
 
 /** RAG context として LLM に渡す各ドキュメントの本文切り詰め文字数(prompt 圧迫対策)。 */
 export const RAG_CONTENT_TRUNCATE_CHARS = 800;
+
+/**
+ * 運営キュレーション seed コーパスを保持する特別なテナント ID(ADR-008、migration 20260519160000)。
+ *
+ * 全テナントの RAG 検索は「自テナント + この seed テナント」を OR で対象にする。
+ * これは ADR-002 Pool model の例外で、ADR-008 で明示的に許可されている(運営所有 + オープン
+ * ライセンスコーパスのみ、ユーザーのプライベートデータは決して横断しない)。
+ *
+ * 値は migration 側と一致させる必要があるためハードコード。将来環境ごとに変える必要が出たら
+ * `ConfigService` 経由に切り替える(現状は本番 / 開発で同じ値で運用)。
+ */
+export const SEED_PUBLIC_TENANT_ID = 'SEED_PUBLIC';
