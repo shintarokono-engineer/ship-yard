@@ -97,6 +97,19 @@ export class WorkspacesController {
   }
 
   /**
+   * GET /workspaces/:slug/billing
+   * Billing 画面用の Subscription 詳細(plan / status / currentPeriodEnd / canceledAt)を返す。
+   * - 未所属 / slug 不在 → 404
+   * - OWNER 以外 → 403(`@Roles(Role.OWNER)`、課金関連は OWNER 権限のみ)
+   */
+  @Get(':slug/billing')
+  @UseGuards(WorkspaceGuard)
+  @Roles(Role.OWNER)
+  getBilling(@CurrentWorkspace() ws: WorkspaceAccess) {
+    return this.billing.getBillingDetail({ tenantId: ws.tenantId, planFallback: ws.plan });
+  }
+
+  /**
    * POST /workspaces/:slug/portal-session
    * Stripe Customer Portal Session を作成し、リダイレクト先 URL を返す(支払い方法 / 請求書履歴 /
    * プラン変更 / 解約を Stripe 側 UI で完結)。
