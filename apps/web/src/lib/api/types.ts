@@ -199,9 +199,16 @@ export type DocType = (typeof DOC_TYPES)[number];
 
 /**
  * AI 生成(DRAFT_GEN)に対応する DocType。apps/api `ai.constants.ts:GENERATABLE_DOC_TYPES` と同期。
- * その他の DocType は `@IsIn(GENERATABLE_DOC_TYPES)` で 400 になるので、UI 側でも型レベルで弾く。
+ * `OTHER` 以外の全種別。`OTHER` は `@IsIn(GENERATABLE_DOC_TYPES)` で 400 になるので、UI 側でも型レベルで弾く。
  */
-export const GENERATABLE_DOC_TYPES = ['README', 'LANDING_PAGE'] as const satisfies readonly DocType[];
+export const GENERATABLE_DOC_TYPES = [
+  'README',
+  'LANDING_PAGE',
+  'RELEASE_BLOG',
+  'TWEET',
+  'PRODUCT_HUNT',
+  'EMAIL',
+] as const satisfies readonly DocType[];
 export type GeneratableDocType = (typeof GENERATABLE_DOC_TYPES)[number];
 
 export function isGeneratableDocType(t: DocType): t is GeneratableDocType {
