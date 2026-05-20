@@ -349,3 +349,48 @@ export async function generateChecklist(
     },
   );
 }
+
+/**
+ * `POST /workspaces/:slug/projects/:projectId/checklist/:itemId/split`
+ *
+ * Haiku 4.5 + Tool Use で親 ChecklistItem を最大 10 件のサブタスクに分解(TASK_SPLIT、Day 15)。
+ * 生成された子タスクは親 Category を継承し、`parentId` 紐付けで既存項目の末尾に追加される
+ * (append-only、元タスクは変更しない)。Free プランは月 20 回上限。
+ */
+export async function splitChecklistItem(
+  slug: string,
+  projectId: string,
+  itemId: string,
+  body: { instructions?: string },
+): Promise<{ items: ChecklistItem[] }> {
+  return apiFetch<{ items: ChecklistItem[] }>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/checklist/${encodeURIComponent(itemId)}/split`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+/**
+ * `POST /workspaces/:slug/projects/:projectId/documents/:documentId/refine`
+ *
+ * Sonnet 4 + Tool Use で既存 ProjectDocument の title/content を推敲し、`DocumentsService.edit`
+ * 経由で **append-only に新版**(`MAX(version)+1`)を作成して返す(REFINE_DOC、Day 14)。
+ * 既存版の id とは別の id が返るので、呼び出し側は新版の URL に redirect する想定。
+ * Free プランは月 20 回上限。
+ */
+export async function refineDocument(
+  slug: string,
+  projectId: string,
+  documentId: string,
+  body: { goal?: string },
+): Promise<ProjectDocument> {
+  return apiFetch<ProjectDocument>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}/refine`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
+}
