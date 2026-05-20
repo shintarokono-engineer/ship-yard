@@ -10,6 +10,7 @@ import type {
   DocType,
   GeneratableDocType,
   ItemStatus,
+  MonthlyUsageSummary,
   MyWorkspaceListItem,
   Project,
   ProjectDocument,
@@ -66,6 +67,16 @@ export async function createWorkspace(body: {
     method: 'POST',
     body: JSON.stringify(body),
   });
+}
+
+/**
+ * `GET /workspaces/:slug/usage` — 当月のテナント AI 利用状況サマリ。
+ *
+ * `@Roles` なし = 全テナントメンバーが閲覧可(課金・上限の透明性をメンバー全員に見せる方針)。
+ * 所属していない / slug 不在は `WorkspaceGuard` が 404 を返す(親 layout が所属判定済みの想定)。
+ */
+export async function fetchUsage(slug: string): Promise<MonthlyUsageSummary> {
+  return apiFetch<MonthlyUsageSummary>(`/workspaces/${encodeURIComponent(slug)}/usage`);
 }
 
 /** `GET /workspaces/:slug/projects[?status=...]` */
