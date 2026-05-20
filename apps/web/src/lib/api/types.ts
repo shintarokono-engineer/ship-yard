@@ -261,9 +261,16 @@ export type DocType = (typeof DOC_TYPES)[number];
 
 /**
  * AI 生成(DRAFT_GEN)に対応する DocType。apps/api `ai.constants.ts:GENERATABLE_DOC_TYPES` と同期。
- * その他の DocType は `@IsIn(GENERATABLE_DOC_TYPES)` で 400 になるので、UI 側でも型レベルで弾く。
+ * `OTHER` と `LANDING_PAGE` を除く 5 種。LP は ADR-009 で `LandingPage` テーブル + ブロック生成に
+ * 移行したため DRAFT_GEN の対象外(UI 側でも型レベルで弾く)。
  */
-export const GENERATABLE_DOC_TYPES = ['README', 'LANDING_PAGE'] as const satisfies readonly DocType[];
+export const GENERATABLE_DOC_TYPES = [
+  'README',
+  'RELEASE_BLOG',
+  'TWEET',
+  'PRODUCT_HUNT',
+  'EMAIL',
+] as const satisfies readonly DocType[];
 export type GeneratableDocType = (typeof GENERATABLE_DOC_TYPES)[number];
 
 export function isGeneratableDocType(t: DocType): t is GeneratableDocType {
@@ -298,4 +305,64 @@ export interface ProjectDocument {
   createdAt: string;
   /** soft delete されたタイムスタンプ。一覧 / 取得 API ではそもそも 404 になるので null 想定。 */
   deletedAt: string | null;
+}
+
+// ----- RAG_QA(プロジェクト壁打ち、ADR-005 Day 27 改訂) -----
+
+/** RagQaMessage の発話者種別(`RagQaRole` enum、packages/db/prisma/schema.prisma と同期)。 */
+export const RAG_QA_ROLES = ['USER', 'ASSISTANT'] as const;
+export type RagQaRole = (typeof RAG_QA_ROLES)[number];
+
+/** `GET/POST /workspaces/:slug/projects/:projectId/qa/sessions` のセッション 1 件分。 */
+export interface RagQaSession {
+  id: string;
+  projectId: string;
+  title: string;
+  createdById: string;
+  createdAt: string;
+  /** メッセージ追加ごとに更新。一覧の並び順(新しい順)の軸。 */
+  updatedAt: string;
+}
+
+/** RagQaSession 内の 1 メッセージ。`tokensIn` / `tokensOut` / `references` は ASSISTANT のみ非 null。 */
+export interface RagQaMessage {
+  id: string;
+  sessionId: string;
+  role: RagQaRole;
+  content: string;
+  tokensIn: number | null;
+  tokensOut: number | null;
+  /** この回答が参照した過去ドキュメント(RAG ヒット)のスナップショット。USER メッセージは null。 */
+  references: RagQaReference[] | null;
+  createdAt: string;
+}
+
+/**
+ * AI 回答が参照した過去ドキュメント(RAG ヒット)のスナップショット。
+ * `RagQaMessage.references` の要素型。BE が `RagQaMessage` 保存時に JSON で永続化する。
+ * `isSeed` は運営キュレーション seed コーパス(`SEED_PUBLIC`、ADR-008)由来かどうか。
+ */
+export interface RagQaReference {
+  id: string;
+  projectId: string;
+  type: DocType;
+  title: string;
+  /** pgvector の cosine distance(0=完全一致)。 */
+  distance: number;
+  isSeed: boolean;
+}
+
+/** `GET .../qa/sessions/:sessionId` のレスポンス(セッション + メッセージ履歴、古い順)。 */
+export interface RagQaSessionDetail {
+  session: RagQaSession;
+  messages: RagQaMessage[];
+}
+
+/**
+ * `POST .../qa/sessions/:sessionId/messages` のレスポンス(質問 + AI 回答)。
+ * 参照ドキュメントは `assistantMessage.references` に含まれる。
+ */
+export interface AskRagQaResult {
+  userMessage: RagQaMessage;
+  assistantMessage: RagQaMessage;
 }

@@ -3,6 +3,7 @@ import { cache } from 'react';
 import { apiFetch } from './client';
 import { ApiError } from './errors';
 import type {
+  AskRagQaResult,
   Category,
   ChecklistItem,
   CreateWorkspaceResult,
@@ -13,6 +14,8 @@ import type {
   Project,
   ProjectDocument,
   ProjectStatus,
+  RagQaSession,
+  RagQaSessionDetail,
   Workspace,
 } from './types';
 
@@ -343,6 +346,130 @@ export async function generateChecklist(
 ): Promise<{ items: ChecklistItem[] }> {
   return apiFetch<{ items: ChecklistItem[] }>(
     `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/checklist/generate`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+/**
+ * `POST /workspaces/:slug/projects/:projectId/checklist/:itemId/split`
+ *
+ * Haiku 4.5 + Tool Use で親 ChecklistItem を最大 10 件のサブタスクに分解(TASK_SPLIT、Day 15)。
+ * 生成された子タスクは親 Category を継承し、`parentId` 紐付けで既存項目の末尾に追加される
+ * (append-only、元タスクは変更しない)。Free プランは月 20 回上限。
+ */
+export async function splitChecklistItem(
+  slug: string,
+  projectId: string,
+  itemId: string,
+  body: { instructions?: string },
+): Promise<{ items: ChecklistItem[] }> {
+  return apiFetch<{ items: ChecklistItem[] }>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/checklist/${encodeURIComponent(itemId)}/split`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+/**
+ * `POST /workspaces/:slug/projects/:projectId/documents/:documentId/refine`
+ *
+ * Sonnet 4 + Tool Use で既存 ProjectDocument の title/content を推敲し、`DocumentsService.edit`
+ * 経由で **append-only に新版**(`MAX(version)+1`)を作成して返す(REFINE_DOC、Day 14)。
+ * 既存版の id とは別の id が返るので、呼び出し側は新版の URL に redirect する想定。
+ * Free プランは月 20 回上限。
+ */
+export async function refineDocument(
+  slug: string,
+  projectId: string,
+  documentId: string,
+  body: { goal?: string },
+): Promise<ProjectDocument> {
+  return apiFetch<ProjectDocument>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}/refine`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+// ----- RAG_QA(プロジェクト壁打ち、ADR-005 Day 27 改訂) -----
+
+/**
+ * `GET /workspaces/:slug/projects/:projectId/qa/sessions`
+ *
+ * 壁打ちセッション一覧を `updatedAt` 降順(新しい順)で返す。全テナントメンバーが閲覧可。
+ */
+export async function listRagQaSessions(
+  slug: string,
+  projectId: string,
+): Promise<RagQaSession[]> {
+  return apiFetch<RagQaSession[]>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/qa/sessions`,
+  );
+}
+
+/**
+ * `POST /workspaces/:slug/projects/:projectId/qa/sessions`
+ *
+ * 新規セッションを作成。`title` は 1〜100 文字。WRITER_ROLES のみ(REVIEWER 等は 403)。
+ */
+export async function createRagQaSession(
+  slug: string,
+  projectId: string,
+  body: { title: string },
+): Promise<RagQaSession> {
+  return apiFetch<RagQaSession>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/qa/sessions`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+/**
+ * `GET /workspaces/:slug/projects/:projectId/qa/sessions/:sessionId`
+ *
+ * セッション + メッセージ履歴(古い順)を取得。不在 / 越境は 404 → null。
+ * `React.cache` で同一リクエスト内の dedup。
+ */
+export const fetchRagQaSession = cache(
+  async (
+    slug: string,
+    projectId: string,
+    sessionId: string,
+  ): Promise<RagQaSessionDetail | null> => {
+    try {
+      return await apiFetch<RagQaSessionDetail>(
+        `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/qa/sessions/${encodeURIComponent(sessionId)}`,
+      );
+    } catch (e) {
+      if (e instanceof ApiError && (e.status === 404 || e.status === 401)) return null;
+      throw e;
+    }
+  },
+);
+
+/**
+ * `POST /workspaces/:slug/projects/:projectId/qa/sessions/:sessionId/messages`
+ *
+ * 質問を送信し Sonnet 4 で回答を生成。user / assistant メッセージと参照ドキュメント(RAG ヒット)を返す。
+ * WRITER_ROLES のみ。Free プランは月 20 回上限(超過時 403 + 「AI 利用上限」)。
+ */
+export async function askRagQaMessage(
+  slug: string,
+  projectId: string,
+  sessionId: string,
+  body: { question: string },
+): Promise<AskRagQaResult> {
+  return apiFetch<AskRagQaResult>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/qa/sessions/${encodeURIComponent(sessionId)}/messages`,
     {
       method: 'POST',
       body: JSON.stringify(body),

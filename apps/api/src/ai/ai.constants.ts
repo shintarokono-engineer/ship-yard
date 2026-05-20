@@ -33,8 +33,19 @@ export const MODEL_PRICING_USD_PER_MTOK: Record<string, { in: number; out: numbe
 /** 未知モデルのフォールバック単価(Sonnet 相当)。 */
 export const FALLBACK_PRICING_USD_PER_MTOK = { in: 3, out: 15 };
 
-/** AI 生成(DRAFT_GEN)に対応している ProjectDocument の種別。対応種別を増やすときはここに足す(DTO の `@IsIn` もこれを参照)。 */
-export const GENERATABLE_DOC_TYPES = [DocType.README, DocType.LANDING_PAGE] as const;
+/**
+ * AI 生成(DRAFT_GEN)に対応している ProjectDocument の種別。
+ * `OTHER` と `LANDING_PAGE` を除く 5 種。LP は ADR-009 で `LandingPage` テーブル +
+ * ブロック生成(`submit_landing_page`)に移行したため DRAFT_GEN の対象外。
+ * 対応種別を増やすときはここに足す(DTO の `@IsIn` もこれを参照)。
+ */
+export const GENERATABLE_DOC_TYPES = [
+  DocType.README,
+  DocType.RELEASE_BLOG,
+  DocType.TWEET,
+  DocType.PRODUCT_HUNT,
+  DocType.EMAIL,
+] as const;
 
 /** AI 生成に対応している DocType のユニオン型(= `GENERATABLE_DOC_TYPES` の要素型)。 */
 export type DocKind = (typeof GENERATABLE_DOC_TYPES)[number];
@@ -59,6 +70,22 @@ export const TASK_SPLIT_MAX_TOKENS = 2048;
  * `distance` 閾値による選別の方が本筋(MVP 後に検討)。
  */
 export const RAG_TOP_K = 5;
+
+/** RAG_QA(壁打ち)の Anthropic API `max_tokens`(ADR-005 Day 27 改訂)。1 回答 1000 トークン強 + 余裕 ≒ 2048。 */
+export const RAG_QA_MAX_TOKENS = 2048;
+
+/**
+ * RAG_QA で 1 リクエスト時に context に積む直近ターン数の上限(ADR-005 Day 27 改訂)。
+ * 1 ターン = user + assistant の 2 メッセージなので DB 取得時は `MAX_TURNS * 2` 件取る。
+ * v1.x で N > 10 ターン時の前段要約方式に置換予定。
+ */
+export const RAG_QA_MAX_TURNS = 10;
+
+/** RAG_QA の 1 メッセージあたり content 最大文字数(ADR-005 Day 27 改訂、DTO バリデーションで強制)。 */
+export const RAG_QA_MAX_MESSAGE_LENGTH = 8000;
+
+/** RAG_QA の 1 セッションあたり最大メッセージ数(ADR-005 Day 27 改訂、暴走防止)。超過時は新規セッション作成を促す。 */
+export const RAG_QA_MAX_MESSAGES_PER_SESSION = 100;
 
 /** RAG context として LLM に渡す各ドキュメントの本文切り詰め文字数(prompt 圧迫対策)。 */
 export const RAG_CONTENT_TRUNCATE_CHARS = 800;

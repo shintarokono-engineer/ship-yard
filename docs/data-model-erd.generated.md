@@ -73,6 +73,13 @@ OTHER OTHER
     
 
 
+        RagQaRole {
+            USER USER
+ASSISTANT ASSISTANT
+        }
+    
+
+
         SubStatus {
             ACTIVE ACTIVE
 PAST_DUE PAST_DUE
@@ -150,6 +157,15 @@ RETRYING RETRYING
     }
   
 
+  "LandingPage" {
+    String id "🗝️"
+    Json blocks 
+    DateTime publishedAt "❓"
+    DateTime createdAt 
+    DateTime updatedAt 
+    }
+  
+
   "AIUsage" {
     String id "🗝️"
     String model 
@@ -184,6 +200,26 @@ RETRYING RETRYING
     }
   
 
+  "RagQaSession" {
+    String id "🗝️"
+    String title 
+    DateTime createdAt 
+    DateTime updatedAt 
+    }
+  
+
+  "RagQaMessage" {
+    String id "🗝️"
+    String tenantId 
+    RagQaRole role 
+    String content 
+    Int tokensIn "❓"
+    Int tokensOut "❓"
+    Json references "❓"
+    DateTime createdAt 
+    }
+  
+
   "InvitationToken" {
     String id "🗝️"
     String email 
@@ -208,6 +244,8 @@ RETRYING RETRYING
     "ProjectDocument" |o--|| "DocType" : "enum:type"
     "ProjectDocument" }o--|| "Project" : "project"
     "ProjectDocument" }o--|| "User" : "createdBy"
+    "LandingPage" }o--|| "Tenant" : "tenant"
+    "LandingPage" |o--|| "Project" : "project"
     "AIUsage" |o--|| "Feature" : "enum:feature"
     "AIUsage" }o--|| "Tenant" : "tenant"
     "AIUsage" }o--|| "User" : "user"
@@ -215,6 +253,11 @@ RETRYING RETRYING
     "Subscription" |o--|| "SubStatus" : "enum:status"
     "Subscription" |o--|| "Tenant" : "tenant"
     "WebhookEvent" |o--|| "WebhookStatus" : "enum:status"
+    "RagQaSession" }o--|| "Tenant" : "tenant"
+    "RagQaSession" }o--|| "Project" : "project"
+    "RagQaSession" }o--|| "User" : "createdBy"
+    "RagQaMessage" |o--|| "RagQaRole" : "enum:role"
+    "RagQaMessage" }o--|| "RagQaSession" : "session"
     "InvitationToken" |o--|| "Role" : "enum:role"
     "InvitationToken" }o--|| "Tenant" : "tenant"
     "InvitationToken" }o--|| "User" : "invitedBy"

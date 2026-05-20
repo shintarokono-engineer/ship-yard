@@ -32,6 +32,29 @@ export interface GeneratedDraft {
   tokensOut: number;
 }
 
+/** DocType ごとの「何を生成するか」ラベル(systemPrompt 用)。`GENERATABLE_DOC_TYPES` の全 6 種を網羅する。 */
+const KIND_LABEL: Record<DocKind, string> = {
+  [DocType.README]: 'README(GitHub のプロジェクト説明文)',
+  [DocType.RELEASE_BLOG]: 'リリースブログ記事',
+  [DocType.TWEET]: 'X(Twitter)告知ポスト',
+  [DocType.PRODUCT_HUNT]: 'Product Hunt 投稿文',
+  [DocType.EMAIL]: '告知メール本文',
+};
+
+/** DocType ごとの構成指示(systemPrompt 用)。`GENERATABLE_DOC_TYPES` の全 6 種を網羅する。 */
+const STRUCTURE_HINT: Record<DocKind, string> = {
+  [DocType.README]:
+    '「概要」「主要機能」「セットアップ手順」「使い方」の節を含めること。',
+  [DocType.RELEASE_BLOG]:
+    '「リリース概要」「背景・課題」「新機能の紹介」「使い方」「今後の予定」の流れで構成すること。',
+  [DocType.TWEET]:
+    '280 文字程度の簡潔な告知文。プロダクト名・主要価値・リンク誘導を含め、ハッシュタグを 1〜3 個添えること。',
+  [DocType.PRODUCT_HUNT]:
+    '「タグライン(短い一文)」「説明文」「主要機能 3〜5 点」を含めること。',
+  [DocType.EMAIL]:
+    '「件名」「挨拶」「お知らせ本文」「CTA(行動喚起)」「署名」の流れで構成すること。',
+};
+
 /** Tool Use の構造化出力スキーマ(title + content の 2 フィールドに分けたいので Tool Use を使う、ADR-005)。 */
 const SUBMIT_DOCUMENT_TOOL = {
   name: 'submit_document',
@@ -58,17 +81,13 @@ export class DraftGenService {
 
   async generate(input: GenerateDraftInput): Promise<GeneratedDraft> {
     const { project, kind, instructions, references } = input;
-    const kindLabel =
-      kind === DocType.README ? 'README(GitHub のプロジェクト説明文)' : 'ランディングページ本文';
-    const structureHint =
-      kind === DocType.README
-        ? '「概要」「主要機能」「セットアップ手順」「使い方」の節を含めること。'
-        : '「キャッチコピー」「課題提起」「解決策」「主要機能」「CTA(行動喚起)」の流れで構成すること。';
+    const kindLabel = KIND_LABEL[kind];
+    const structureHint = STRUCTURE_HINT[kind];
 
     const systemPrompt = [
       AI_PERSONA_INTRO,
       `与えられたプロジェクト情報をもとに、${kindLabel}のドラフトを日本語の Markdown で作成してください。`,
-      '簡潔かつ訴求力のある内容にし、事実が不明な箇所は無理に断定せずプレースホルダ(例: 「(ここに〜を記載)」)を置いてください。',
+      '簡潔かつ訴求力のある内容にしてください。事実が不明な箇所は、一般的・汎用的な記述で自然に補ってください。どうしても利用者本人が記入すべき箇所のみ、簡潔なプレースホルダを最小限置いてください。プレースホルダの多用は避けます。',
       structureHint,
     ].join('\n');
 

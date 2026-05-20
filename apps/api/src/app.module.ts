@@ -9,11 +9,14 @@ import { DraftGenController } from './ai/draft-gen.controller';
 import { DraftGenService } from './ai/draft-gen.service';
 import { EmbeddingService } from './ai/embedding.service';
 import { OpenAIModule } from './ai/openai.module';
+import { RagQaController } from './ai/rag-qa.controller';
+import { RagQaService } from './ai/rag-qa.service';
 import { RagSearchService } from './ai/rag-search.service';
 import { RefineDocController } from './ai/refine-doc.controller';
 import { RefineDocService } from './ai/refine-doc.service';
 import { TaskSplitController } from './ai/task-split.controller';
 import { TaskSplitService } from './ai/task-split.service';
+import { UsageController } from './ai/usage.controller';
 import { AppController } from './app.controller';
 import { BillingService } from './billing/billing.service';
 import { ChecklistController } from './checklist/checklist.controller';
@@ -23,6 +26,9 @@ import { DocumentsService } from './documents/documents.service';
 import { InvitationsController } from './invitations/invitations.controller';
 import { InvitationsService } from './invitations/invitations.service';
 import { PublicInvitationsController } from './invitations/public-invitations.controller';
+import { LandingPageController } from './landing-page/landing-page.controller';
+import { LandingPageService } from './landing-page/landing-page.service';
+import { LpGenService } from './landing-page/lp-gen.service';
 import { MailModule } from './mail/mail.module';
 import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
@@ -56,8 +62,11 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     ChecklistGenController,
     DocumentsController,
     DraftGenController,
+    RagQaController,
     RefineDocController,
     TaskSplitController,
+    UsageController,
+    LandingPageController,
     InvitationsController,
     PublicInvitationsController,
     MembersController,
@@ -75,10 +84,13 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     ChecklistGenService,
     EmbeddingService,
     RagSearchService,
+    RagQaService,
     RefineDocService,
     TaskSplitService,
     InvitationsService,
     MembersService,
+    LandingPageService,
+    LpGenService,
   ],
 })
 export class AppModule implements NestModule {

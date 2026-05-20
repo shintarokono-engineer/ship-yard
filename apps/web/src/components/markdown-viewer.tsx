@@ -9,6 +9,9 @@ import { cn } from '@/lib/utils';
  * - remark-gfm で GFM(テーブル / strikethrough / タスクリスト / autolinks)対応
  * - 任意 HTML は描画しない(react-markdown のデフォルト挙動、XSS 防止)
  * - 子孫セレクタ(`[&_h1]:...` 等)でラッパー側に Tailwind スタイルを当てる。`@tailwindcss/typography` 未導入のためベタ書き
+ *
+ * ProjectDocument の本文表示(documents)と RAG_QA の AI 回答表示(rag-qa)で共有するため、
+ * ルート専用の `_components` ではなく `src/components/` 直下に置く。
  */
 export function MarkdownViewer({
   source,

@@ -24,9 +24,13 @@ export {
   Category,
   DocType,
   Feature,
+  RagQaRole,
   SubStatus,
   WebhookStatus,
 } from '@prisma/client';
+
+// model 由来の型(値ではない)。Service / Controller の戻り値型として使う。
+export type { RagQaSession, RagQaMessage, LandingPage } from '@prisma/client';
 
 // マルチテナントのリクエストコンテキスト(ADR-002)
 export { runWithTenant, getTenantId, getTenantIdOrThrow } from './tenant-context';
