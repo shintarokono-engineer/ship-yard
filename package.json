@@ -25,6 +25,7 @@
     "db:studio": "pnpm --filter @shipyard/db studio",
     "db:migrate": "pnpm --filter @shipyard/db migrate:dev",
     "db:gen": "pnpm --filter @shipyard/db generate",
+    "db:setup": "pnpm --filter @shipyard/db generate && pnpm --filter @shipyard/db build",
     "backfill": "pnpm --filter @shipyard/api backfill:embeddings"
   },
   "devDependencies": {
