@@ -24,6 +24,12 @@ const DATETIME_FORMATTER = new Intl.DateTimeFormat('ja-JP', {
   timeZone: DISPLAY_TIMEZONE,
 });
 
+const YEAR_MONTH_FORMATTER = new Intl.DateTimeFormat('ja-JP', {
+  year: 'numeric',
+  month: 'long',
+  timeZone: DISPLAY_TIMEZONE,
+});
+
 /** ISO 8601 文字列を `YYYY/MM/DD` 形式で。null は空文字。 */
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return '';
@@ -34,4 +40,10 @@ export function formatDate(iso: string | null | undefined): string {
 export function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return '';
   return DATETIME_FORMATTER.format(new Date(iso));
+}
+
+/** ISO 8601 文字列を `YYYY年M月` で。null は空文字。 */
+export function formatYearMonth(iso: string | null | undefined): string {
+  if (!iso) return '';
+  return YEAR_MONTH_FORMATTER.format(new Date(iso));
 }

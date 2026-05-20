@@ -7,15 +7,16 @@ import { redirect } from 'next/navigation';
 import { acceptInvitation } from '@/lib/api/invitations';
 import { ApiError } from '@/lib/api/errors';
 
+// 型は erase されるので 'use server' ファイルからも export 可。
+// ランタイム値(オブジェクト)を export すると Next.js が
+// `A "use server" file can only export async functions` で拒否するため、
+// 初期 state 定数は Client Component(`AcceptButton`)側に置く。
 export interface AcceptInvitationFormState {
   ok: boolean;
   formError?: string;
   /** メール不一致時に表示するヒント(招待先メール)。 */
   expectedEmail?: string;
 }
-
-const INITIAL_STATE: AcceptInvitationFormState = { ok: false };
-export { INITIAL_STATE as INITIAL_ACCEPT_INVITATION_STATE };
 
 /**
  * 招待承諾 Server Action。成功時は `/w/{workspaceSlug}` へ redirect。

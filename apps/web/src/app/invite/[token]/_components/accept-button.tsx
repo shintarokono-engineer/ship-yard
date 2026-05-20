@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 
 import {
   acceptInvitationAction,
-  INITIAL_ACCEPT_INVITATION_STATE,
   type AcceptInvitationFormState,
 } from '../_actions/accept-invitation';
+
+const INITIAL_STATE: AcceptInvitationFormState = { ok: false };
 
 /**
  * 招待承諾ボタン + Server Action 連携。
@@ -21,7 +22,7 @@ export function AcceptButton({ token, disabled }: { token: string; disabled?: bo
   const boundAction = useMemo(() => acceptInvitationAction.bind(null, token), [token]);
   const [state, formAction, pending] = useActionState<AcceptInvitationFormState, FormData>(
     boundAction,
-    INITIAL_ACCEPT_INVITATION_STATE,
+    INITIAL_STATE,
   );
 
   return (

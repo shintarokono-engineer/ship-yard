@@ -121,6 +121,68 @@ export interface AcceptInvitationResult {
   role: Role;
 }
 
+/** 招待発行で指定可能なロール(OWNER 以外)。apps/api `CreateInvitationDto` の `NON_OWNER_ROLES` と同期。 */
+export const NON_OWNER_ROLES = [
+  'ADMIN',
+  'DEVELOPER',
+  'REVIEWER',
+  'TESTER',
+  'VIEWER',
+] as const satisfies readonly Role[];
+export type NonOwnerRole = (typeof NON_OWNER_ROLES)[number];
+
+/** ロールの日本語ラベル(apps/api `invitations.service.ts:ROLE_LABELS` と同期)。 */
+export const ROLE_LABELS: Record<Role, string> = {
+  OWNER: 'オーナー',
+  ADMIN: '管理者',
+  DEVELOPER: '開発者',
+  REVIEWER: 'レビュワー',
+  TESTER: 'テスター',
+  VIEWER: '閲覧者',
+};
+
+/** `GET /workspaces/:slug/members` のレスポンス 1 件分。 */
+export interface Member {
+  userId: string;
+  role: Role;
+  /** ISO8601 文字列。 */
+  joinedAt: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+  };
+}
+
+/** `GET /workspaces/:slug/invitations` のレスポンス 1 件分。 */
+export interface InvitationListItem {
+  id: string;
+  email: string;
+  role: Role;
+  /** ISO8601 文字列。 */
+  expiresAt: string;
+  acceptedAt: string | null;
+  revokedAt: string | null;
+  invitedBy: { id: string; name: string | null; email: string };
+  status: InvitationStatus;
+}
+
+/** `POST /workspaces/:slug/invitations` / `.../invitations/:id/resend` のレスポンス。 */
+export interface CreateInvitationResult {
+  invitation: {
+    id: string;
+    email: string;
+    role: Role;
+    /** ISO8601 文字列。 */
+    expiresAt: string;
+  };
+  /** メール送信成功フラグ(false なら UI で「メール送信失敗、再送が必要」と表示)。 */
+  mailSent: boolean;
+  /** メール送信失敗時の理由(運用切り分け用、MVP では含める)。 */
+  mailError?: string;
+}
+
 /** `GET /workspaces/:slug/projects[/:id]` のレスポンス 1 件分。 */
 export interface Project {
   id: string;
@@ -303,4 +365,47 @@ export interface RagQaSessionDetail {
 export interface AskRagQaResult {
   userMessage: RagQaMessage;
   assistantMessage: RagQaMessage;
+}
+
+// ----- AI 利用状況(設定 → 利用状況タブ、Day 29 API) -----
+
+/** AI 機能種別(`Feature` enum、packages/db/prisma/schema.prisma と同期)。 */
+export const FEATURES = [
+  'COMPETITOR_RESEARCH',
+  'DRAFT_GEN',
+  'TASK_SPLIT',
+  'RAG_QA',
+  'CHECKLIST_GEN',
+  'REFINE_DOC',
+  'OTHER',
+] as const;
+export type Feature = (typeof FEATURES)[number];
+
+/**
+ * AI 機能ごとの表示メタ(利用状況タブの内訳ラベル)。
+ * ラベルは各機能の実画面の名称に合わせる(例: `RAG_QA` の画面見出しは「AI 壁打ち」)。
+ * `OTHER` は embedding / RAG 検索など裏方処理で、ユーザー視点の利用回数(`used`)・内訳表示の
+ * どちらにも出さない(UI では除外)。Record の網羅性を満たすためキーだけ残す。
+ */
+export const FEATURE_META: Record<Feature, { label: string }> = {
+  COMPETITOR_RESEARCH: { label: '競合調査' },
+  DRAFT_GEN: { label: 'ドキュメント生成' },
+  TASK_SPLIT: { label: 'タスク分解' },
+  RAG_QA: { label: 'AI 壁打ち' },
+  CHECKLIST_GEN: { label: 'チェックリスト生成' },
+  REFINE_DOC: { label: '文章推敲' },
+  OTHER: { label: 'その他' },
+};
+
+/** `GET /workspaces/:slug/usage` のレスポンス(当月のテナント AI 利用状況サマリ)。 */
+export interface MonthlyUsageSummary {
+  plan: Plan;
+  /** 集計対象期間の起点(当月 1 日 00:00 UTC、ISO8601 文字列)。 */
+  periodStart: string;
+  /** 当月のユーザー視点の AI 利用回数(`Feature.OTHER` 除外、FREE 上限カウントと一致)。 */
+  used: number;
+  /** FREE プランの月次上限。PRO / TEAM は無制限のため null。 */
+  limit: number | null;
+  /** feature 別の内訳(`OTHER` を含む全件、count 降順)。 */
+  byFeature: { feature: Feature; count: number }[];
 }
