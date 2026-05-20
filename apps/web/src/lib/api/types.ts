@@ -94,6 +94,93 @@ export interface CreateWorkspaceResult {
 }
 
 /**
+ * Subscription の課金状態(`SubStatus` enum、packages/db/prisma/schema.prisma)。
+ * Stripe 側の status をミラーした値で、Billing 画面で詳細表示に使う。
+ */
+export const SUB_STATUSES = [
+  'ACTIVE',
+  'PAST_DUE',
+  'CANCELED',
+  'INCOMPLETE',
+  'TRIALING',
+] as const;
+export type SubStatus = (typeof SUB_STATUSES)[number];
+
+/**
+ * Subscription 状態ごとの表示メタ。Badge variant / 追加 className を直接持つ。
+ * PAST_DUE は赤系で注意喚起、TRIALING は青系で進行中、CANCELED は muted。
+ */
+export const SUB_STATUS_META: Record<
+  SubStatus,
+  { label: string; badgeVariant: BadgeVariant; badgeClassName?: string }
+> = {
+  ACTIVE: {
+    label: '有効',
+    badgeVariant: 'outline',
+    badgeClassName:
+      'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  },
+  PAST_DUE: {
+    label: '支払い遅延',
+    badgeVariant: 'destructive',
+  },
+  CANCELED: { label: '解約済み', badgeVariant: 'secondary' },
+  INCOMPLETE: {
+    label: '初回支払い未完了',
+    badgeVariant: 'outline',
+    badgeClassName: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  },
+  TRIALING: {
+    label: 'トライアル中',
+    badgeVariant: 'outline',
+    badgeClassName: 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300',
+  },
+};
+
+/**
+ * プランごとの表示メタ(ADR-004 と同期)。Billing 画面の現状表示とプラン比較カードで共用する。
+ * 価格 / 制限の文言は ADR-004 §4.5 から転記。文言が変わったら ADR と本定義を両方更新する。
+ */
+export const PLAN_META: Record<
+  Plan,
+  { label: string; priceLabel: string; tagline: string; limits: readonly string[] }
+> = {
+  FREE: {
+    label: 'Free',
+    priceLabel: '¥0',
+    tagline: '個人開発のスタート向け',
+    limits: ['ワークスペース 1 個', 'メンバー 3 人まで', 'AI 機能 月 20 回まで'],
+  },
+  PRO: {
+    label: 'Pro',
+    priceLabel: '¥980 / 月',
+    tagline: '本気の個人開発者向け',
+    limits: ['ワークスペース無制限', 'メンバー無制限', 'AI 機能無制限'],
+  },
+  TEAM: {
+    label: 'Team',
+    priceLabel: '¥2,800 / 人・月',
+    tagline: '小規模開発チーム(2〜10 人)向け',
+    limits: [
+      'Pro のすべて',
+      '共同編集 / レビュー',
+      '監査ログ',
+      '人数課金(メンバー数で自動調整)',
+    ],
+  },
+};
+
+/** `GET /workspaces/:slug/billing` のレスポンス(OWNER のみ閲覧可)。 */
+export interface BillingDetail {
+  plan: Plan;
+  status: SubStatus;
+  /** 現課金期間終了日(ISO8601 文字列)。Free / Subscription 未作成は null。 */
+  currentPeriodEnd: string | null;
+  /** 解約申請日時(ISO8601 文字列)。`status === 'ACTIVE'` と組み合わせて「解約予約中」を判定。 */
+  canceledAt: string | null;
+}
+
+/**
  * 招待の状態(派生プロパティ、apps/api `invitations.constants.ts` と同期)。
  * 真実の源は `InvitationToken` の `acceptedAt` / `revokedAt` / `expiresAt` 3 列で、API 側で導出する。
  */

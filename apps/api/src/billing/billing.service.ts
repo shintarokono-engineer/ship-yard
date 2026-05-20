@@ -146,6 +146,37 @@ export class BillingService {
   }
 
   /**
+   * テナントの課金状態(Billing 画面で表示する詳細)を返す。
+   *
+   * `GET /workspaces/:slug` の汎用レスポンスは Plan のみで Subscription 詳細(status / currentPeriodEnd /
+   * canceledAt)を含まないため、Billing 画面専用に分離した軽量 endpoint(OWNER 限定)。
+   *
+   * Subscription 行が無い場合(Day 19 以前の旧テナント / Stripe 障害復旧待ち)は `Tenant.plan` から
+   * 復元した最小限の状態を返す(`status: ACTIVE` + 期日系は null)。Portal を開けば `ensureStripeCustomer`
+   * で行が作られるので、表示と Portal 利用は両立する。
+   */
+  async getBillingDetail(params: { tenantId: string; planFallback: Plan }): Promise<{
+    plan: Plan;
+    status: SubStatus;
+    currentPeriodEnd: Date | null;
+    canceledAt: Date | null;
+  }> {
+    const sub = await this.prisma.subscription.findUnique({
+      where: { tenantId: params.tenantId },
+      select: { plan: true, status: true, currentPeriodEnd: true, canceledAt: true },
+    });
+    if (sub) {
+      return sub;
+    }
+    return {
+      plan: params.planFallback,
+      status: SubStatus.ACTIVE,
+      currentPeriodEnd: null,
+      canceledAt: null,
+    };
+  }
+
+  /**
    * Stripe Customer Portal Session を作成し、リダイレクト先 URL を返す。
    * Portal 内で支払い方法変更 / 請求書履歴 / プラン変更 / 解約をすべて Stripe 側 UI で完結させる
    * (Notion / Linear / Vercel / Resend 等と同じ標準パターン)。
