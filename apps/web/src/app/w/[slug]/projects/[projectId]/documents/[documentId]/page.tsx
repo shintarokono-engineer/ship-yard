@@ -15,6 +15,7 @@ import { formatDateTime } from '@/lib/format';
 import { DeleteDocumentButton } from './_components/delete-document-button';
 import { EditDocumentDialog } from './_components/edit-document-dialog';
 import { MarkdownViewer } from './_components/markdown-viewer';
+import { RefineDocumentDialog } from './_components/refine-document-dialog';
 import { VersionHistory } from './_components/version-history';
 
 /**
@@ -73,6 +74,11 @@ export default async function DocumentDetailPage({
 
           {canWrite && (
             <div className="flex shrink-0 gap-2">
+              <RefineDocumentDialog
+                slug={slug}
+                projectId={projectId}
+                documentId={document.id}
+              />
               <EditDocumentDialog slug={slug} projectId={projectId} document={document} />
               <DeleteDocumentButton slug={slug} projectId={projectId} document={document} />
             </div>
