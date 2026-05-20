@@ -4,6 +4,7 @@ import { ITEM_STATUS_META, type ChecklistItem } from '@/lib/api/types';
 
 import { DeleteChecklistItemButton } from './delete-checklist-item-button';
 import { EditChecklistItemDialog } from './edit-checklist-item-dialog';
+import { SplitTaskDialog } from './split-task-dialog';
 import { StatusCheckbox } from './status-checkbox';
 
 /**
@@ -68,6 +69,10 @@ export function ChecklistItemRow({
       </div>
       {canWrite && (
         <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+          {/* TASK_SPLIT は親タスク(parentId=null)のみ対象。サブタスクのさらに分解は階層 2 段までの仕様外。 */}
+          {item.parentId === null && (
+            <SplitTaskDialog slug={slug} projectId={projectId} parent={item} />
+          )}
           <EditChecklistItemDialog slug={slug} projectId={projectId} item={item} />
           <DeleteChecklistItemButton
             slug={slug}

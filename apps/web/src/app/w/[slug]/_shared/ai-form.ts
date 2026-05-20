@@ -1,6 +1,6 @@
 /**
- * AI 機能(DRAFT_GEN / CHECKLIST_GEN、Day 23 で TASK_SPLIT / REFINE_DOC 追加予定)の
- * Server Action 群で共有する定数・エラー振り分けヘルパー。
+ * AI 機能(DRAFT_GEN / CHECKLIST_GEN / TASK_SPLIT / REFINE_DOC)の Server Action 群で共有する
+ * 定数・エラー振り分けヘルパー。
  *
  * 個別の form モジュール(`documents/_shared/generate-document-form.ts` 等)からはここを参照し、
  * 上限超過 / 権限不足 / 不正リクエスト / AI 502 をユーザーに表示する文言に揃える。
@@ -10,6 +10,9 @@ import { extractValidationMessages, type ApiError } from '@/lib/api/errors';
 
 /** AI Server Action の追加プロンプト最大長(apps/api 各 DTO の `@MaxLength(2000)` と同期)。 */
 export const INSTRUCTIONS_MAX_LENGTH = 2000;
+
+/** REFINE_DOC の推敲方針(goal)最大長(apps/api `RefineDocumentDto` の `@MaxLength(1000)` と同期)。 */
+export const GOAL_MAX_LENGTH = 1000;
 
 /** Free プラン上限到達時の UI 文言。Pro 課金導線は Day 24 で `/billing` に差し替え予定。 */
 export const AI_QUOTA_EXCEEDED_MESSAGE =
