@@ -26,6 +26,9 @@ import { DocumentsService } from './documents/documents.service';
 import { InvitationsController } from './invitations/invitations.controller';
 import { InvitationsService } from './invitations/invitations.service';
 import { PublicInvitationsController } from './invitations/public-invitations.controller';
+import { LandingPageController } from './landing-page/landing-page.controller';
+import { LandingPageService } from './landing-page/landing-page.service';
+import { LpGenService } from './landing-page/lp-gen.service';
 import { MailModule } from './mail/mail.module';
 import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
@@ -63,6 +66,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     RefineDocController,
     TaskSplitController,
     UsageController,
+    LandingPageController,
     InvitationsController,
     PublicInvitationsController,
     MembersController,
@@ -85,6 +89,8 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     TaskSplitService,
     InvitationsService,
     MembersService,
+    LandingPageService,
+    LpGenService,
   ],
 })
 export class AppModule implements NestModule {
