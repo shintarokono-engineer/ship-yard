@@ -22,7 +22,8 @@ import { GenerateDocumentDialog } from './_components/generate-document-dialog';
  *
  * 全 DocType(README / LP / RELEASE_BLOG / TWEET / PRODUCT_HUNT / EMAIL / OTHER)を縦に並べ、
  * 各 type の最新 version のカードを表示する。クリックで詳細ページへ。
- * 未作成 type は破線カードで表示し、AI 生成対応(OTHER 以外の 6 種)は「AI で生成」ボタンを置く。
+ * 未作成 type は破線カードで表示し、AI 生成対応(OTHER / LANDING_PAGE 以外の 5 種)は「AI で生成」ボタンを置く。
+ * LP は ADR-009 で LandingPage テーブル + ブロック生成へ移行したため AI 生成対象外。
  */
 export default async function DocumentsPage({
   params,

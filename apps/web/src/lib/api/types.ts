@@ -199,11 +199,11 @@ export type DocType = (typeof DOC_TYPES)[number];
 
 /**
  * AI 生成(DRAFT_GEN)に対応する DocType。apps/api `ai.constants.ts:GENERATABLE_DOC_TYPES` と同期。
- * `OTHER` 以外の全種別。`OTHER` は `@IsIn(GENERATABLE_DOC_TYPES)` で 400 になるので、UI 側でも型レベルで弾く。
+ * `OTHER` と `LANDING_PAGE` を除く 5 種。LP は ADR-009 で `LandingPage` テーブル + ブロック生成に
+ * 移行したため DRAFT_GEN の対象外(UI 側でも型レベルで弾く)。
  */
 export const GENERATABLE_DOC_TYPES = [
   'README',
-  'LANDING_PAGE',
   'RELEASE_BLOG',
   'TWEET',
   'PRODUCT_HUNT',

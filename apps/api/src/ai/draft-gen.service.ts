@@ -35,7 +35,6 @@ export interface GeneratedDraft {
 /** DocType ごとの「何を生成するか」ラベル(systemPrompt 用)。`GENERATABLE_DOC_TYPES` の全 6 種を網羅する。 */
 const KIND_LABEL: Record<DocKind, string> = {
   [DocType.README]: 'README(GitHub のプロジェクト説明文)',
-  [DocType.LANDING_PAGE]: 'ランディングページ本文',
   [DocType.RELEASE_BLOG]: 'リリースブログ記事',
   [DocType.TWEET]: 'X(Twitter)告知ポスト',
   [DocType.PRODUCT_HUNT]: 'Product Hunt 投稿文',
@@ -46,8 +45,6 @@ const KIND_LABEL: Record<DocKind, string> = {
 const STRUCTURE_HINT: Record<DocKind, string> = {
   [DocType.README]:
     '「概要」「主要機能」「セットアップ手順」「使い方」の節を含めること。',
-  [DocType.LANDING_PAGE]:
-    '「キャッチコピー」「課題提起」「解決策」「主要機能」「CTA(行動喚起)」の流れで構成すること。',
   [DocType.RELEASE_BLOG]:
     '「リリース概要」「背景・課題」「新機能の紹介」「使い方」「今後の予定」の流れで構成すること。',
   [DocType.TWEET]:
