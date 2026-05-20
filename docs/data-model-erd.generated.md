@@ -157,6 +157,15 @@ RETRYING RETRYING
     }
   
 
+  "LandingPage" {
+    String id "🗝️"
+    Json blocks 
+    DateTime publishedAt "❓"
+    DateTime createdAt 
+    DateTime updatedAt 
+    }
+  
+
   "AIUsage" {
     String id "🗝️"
     String model 
@@ -235,6 +244,8 @@ RETRYING RETRYING
     "ProjectDocument" |o--|| "DocType" : "enum:type"
     "ProjectDocument" }o--|| "Project" : "project"
     "ProjectDocument" }o--|| "User" : "createdBy"
+    "LandingPage" }o--|| "Tenant" : "tenant"
+    "LandingPage" |o--|| "Project" : "project"
     "AIUsage" |o--|| "Feature" : "enum:feature"
     "AIUsage" }o--|| "Tenant" : "tenant"
     "AIUsage" }o--|| "User" : "user"

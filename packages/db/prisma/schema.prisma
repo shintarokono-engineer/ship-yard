@@ -218,6 +218,7 @@ model Tenant {
   usage         AIUsage[]
   invitations   InvitationToken[]
   ragQaSessions RagQaSession[]
+  landingPages  LandingPage[]
 
   @@index([slug])
 }
@@ -267,6 +268,7 @@ model Project {
   checklist     ChecklistItem[]
   documents     ProjectDocument[]
   ragQaSessions RagQaSession[]
+  landingPage   LandingPage?
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -345,6 +347,31 @@ model ProjectDocument {
   /// `migrations/20260514130000_partial_index_for_active_documents/migration.sql` で raw SQL 管理。
   /// Prisma schema は partial index を表現できないため、HNSW と同じパターンで Prisma 管理外にしている
   /// (今後 `prisma migrate diff` が「未知の index」として DROP 提案するが、手作業で除外する)。
+}
+
+/// プロジェクトの公開ランディングページ(ADR-009)。
+/// ProjectDocument(Markdown + append-only + 非公開)とは性質が異なるため専用テーブルに分離。
+/// ブロック型 JSON を mutable に編集し、publishedAt で公開状態を管理する。
+model LandingPage {
+  /// 内部 ID(cuid)
+  id          String    @id @default(cuid())
+  /// 所属テナント ID(マルチテナント分離キー、必須)
+  tenantId    String
+  /// 所属プロジェクト ID(1 プロジェクト = 1 LP、ユニーク制約)
+  projectId   String    @unique
+  /// ブロック配列(hero / features / stats / testimonial / cta / footer、ADR-009 のブロックスキーマ)
+  blocks      Json
+  /// 公開日時(null = 非公開 / 値あり = 公開中)。公開 URL `/p/{slug}/{projectId}` の表示可否を決める
+  publishedAt DateTime?
+  /// 作成日時
+  createdAt   DateTime  @default(now())
+  /// 最終更新日時(mutable 編集、append-only ではない)
+  updatedAt   DateTime  @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }
 
 /// AI API 呼び出しのテナント単位ログ。

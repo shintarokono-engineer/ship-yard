@@ -33,8 +33,19 @@ export const MODEL_PRICING_USD_PER_MTOK: Record<string, { in: number; out: numbe
 /** 未知モデルのフォールバック単価(Sonnet 相当)。 */
 export const FALLBACK_PRICING_USD_PER_MTOK = { in: 3, out: 15 };
 
-/** AI 生成(DRAFT_GEN)に対応している ProjectDocument の種別。対応種別を増やすときはここに足す(DTO の `@IsIn` もこれを参照)。 */
-export const GENERATABLE_DOC_TYPES = [DocType.README, DocType.LANDING_PAGE] as const;
+/**
+ * AI 生成(DRAFT_GEN)に対応している ProjectDocument の種別。
+ * `OTHER` と `LANDING_PAGE` を除く 5 種。LP は ADR-009 で `LandingPage` テーブル +
+ * ブロック生成(`submit_landing_page`)に移行したため DRAFT_GEN の対象外。
+ * 対応種別を増やすときはここに足す(DTO の `@IsIn` もこれを参照)。
+ */
+export const GENERATABLE_DOC_TYPES = [
+  DocType.README,
+  DocType.RELEASE_BLOG,
+  DocType.TWEET,
+  DocType.PRODUCT_HUNT,
+  DocType.EMAIL,
+] as const;
 
 /** AI 生成に対応している DocType のユニオン型(= `GENERATABLE_DOC_TYPES` の要素型)。 */
 export type DocKind = (typeof GENERATABLE_DOC_TYPES)[number];
