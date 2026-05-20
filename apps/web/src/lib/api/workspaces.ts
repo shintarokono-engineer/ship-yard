@@ -3,6 +3,7 @@ import { cache } from 'react';
 import { apiFetch } from './client';
 import { ApiError } from './errors';
 import type {
+  AskRagQaResult,
   Category,
   ChecklistItem,
   CreateWorkspaceResult,
@@ -13,6 +14,8 @@ import type {
   Project,
   ProjectDocument,
   ProjectStatus,
+  RagQaSession,
+  RagQaSessionDetail,
   Workspace,
 } from './types';
 
@@ -388,6 +391,85 @@ export async function refineDocument(
 ): Promise<ProjectDocument> {
   return apiFetch<ProjectDocument>(
     `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}/refine`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+// ----- RAG_QA(プロジェクト壁打ち、ADR-005 Day 27 改訂) -----
+
+/**
+ * `GET /workspaces/:slug/projects/:projectId/qa/sessions`
+ *
+ * 壁打ちセッション一覧を `updatedAt` 降順(新しい順)で返す。全テナントメンバーが閲覧可。
+ */
+export async function listRagQaSessions(
+  slug: string,
+  projectId: string,
+): Promise<RagQaSession[]> {
+  return apiFetch<RagQaSession[]>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/qa/sessions`,
+  );
+}
+
+/**
+ * `POST /workspaces/:slug/projects/:projectId/qa/sessions`
+ *
+ * 新規セッションを作成。`title` は 1〜100 文字。WRITER_ROLES のみ(REVIEWER 等は 403)。
+ */
+export async function createRagQaSession(
+  slug: string,
+  projectId: string,
+  body: { title: string },
+): Promise<RagQaSession> {
+  return apiFetch<RagQaSession>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/qa/sessions`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+/**
+ * `GET /workspaces/:slug/projects/:projectId/qa/sessions/:sessionId`
+ *
+ * セッション + メッセージ履歴(古い順)を取得。不在 / 越境は 404 → null。
+ * `React.cache` で同一リクエスト内の dedup。
+ */
+export const fetchRagQaSession = cache(
+  async (
+    slug: string,
+    projectId: string,
+    sessionId: string,
+  ): Promise<RagQaSessionDetail | null> => {
+    try {
+      return await apiFetch<RagQaSessionDetail>(
+        `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/qa/sessions/${encodeURIComponent(sessionId)}`,
+      );
+    } catch (e) {
+      if (e instanceof ApiError && (e.status === 404 || e.status === 401)) return null;
+      throw e;
+    }
+  },
+);
+
+/**
+ * `POST /workspaces/:slug/projects/:projectId/qa/sessions/:sessionId/messages`
+ *
+ * 質問を送信し Sonnet 4 で回答を生成。user / assistant メッセージと参照ドキュメント(RAG ヒット)を返す。
+ * WRITER_ROLES のみ。Free プランは月 20 回上限(超過時 403 + 「AI 利用上限」)。
+ */
+export async function askRagQaMessage(
+  slug: string,
+  projectId: string,
+  sessionId: string,
+  body: { question: string },
+): Promise<AskRagQaResult> {
+  return apiFetch<AskRagQaResult>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/qa/sessions/${encodeURIComponent(sessionId)}/messages`,
     {
       method: 'POST',
       body: JSON.stringify(body),

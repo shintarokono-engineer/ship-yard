@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 
+import { MarkdownViewer } from '@/components/markdown-viewer';
 import { Badge } from '@/components/ui/badge';
 import { DOC_TYPE_META, isWriterRole } from '@/lib/api/types';
 import {
@@ -14,7 +15,6 @@ import { formatDateTime } from '@/lib/format';
 
 import { DeleteDocumentButton } from './_components/delete-document-button';
 import { EditDocumentDialog } from './_components/edit-document-dialog';
-import { MarkdownViewer } from './_components/markdown-viewer';
 import { RefineDocumentDialog } from './_components/refine-document-dialog';
 import { VersionHistory } from './_components/version-history';
 

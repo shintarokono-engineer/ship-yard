@@ -142,10 +142,11 @@ export class RagQaController {
       tokensOut: result.tokensOut,
     });
 
+    // references は assistantMessage.references に永続化済み(GET 履歴でも同じ形で返る)。
+    // トップレベルには載せず、フロントは常に message.references を参照する。
     return {
       userMessage: result.userMessage,
       assistantMessage: result.assistantMessage,
-      references: rag.hits,
     };
   }
 }

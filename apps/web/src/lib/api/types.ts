@@ -237,3 +237,63 @@ export interface ProjectDocument {
   /** soft delete されたタイムスタンプ。一覧 / 取得 API ではそもそも 404 になるので null 想定。 */
   deletedAt: string | null;
 }
+
+// ----- RAG_QA(プロジェクト壁打ち、ADR-005 Day 27 改訂) -----
+
+/** RagQaMessage の発話者種別(`RagQaRole` enum、packages/db/prisma/schema.prisma と同期)。 */
+export const RAG_QA_ROLES = ['USER', 'ASSISTANT'] as const;
+export type RagQaRole = (typeof RAG_QA_ROLES)[number];
+
+/** `GET/POST /workspaces/:slug/projects/:projectId/qa/sessions` のセッション 1 件分。 */
+export interface RagQaSession {
+  id: string;
+  projectId: string;
+  title: string;
+  createdById: string;
+  createdAt: string;
+  /** メッセージ追加ごとに更新。一覧の並び順(新しい順)の軸。 */
+  updatedAt: string;
+}
+
+/** RagQaSession 内の 1 メッセージ。`tokensIn` / `tokensOut` / `references` は ASSISTANT のみ非 null。 */
+export interface RagQaMessage {
+  id: string;
+  sessionId: string;
+  role: RagQaRole;
+  content: string;
+  tokensIn: number | null;
+  tokensOut: number | null;
+  /** この回答が参照した過去ドキュメント(RAG ヒット)のスナップショット。USER メッセージは null。 */
+  references: RagQaReference[] | null;
+  createdAt: string;
+}
+
+/**
+ * AI 回答が参照した過去ドキュメント(RAG ヒット)のスナップショット。
+ * `RagQaMessage.references` の要素型。BE が `RagQaMessage` 保存時に JSON で永続化する。
+ * `isSeed` は運営キュレーション seed コーパス(`SEED_PUBLIC`、ADR-008)由来かどうか。
+ */
+export interface RagQaReference {
+  id: string;
+  projectId: string;
+  type: DocType;
+  title: string;
+  /** pgvector の cosine distance(0=完全一致)。 */
+  distance: number;
+  isSeed: boolean;
+}
+
+/** `GET .../qa/sessions/:sessionId` のレスポンス(セッション + メッセージ履歴、古い順)。 */
+export interface RagQaSessionDetail {
+  session: RagQaSession;
+  messages: RagQaMessage[];
+}
+
+/**
+ * `POST .../qa/sessions/:sessionId/messages` のレスポンス(質問 + AI 回答)。
+ * 参照ドキュメントは `assistantMessage.references` に含まれる。
+ */
+export interface AskRagQaResult {
+  userMessage: RagQaMessage;
+  assistantMessage: RagQaMessage;
+}

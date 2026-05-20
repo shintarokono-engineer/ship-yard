@@ -467,6 +467,10 @@ model RagQaMessage {
   tokensIn  Int?
   /// 出力トークン数(ASSISTANT のみ、USER は null)
   tokensOut Int?
+  /// この回答が参照した過去ドキュメント(RAG ヒット)のスナップショット(ADR-005 Day 27 改訂)。
+  /// ASSISTANT のみ非 null。`{ id, projectId, type, title, isSeed, distance }[]` 形式。
+  /// 参照先が後で編集 / 削除されても「この回答が何を見たか」 の履歴的事実を保つためスナップショット保存(正規化しない)。
+  references Json?
   /// 作成日時
   createdAt DateTime  @default(now())
 

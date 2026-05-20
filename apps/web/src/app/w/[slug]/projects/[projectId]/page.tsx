@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronLeft, FileText, ListChecks } from 'lucide-react';
+import { ChevronLeft, FileText, ListChecks, MessageCircle } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -97,7 +97,7 @@ export default async function ProjectDetailPage({
         </section>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Link
           href={`/w/${slug}/projects/${projectId}/documents`}
           className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
@@ -137,6 +137,25 @@ export default async function ProjectDetailPage({
             <CardContent>
               <p className="text-muted-foreground text-sm">
                 リリース前に必要な作業をカテゴリ別に管理します。
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link
+          href={`/w/${slug}/projects/${projectId}/rag-qa`}
+          className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
+        >
+          <Card className="hover:bg-accent/30 cursor-pointer transition-colors [&_*]:cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <MessageCircle className="size-4" aria-hidden="true" />
+                AI 壁打ち
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-sm">
+                プロジェクトの方針や課題を AI と相談します。過去ドキュメントを参照して回答します。
               </p>
             </CardContent>
           </Card>

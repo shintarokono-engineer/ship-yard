@@ -206,6 +206,7 @@ RETRYING RETRYING
     String content 
     Int tokensIn "❓"
     Int tokensOut "❓"
+    Json references "❓"
     DateTime createdAt 
     }
   

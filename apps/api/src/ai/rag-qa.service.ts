@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
-import { type RagQaMessage, type RagQaSession, RagQaRole } from '@shipyard/db';
+import { Prisma, type RagQaMessage, type RagQaSession, RagQaRole } from '@shipyard/db';
 
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -10,8 +10,9 @@ import {
   RAG_QA_MAX_TURNS,
 } from './ai.constants';
 import { AnthropicService } from './anthropic.service';
-import { formatReferenceSection, type RagReference } from './format-reference';
+import { formatReferenceSection } from './format-reference';
 import { AI_PERSONA_INTRO } from './prompts';
+import type { RagSearchHit } from './rag-search.service';
 import { extractTextContent } from './tool-use';
 
 /** RagQaService が想定するプロジェクト情報の最小型。controller 側で取得して渡す。 */
@@ -21,13 +22,13 @@ interface ProjectContext {
   status: string;
 }
 
-/** `RagQaService.ask` の引数。`references` は `RagSearchHit[]` をそのまま渡せる。 */
+/** `RagQaService.ask` の引数。`references` は controller の RAG 検索結果(`RagSearchHit[]`)をそのまま渡す。 */
 export interface AskInput {
   tenantId: string;
   sessionId: string;
   question: string;
   project: ProjectContext;
-  references?: readonly RagReference[];
+  references?: readonly RagSearchHit[];
 }
 
 /** `RagQaService.ask` の戻り値。controller で AIUsage 記録 + レスポンス整形に使う。 */
@@ -195,6 +196,10 @@ export class RagQaService {
           content: assistantText,
           tokensIn: res.usage.input_tokens,
           tokensOut: res.usage.output_tokens,
+          references:
+            input.references && input.references.length > 0
+              ? toReferenceSnapshot(input.references)
+              : undefined,
         },
       }),
       this.prisma.ragQaSession.update({
@@ -211,6 +216,22 @@ export class RagQaService {
       tokensOut: res.usage.output_tokens,
     };
   }
+}
+
+/**
+ * RAG ヒットを `RagQaMessage.references` に保存するスナップショット形式に変換する。
+ * 本文(content)は壁打ち履歴の参照表示には不要なので除外し、id / type / title / isSeed / distance のみ残す。
+ * 参照先 ProjectDocument が後で編集・削除されても「この回答が何を見たか」 の履歴的事実を保つ。
+ */
+function toReferenceSnapshot(hits: readonly RagSearchHit[]): Prisma.InputJsonValue {
+  return hits.map((h) => ({
+    id: h.id,
+    projectId: h.projectId,
+    type: h.type,
+    title: h.title,
+    isSeed: h.isSeed,
+    distance: h.distance,
+  }));
 }
 
 function buildSystemPrompt(project: ProjectContext): string {
