@@ -121,6 +121,68 @@ export interface AcceptInvitationResult {
   role: Role;
 }
 
+/** 招待発行で指定可能なロール(OWNER 以外)。apps/api `CreateInvitationDto` の `NON_OWNER_ROLES` と同期。 */
+export const NON_OWNER_ROLES = [
+  'ADMIN',
+  'DEVELOPER',
+  'REVIEWER',
+  'TESTER',
+  'VIEWER',
+] as const satisfies readonly Role[];
+export type NonOwnerRole = (typeof NON_OWNER_ROLES)[number];
+
+/** ロールの日本語ラベル(apps/api `invitations.service.ts:ROLE_LABELS` と同期)。 */
+export const ROLE_LABELS: Record<Role, string> = {
+  OWNER: 'オーナー',
+  ADMIN: '管理者',
+  DEVELOPER: '開発者',
+  REVIEWER: 'レビュワー',
+  TESTER: 'テスター',
+  VIEWER: '閲覧者',
+};
+
+/** `GET /workspaces/:slug/members` のレスポンス 1 件分。 */
+export interface Member {
+  userId: string;
+  role: Role;
+  /** ISO8601 文字列。 */
+  joinedAt: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+  };
+}
+
+/** `GET /workspaces/:slug/invitations` のレスポンス 1 件分。 */
+export interface InvitationListItem {
+  id: string;
+  email: string;
+  role: Role;
+  /** ISO8601 文字列。 */
+  expiresAt: string;
+  acceptedAt: string | null;
+  revokedAt: string | null;
+  invitedBy: { id: string; name: string | null; email: string };
+  status: InvitationStatus;
+}
+
+/** `POST /workspaces/:slug/invitations` / `.../invitations/:id/resend` のレスポンス。 */
+export interface CreateInvitationResult {
+  invitation: {
+    id: string;
+    email: string;
+    role: Role;
+    /** ISO8601 文字列。 */
+    expiresAt: string;
+  };
+  /** メール送信成功フラグ(false なら UI で「メール送信失敗、再送が必要」と表示)。 */
+  mailSent: boolean;
+  /** メール送信失敗時の理由(運用切り分け用、MVP では含める)。 */
+  mailError?: string;
+}
+
 /** `GET /workspaces/:slug/projects[/:id]` のレスポンス 1 件分。 */
 export interface Project {
   id: string;

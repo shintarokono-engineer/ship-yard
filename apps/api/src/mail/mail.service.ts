@@ -52,7 +52,7 @@ export class MailService {
   }
 
   async sendInvitation(input: SendInvitationInput): Promise<void> {
-    const inviteUrl = `${this.appBaseUrl}/invitations/${input.token}`;
+    const inviteUrl = `${this.appBaseUrl}/invite/${input.token}`;
     // dayjs UTC 拡張で「日本時間 YYYY/MM/DD HH:mm」形式に整形(ユーザーが分かりやすい表記)
     const expiresAtLabel = dayjs(input.expiresAt).format('YYYY/MM/DD HH:mm');
 
