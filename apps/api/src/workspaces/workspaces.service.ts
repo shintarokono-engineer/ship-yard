@@ -34,6 +34,17 @@ export interface CreateWorkspaceResult {
   subscriptionInitialized: boolean;
 }
 
+/** `GET /workspaces`(自分の所属一覧)のレスポンス 1 件分。 */
+export interface MyWorkspaceListItem {
+  id: string;
+  slug: string;
+  name: string;
+  plan: Plan;
+  role: Role;
+  /** TenantMember.joinedAt(自分が加入した日時、ISO8601)。 */
+  joinedAt: string;
+}
+
 /**
  * ワークスペース(= テナント)の新規作成ロジック。
  *
@@ -109,6 +120,43 @@ export class WorkspacesService {
       },
       subscriptionInitialized,
     };
+  }
+
+  /**
+   * 現在ユーザーが所属するすべてのワークスペースを返す。
+   *
+   * - Clerk JWT は通っているが `User` 行が未同期の場合は空配列を返す
+   *   (オンボーディング前提のフローで、403 にすると UI 遷移が複雑になるため)
+   * - tenantMember は `userId` で限定するので、tenantId 注入は不要(横断検索が必要)
+   * - joinedAt 昇順:最初に入った workspace が先頭、ホーム redirect 先として直感的
+   */
+  async listMine(clerkUserId: string): Promise<MyWorkspaceListItem[]> {
+    const user = await this.prisma.user.findUnique({
+      where: { clerkUserId },
+      select: { id: true },
+    });
+    if (!user) return [];
+
+    const members = await this.prisma.tenantMember.findMany({
+      where: { userId: user.id },
+      select: {
+        role: true,
+        joinedAt: true,
+        tenant: {
+          select: { id: true, slug: true, name: true, plan: true },
+        },
+      },
+      orderBy: { joinedAt: 'asc' },
+    });
+
+    return members.map((m) => ({
+      id: m.tenant.id,
+      slug: m.tenant.slug,
+      name: m.tenant.name,
+      plan: m.tenant.plan,
+      role: m.role,
+      joinedAt: m.joinedAt.toISOString(),
+    }));
   }
 
   /** ユーザー指定 slug の重複確認。既存があれば 409。 */

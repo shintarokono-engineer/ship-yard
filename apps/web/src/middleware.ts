@@ -4,7 +4,15 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { TENANT_SLUG_HEADER } from '@/lib/tenant-slug';
 
 // 認証不要なパブリックルート(それ以外は認証必須)
-const isPublicRoute = createRouteMatcher(['/', '/sign-in(.*)', '/sign-up(.*)']);
+// `/invite/{token}` は未認証ユーザーでも招待内容を確認できる(GitHub / Slack / Notion と同パターン)。
+// 承諾(POST)時に認証チェックがかかるため、token 漏洩のリスクは API 側の `User.email === invitation.email`
+// 検証で防いでいる(ADR-007)。
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/invite/(.*)',
+]);
 
 // /w/{slug}/... の slug を抽出(形式チェックはページ側で実施)
 const TENANT_PATH_REGEX = /^\/w\/([^/]+)/;

@@ -75,6 +75,52 @@ export interface Workspace {
   role: Role;
 }
 
+/** `GET /workspaces`(自分の所属一覧)のレスポンス 1 件分。`joinedAt` 付き。 */
+export interface MyWorkspaceListItem {
+  id: string;
+  slug: string;
+  name: string;
+  plan: Plan;
+  role: Role;
+  /** TenantMember.joinedAt(ISO8601 文字列)。一覧の並び順は昇順。 */
+  joinedAt: string;
+}
+
+/** `POST /workspaces`(新規作成)のレスポンス。 */
+export interface CreateWorkspaceResult {
+  tenant: Workspace;
+  /** Stripe Customer + Subscription 初期化に成功したか(失敗時は Checkout 時に lazy 作成)。 */
+  subscriptionInitialized: boolean;
+}
+
+/**
+ * 招待の状態(派生プロパティ、apps/api `invitations.constants.ts` と同期)。
+ * 真実の源は `InvitationToken` の `acceptedAt` / `revokedAt` / `expiresAt` 3 列で、API 側で導出する。
+ */
+export const INVITATION_STATUSES = ['PENDING', 'ACCEPTED', 'EXPIRED', 'REVOKED'] as const;
+export type InvitationStatus = (typeof INVITATION_STATUSES)[number];
+
+/** `GET /invitations/:token`(未認証可)のレスポンス。 */
+export interface InvitationDetail {
+  email: string;
+  role: Role;
+  roleLabel: string;
+  workspaceName: string;
+  workspaceSlug: string;
+  inviterName: string;
+  /** ISO8601 文字列。 */
+  expiresAt: string;
+  status: InvitationStatus;
+}
+
+/** `POST /invitations/:token/accept` のレスポンス(承諾後、UI が `/w/{slug}` へ遷移するため slug を持つ)。 */
+export interface AcceptInvitationResult {
+  tenantId: string;
+  workspaceSlug: string;
+  workspaceName: string;
+  role: Role;
+}
+
 /** `GET /workspaces/:slug/projects[/:id]` のレスポンス 1 件分。 */
 export interface Project {
   id: string;

@@ -5,9 +5,11 @@ import { ApiError } from './errors';
 import type {
   Category,
   ChecklistItem,
+  CreateWorkspaceResult,
   DocType,
   GeneratableDocType,
   ItemStatus,
+  MyWorkspaceListItem,
   Project,
   ProjectDocument,
   ProjectStatus,
@@ -31,6 +33,37 @@ export const fetchWorkspace = cache(async (slug: string): Promise<Workspace | nu
     throw e;
   }
 });
+
+/**
+ * `GET /workspaces` — 自分が所属する全 workspace を `joinedAt` 昇順で返す。
+ *
+ * オンボーディング判定とルート `/` での所属 fallback 用。`React.cache` で同一リクエスト内 dedup。
+ * 未認証 / User 行未同期は空配列(API 側で空配列を返す設計)。
+ */
+export const listMyWorkspaces = cache(async (): Promise<MyWorkspaceListItem[]> => {
+  try {
+    return await apiFetch<MyWorkspaceListItem[]>('/workspaces');
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 401) return [];
+    throw e;
+  }
+});
+
+/**
+ * `POST /workspaces` — 新規ワークスペース作成。
+ *
+ * `slug` は省略可:省略時は `name` から自動生成(衝突時は API 側で `-2`, `-3`, ... を付与)。
+ * 成功時は `{ tenant: { slug, ... }, subscriptionInitialized }` を返すので呼び出し側で `/w/{slug}` へ遷移する。
+ */
+export async function createWorkspace(body: {
+  name: string;
+  slug?: string;
+}): Promise<CreateWorkspaceResult> {
+  return apiFetch<CreateWorkspaceResult>('/workspaces', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
 
 /** `GET /workspaces/:slug/projects[?status=...]` */
 export async function listProjects(slug: string, status?: ProjectStatus): Promise<Project[]> {
