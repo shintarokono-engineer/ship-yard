@@ -26,3 +26,24 @@ export function extractToolUseBlock(
   }
   return block;
 }
+
+/**
+ * Anthropic Messages API のレスポンスから自由文の text ブロックを抽出する共通ヘルパー(Day 27 RAG_QA 用)。
+ * Tool Use を使わない機能(RAG_QA の会話応答 等)向け。複数 text ブロックが返る場合は連結する。
+ *
+ * 空 / 欠落時は 502(`AIBadResponseError`、上流依存の不正レスポンス)。
+ */
+export function extractTextContent(
+  res: Anthropic.Messages.Message,
+  featureName: string,
+): string {
+  const text = res.content
+    .filter((b): b is Anthropic.Messages.TextBlock => b.type === 'text')
+    .map((b) => b.text)
+    .join('\n')
+    .trim();
+  if (!text) {
+    throw new AIBadResponseError(`Claude returned no text content (${featureName})`);
+  }
+  return text;
+}

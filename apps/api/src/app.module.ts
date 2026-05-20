@@ -9,6 +9,8 @@ import { DraftGenController } from './ai/draft-gen.controller';
 import { DraftGenService } from './ai/draft-gen.service';
 import { EmbeddingService } from './ai/embedding.service';
 import { OpenAIModule } from './ai/openai.module';
+import { RagQaController } from './ai/rag-qa.controller';
+import { RagQaService } from './ai/rag-qa.service';
 import { RagSearchService } from './ai/rag-search.service';
 import { RefineDocController } from './ai/refine-doc.controller';
 import { RefineDocService } from './ai/refine-doc.service';
@@ -56,6 +58,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     ChecklistGenController,
     DocumentsController,
     DraftGenController,
+    RagQaController,
     RefineDocController,
     TaskSplitController,
     InvitationsController,
@@ -75,6 +78,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     ChecklistGenService,
     EmbeddingService,
     RagSearchService,
+    RagQaService,
     RefineDocService,
     TaskSplitService,
     InvitationsService,

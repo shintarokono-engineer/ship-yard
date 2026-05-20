@@ -2,7 +2,7 @@
 
 ## ステータス
 
-承認済み(2026-05-01)
+承認済み(2026-05-01)、改訂(2026-05-20、Day 27 RAG_QA 実装に伴う MVP 必須化 + 対話履歴方針追加)
 
 ## 背景・問題
 
@@ -127,3 +127,100 @@ Shipyard は AI 機能を主要差別化として位置付ける。Anthropic API
 - プロンプトテンプレートを `packages/prompts` に集約、バージョン管理
 - 将来的にユーザー独自モデル(BYOK: Bring Your Own Key)対応を検討
 - AIUsage の月次集計ジョブで予算超過を検知 → Slack 通知
+
+---
+
+## Day 27 改訂(2026-05-20):RAG_QA を MVP 必須化 + 対話履歴方針確定
+
+### 経緯
+
+- Day 22 セッション(2026-05-19)で、ユーザーから「プロジェクトの内容を AI と壁打ちしたいというのがこのシステムのメインの主要用途」 との指摘
+- §1 提供価値の筆頭(過去プロジェクトの知見をベクトル検索で再活用)を直接実現する機能でありながら、Day 1〜26 のロードマップに独立 Day として未配置だったことが PROJECT_STATUS.md §9.4「ADR-005 ギャップ」 として明文化された
+- 元 ADR(本文 line 41)では「Sonnet 4 を以下で使用 … RAG QA(過去プロジェクト検索による応答)」 と言及されていたが、controller / service / DTO / FE / 対話履歴方針 / コスト試算 の具体仕様が無いまま据え置かれていた
+- Day 27〜28 を RAG_QA(BE + FE)に充てる前提で、本改訂で MVP 必須化と対話履歴の永続化方針を確定する
+
+### 検討した対話履歴方針
+
+| 案 | 概要 | 採否 | 理由 |
+| --- | --- | --- | --- |
+| A | stateless(1 ターン完結、履歴持たない) | 棄却 | 連続質問不可で壁打ち体験が薄く、Shipyard 主要用途を満たさない |
+| B | FE 保持(`sessionStorage`)+ BE は受信のみ | 棄却 | スキーマ変更不要で速いが、リロード / デバイス変更で履歴消失、Team プラン監査ログと不整合、prompt cache 最適化が弱い |
+| **C** | **DB 永続化(`RagQaSession` + `RagQaMessage`)** | **採用** | 下記「採用理由」参照 |
+
+### C 案を採用する理由
+
+1. **§1 提供価値との整合**:「過去プロジェクトの知見をベクトル検索で再活用」 が筆頭価値であり、壁打ちログ自体が将来 RAG ソース化可能(セッションを保存しないと永遠に失われる)
+2. **デバイス横断 / セッション切替 / Team プラン監査ログ**:B 案では実現不能
+3. **prompt cache 最適化**:Anthropic の `cache_control`(Sonnet 4、5 分 TTL)は BE 一貫で context 構築する C の方が cache hit 率を上げやすい
+4. **将来拡張のしやすさ**:「壁打ちログから ProjectDocument に変換」「セッション要約」「タグ付け」 等を後付け可能
+5. **コスト試算上、B との差分は無視できる**:DB ストレージは 100 ユーザーで月 50MB ≒ 数十円、prompt cache 効果で API コストはむしろ若干安くなる
+
+### 決定の追加
+
+1. **RAG_QA を MVP 必須化**: 下記エンドポイントを Day 27〜28 で実装する
+   - `POST /workspaces/:slug/projects/:id/qa/sessions`(セッション作成)
+   - `POST .../qa/sessions/:sid/messages`(質問送信 → 回答受信)
+   - `GET .../qa/sessions`(セッション一覧)
+   - `GET .../qa/sessions/:sid`(メッセージ履歴取得)
+2. **schema 追加**(2 model):
+   - `RagQaSession`(id, tenantId, projectId, title, createdBy, createdAt, updatedAt)
+   - `RagQaMessage`(id, sessionId, role: `user`|`assistant`, content, tokensIn?, tokensOut?, createdAt)
+   - ADR-002 Pool model に準拠(`tenantId` 必須、Cascade 削除)
+3. **context 構築**: 直近 N=10 ターンを Anthropic API `messages` として送る(超過時の前段要約は v1.x)
+4. **RAG 検索**: `RagSearchService.searchSimilar({ includeSeed: true })` を流用(壁打ち用途で `SEED_PUBLIC` のベストプラクティスも参考になる、ADR-008 と整合)
+5. **モデル**: Sonnet 4(元 ADR line 41 で既定)。`cache_control`(Anthropic prompt cache、Sonnet 4 / 5 分 TTL)の付与は **v1.x で追加**(history が 5 ターン超で効果が見え始めるため、MVP 範囲では未実装。下記コスト試算「prompt cache 適用後」 行は v1.x 時点の見込み値)
+6. **AIUsage**: `Feature.RAG_QA` で 1 ターンごとに `tokensIn` / `tokensOut` / `cost` 記録
+7. **認可**: WRITER_ROLES(OWNER / ADMIN / DEVELOPER)は書込可、READER 系(REVIEWER / TESTER / VIEWER)は履歴閲覧のみ
+8. **FE**(Day 28): セッション一覧 + チャット UI + 参照ドキュメント表示(`isSeed` バッジ)
+
+### コスト試算(1 ユーザー / 月)
+
+| 項目 | 値 |
+| --- | --- |
+| 1 質問あたり入力 | ~3-5k tokens(system + RAG context 5 件 + 履歴 10 ターン) |
+| 1 質問あたり出力 | ~500-1k tokens |
+| Sonnet 4 単価 | $3 / 1M input, $15 / 1M output |
+| 1 質問あたりコスト | 約 5〜10 円 |
+| 想定:月 30 セッション × 平均 8 ターン | 240 リクエスト |
+| **月コスト(MVP、cache 未適用)** | **約 1,700 円 / ユーザー** |
+| prompt cache hit 想定 50%(履歴部分、v1.x 適用後の見込み) | -30% |
+| **月コスト(v1.x、cache 適用後の見込み)** | **約 1,200 円 / ユーザー** |
+
+→ Free プラン月 20 回上限(ADR-005 既定)で過剰利用は防げる。Pro / Team の内部上限 1000 回 / 月で十分カバー。
+
+### 入力上限・暴走防止
+
+- 1 メッセージあたり content 最大 8000 文字(DTO で制約)
+- 1 セッションあたり 100 メッセージで打ち切り(超過時は新規セッション作成を促す)
+- maxTurns = 10(context に積む直近ターン数の上限)
+
+### フォローアップの追加
+
+#### Day 27 で実施(BE)
+
+- `packages/db/prisma/schema.prisma` に `RagQaSession` / `RagQaMessage` 追加 + migration
+- `apps/api/src/ai/rag-qa.service.ts` 新規(`createSession` / `appendMessage` / `ask`)
+- `apps/api/src/ai/rag-qa.controller.ts` 新規(4 エンドポイント + DTO + 認可ガード)
+- E2E:認可マトリクス / 対話履歴反映 / RAG ヒット / テナント越境拒否 / AIUsage 記録
+
+#### Day 28 で実施(FE + 統合)
+
+- `apps/web/src/app/w/[slug]/projects/[id]/qa/page.tsx`(セッション一覧)
+- `apps/web/src/app/w/[slug]/projects/[id]/qa/[sessionId]/page.tsx`(チャット UI)
+- サイドバー導線追加、isSeed バッジ表示
+
+#### v1.x(Week 7+)で検討
+
+- ストリーミング応答(SSE / WebSocket)
+- N > 10 ターン時の前段要約(Haiku 4.5 で要約 → context 圧縮)
+- セッション削除ポリシー(無料プラン 30 日 / 有料無期限)
+- 壁打ちログを ProjectDocument に変換するボタン(`RagQaSession → ProjectDocument` 抽出)
+- セッションのタイトル自動生成(初回質問から Haiku 4.5 で短いタイトル)
+
+#### 監視すべき指標
+
+- 1 セッション平均ターン数(短すぎる場合は UX 改善余地)
+- 1 ユーザー / 月の平均トークン消費
+- prompt cache hit 率(目標 50% 以上)
+- cost per session(目標 50 円以内)
+- ユーザーごとの「再質問せず終わる」率(壁打ちが機能しているかの代替指標)

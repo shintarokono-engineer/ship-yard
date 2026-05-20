@@ -135,6 +135,14 @@ enum Feature {
   OTHER
 }
 
+/// RagQaMessage の発話者種別(ADR-005 Day 27 改訂)
+enum RagQaRole {
+  /// ユーザーからの質問
+  USER
+  /// AI からの回答
+  ASSISTANT
+}
+
 /// Stripe Subscription の状態(Stripe の status をミラー)
 enum SubStatus {
   /// 課金中・正常
@@ -179,11 +187,12 @@ model User {
   /// ユーザー作成日時(Clerk からの初回 Webhook 受信時)
   createdAt   DateTime @default(now())
 
-  memberships  TenantMember[]
-  ownedTenants Tenant[]          @relation("TenantOwner")
-  documents    ProjectDocument[]
-  usage        AIUsage[]
-  invitations  InvitationToken[]
+  memberships    TenantMember[]
+  ownedTenants   Tenant[]          @relation("TenantOwner")
+  documents      ProjectDocument[]
+  usage          AIUsage[]
+  invitations    InvitationToken[]
+  ragQaSessions  RagQaSession[]
 }
 
 /// ワークスペース(テナント)。マルチテナント分離の基本単位(ADR-002)。
@@ -202,12 +211,13 @@ model Tenant {
   /// ワークスペース作成日時
   createdAt DateTime @default(now())
 
-  owner        User              @relation("TenantOwner", fields: [ownerId], references: [id])
-  members      TenantMember[]
-  projects     Project[]
-  subscription Subscription?
-  usage        AIUsage[]
-  invitations  InvitationToken[]
+  owner         User              @relation("TenantOwner", fields: [ownerId], references: [id])
+  members       TenantMember[]
+  projects      Project[]
+  subscription  Subscription?
+  usage         AIUsage[]
+  invitations   InvitationToken[]
+  ragQaSessions RagQaSession[]
 
   @@index([slug])
 }
@@ -253,9 +263,10 @@ model Project {
   /// 最終更新日時(Prisma 自動更新)
   updatedAt   DateTime      @updatedAt
 
-  tenant    Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  checklist ChecklistItem[]
-  documents ProjectDocument[]
+  tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  checklist     ChecklistItem[]
+  documents     ProjectDocument[]
+  ragQaSessions RagQaSession[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -409,6 +420,60 @@ model WebhookEvent {
   processedAt   DateTime      @default(now())
 
   @@index([type, processedAt])
+}
+
+/// RAG_QA(壁打ち)の会話セッション(ADR-005 Day 27 改訂)。
+/// 1 プロジェクト内に複数セッション持てる。対話履歴を DB に永続化することで
+/// 「壁打ちログを資産化」 する Shipyard §1 提供価値を直接実現する。
+model RagQaSession {
+  /// 内部 ID(cuid)
+  id          String   @id @default(cuid())
+  /// 所属テナント ID(マルチテナント分離キー、必須)
+  tenantId    String
+  /// 所属プロジェクト ID(壁打ちは特定プロジェクト文脈で行う)
+  projectId   String
+  /// セッションタイトル(初期は user-provided or 「新しい会話」、v1.x で初回質問から自動生成予定)
+  title       String
+  /// セッション作成者 User ID
+  createdById String
+  /// セッション作成日時
+  createdAt   DateTime @default(now())
+  /// 最終更新日時(メッセージ追加ごとに更新、一覧の並び替え軸)
+  updatedAt   DateTime @updatedAt
+
+  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User           @relation(fields: [createdById], references: [id])
+  messages  RagQaMessage[]
+
+  @@index([tenantId])
+  @@index([projectId, updatedAt])
+}
+
+/// RagQaSession 内の 1 メッセージ(ADR-005 Day 27 改訂)。
+/// 1 セッションあたり 100 メッセージ上限(暴走防止)、1 メッセージあたり content 最大 8000 文字(DTO で制約)
+model RagQaMessage {
+  /// 内部 ID(cuid)
+  id        String    @id @default(cuid())
+  /// 所属テナント ID(マルチテナント分離キー、必須、session.tenantId と一致)
+  tenantId  String
+  /// 所属セッション ID
+  sessionId String
+  /// 発話者種別(USER = ユーザー質問、ASSISTANT = AI 回答)
+  role      RagQaRole
+  /// メッセージ本文(Markdown 可)
+  content   String    @db.Text
+  /// 入力トークン数(ASSISTANT のみ、USER は null)
+  tokensIn  Int?
+  /// 出力トークン数(ASSISTANT のみ、USER は null)
+  tokensOut Int?
+  /// 作成日時
+  createdAt DateTime  @default(now())
+
+  session RagQaSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([sessionId, createdAt])
 }
 
 /// メンバー招待トークン。`/invite/{token}` の URL を生成し、メールで送信。
