@@ -33,6 +33,19 @@ export interface RecordAIUsageInput {
   tokensOut: number;
 }
 
+/** `AIUsageService.getMonthlySummary` の戻り値。設定画面の「利用状況」タブ用。 */
+export interface MonthlyUsageSummary {
+  plan: Plan;
+  /** 集計対象期間の起点(当月 1 日 00:00 UTC、ISO8601 文字列)。 */
+  periodStart: string;
+  /** 当月のユーザー視点の AI 利用回数(`Feature.OTHER` を除外、Free 上限カウントと一致)。 */
+  used: number;
+  /** FREE プランの月次上限。PRO / TEAM は無制限のため null。 */
+  limit: number | null;
+  /** feature 別の内訳(`OTHER` を含む全件、count 降順)。 */
+  byFeature: { feature: Feature; count: number }[];
+}
+
 /**
  * AI 呼び出しのテナント単位ログ(`AIUsage`)の記録と、Free プランの月次上限チェック(ADR-005)。
  *
@@ -66,6 +79,34 @@ export class AIUsageService {
         `Free プランの AI 利用上限(月 ${FREE_MONTHLY_AI_LIMIT} 回)に達しました。Pro へのアップグレードが必要です。`,
       );
     }
+  }
+
+  /**
+   * 当月のテナント単位 AI 利用状況を集計する(設定画面の「利用状況」タブ用)。
+   *
+   * `used` は `assertWithinFreeQuota` と同じく `Feature.OTHER`(裏方 embedding / RAG 検索)を
+   * 除外し、ユーザー視点の「月 N 回」と一致させる。`byFeature` は内訳表示用に `OTHER` も含める。
+   */
+  async getMonthlySummary(tenant: { id: string; plan: Plan }): Promise<MonthlyUsageSummary> {
+    const periodStart = startOfMonthUtc();
+    const grouped = await this.prisma.aIUsage.groupBy({
+      by: ['feature'],
+      where: { tenantId: tenant.id, createdAt: { gte: periodStart } },
+      _count: { _all: true },
+    });
+    const byFeature = grouped
+      .map((g) => ({ feature: g.feature, count: g._count._all }))
+      .sort((a, b) => b.count - a.count);
+    const used = byFeature
+      .filter((f) => f.feature !== Feature.OTHER)
+      .reduce((sum, f) => sum + f.count, 0);
+    return {
+      plan: tenant.plan,
+      periodStart: periodStart.toISOString(),
+      used,
+      limit: tenant.plan === Plan.FREE ? FREE_MONTHLY_AI_LIMIT : null,
+      byFeature,
+    };
   }
 
   /** AI 呼び出し 1 回分をテナント単位で記録する。 */

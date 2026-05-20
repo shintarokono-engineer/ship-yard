@@ -16,6 +16,7 @@ import { RefineDocController } from './ai/refine-doc.controller';
 import { RefineDocService } from './ai/refine-doc.service';
 import { TaskSplitController } from './ai/task-split.controller';
 import { TaskSplitService } from './ai/task-split.service';
+import { UsageController } from './ai/usage.controller';
 import { AppController } from './app.controller';
 import { BillingService } from './billing/billing.service';
 import { ChecklistController } from './checklist/checklist.controller';
@@ -61,6 +62,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     RagQaController,
     RefineDocController,
     TaskSplitController,
+    UsageController,
     InvitationsController,
     PublicInvitationsController,
     MembersController,
