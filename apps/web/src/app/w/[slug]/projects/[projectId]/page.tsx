@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronLeft, FileText, ListChecks, MessageCircle } from 'lucide-react';
+import { ChevronLeft, FileText, LayoutTemplate, ListChecks, MessageCircle } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -88,9 +88,7 @@ export default async function ProjectDetailPage({
             概要
           </h2>
           {project.description ? (
-            <p className="text-foreground/90 whitespace-pre-wrap text-sm">
-              {project.description}
-            </p>
+            <p className="text-foreground/90 whitespace-pre-wrap text-sm">{project.description}</p>
           ) : (
             <p className="text-muted-foreground/70 text-sm italic">(説明なし)</p>
           )}
@@ -156,6 +154,25 @@ export default async function ProjectDetailPage({
             <CardContent>
               <p className="text-muted-foreground text-sm">
                 プロジェクトの方針や課題を AI と相談します。過去ドキュメントを参照して回答します。
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link
+          href={`/w/${slug}/projects/${projectId}/landing-page`}
+          className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
+        >
+          <Card className="hover:bg-accent/30 cursor-pointer transition-colors [&_*]:cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <LayoutTemplate className="size-4" aria-hidden="true" />
+                ランディングページ
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-sm">
+                AI がブロック構造の LP を生成します。アプリ内でプレビューできます。
               </p>
             </CardContent>
           </Card>
