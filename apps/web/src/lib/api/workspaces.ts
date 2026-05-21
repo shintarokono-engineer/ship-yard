@@ -13,6 +13,7 @@ import type {
   LandingPage,
   LpBlock,
   MonthlyUsageSummary,
+  PublicLandingPage,
   MyWorkspaceListItem,
   Project,
   ProjectDocument,
@@ -549,3 +550,44 @@ export async function updateLandingPage(
     },
   );
 }
+
+/**
+ * `PATCH /workspaces/:slug/projects/:projectId/landing-page/publish`
+ *
+ * LP の公開状態を切り替える(Day 33)。`published=true` で公開 URL `/p/{slug}/{projectId}` から
+ * 未認証でも閲覧可能になる。WRITER_ROLES のみ。LP 未生成は 404。
+ */
+export async function setLandingPagePublished(
+  slug: string,
+  projectId: string,
+  published: boolean,
+): Promise<LandingPage> {
+  return apiFetch<LandingPage>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/landing-page/publish`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ published }),
+    },
+  );
+}
+
+/**
+ * `GET /public/landing-pages/:slug/:projectId`(未認証)
+ *
+ * 公開 URL `/p/{slug}/{projectId}` ページが参照する公開 LP の取得。`publishedAt` がセットされた
+ * LP のみ返り、未公開 / 未生成 / 不在はすべて 404 → null。`skipAuth` で Clerk トークンを付けない。
+ * `React.cache` で同一リクエスト内(`generateMetadata` と本体)の dedup。
+ */
+export const fetchPublicLandingPage = cache(
+  async (slug: string, projectId: string): Promise<PublicLandingPage | null> => {
+    try {
+      return await apiFetch<PublicLandingPage>(
+        `/public/landing-pages/${encodeURIComponent(slug)}/${encodeURIComponent(projectId)}`,
+        { skipAuth: true },
+      );
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return null;
+      throw e;
+    }
+  },
+);

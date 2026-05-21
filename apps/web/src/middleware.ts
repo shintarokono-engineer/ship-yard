@@ -7,11 +7,14 @@ import { TENANT_SLUG_HEADER } from '@/lib/tenant-slug';
 // `/invite/{token}` は未認証ユーザーでも招待内容を確認できる(GitHub / Slack / Notion と同パターン)。
 // 承諾(POST)時に認証チェックがかかるため、token 漏洩のリスクは API 側の `User.email === invitation.email`
 // 検証で防いでいる(ADR-007)。
+// `/p/{slug}/{projectId}` は公開 LP ページ(ADR-009 Day 33)。誰でも閲覧できるべきもので、API 側も
+// `publishedAt` がセットされた LP のみ返すため認証不要。
 const isPublicRoute = createRouteMatcher([
   '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/invite/(.*)',
+  '/p/(.*)',
 ]);
 
 // /w/{slug}/... の slug を抽出(形式チェックはページ側で実施)

@@ -29,6 +29,7 @@ import { PublicInvitationsController } from './invitations/public-invitations.co
 import { LandingPageController } from './landing-page/landing-page.controller';
 import { LandingPageService } from './landing-page/landing-page.service';
 import { LpGenService } from './landing-page/lp-gen.service';
+import { PublicLandingPageController } from './landing-page/public-landing-page.controller';
 import { MailModule } from './mail/mail.module';
 import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
@@ -67,6 +68,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     TaskSplitController,
     UsageController,
     LandingPageController,
+    PublicLandingPageController,
     InvitationsController,
     PublicInvitationsController,
     MembersController,
