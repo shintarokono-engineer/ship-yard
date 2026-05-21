@@ -20,12 +20,13 @@ import {
 export type { ProjectFormState };
 
 /**
- * 新規プロジェクトを作成し、詳細ページにリダイレクトする Server Action。
+ * 新規プロジェクトを作成し、結果に応じた画面へリダイレクトする Server Action。
  *
  * - サーバー側でも最低限のバリデーションを行う(`parseProjectFormData`)
  * - API 由来の 400 メッセージは `classifyApiMessages` でフィールド名プレフィックスを
  *   見てフィールドエラー / 全体エラーに振り分け
- * - 成功時は `revalidatePath` で一覧をリフレッシュしてから詳細にリダイレクト
+ * - 成功時は `revalidatePath` で一覧をリフレッシュしてからリダイレクト。`mode=chat`
+ *   (AI 壁打ち、§9.7)のときは詳細ではなく壁打ち画面へ直行する
  */
 export async function createProjectAction(
   slug: string,
@@ -75,5 +76,10 @@ export async function createProjectAction(
   }
 
   revalidatePath(`/w/${slug}`);
-  redirect(`/w/${slug}/projects/${projectId}`);
+  const startChat = String(formData.get('mode') ?? 'write') === 'chat';
+  redirect(
+    startChat
+      ? `/w/${slug}/projects/${projectId}/rag-qa`
+      : `/w/${slug}/projects/${projectId}`,
+  );
 }
