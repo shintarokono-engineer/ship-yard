@@ -10,6 +10,7 @@ import { fetchLandingPage, fetchProject, fetchWorkspace } from '@/lib/api/worksp
 import { formatDateTime } from '@/lib/format';
 
 import { GenerateLpDialog } from './_components/generate-lp-dialog';
+import { PublishToggle } from './_components/publish-toggle';
 
 /**
  * `/w/{slug}/projects/{projectId}/landing-page` — LP ブロックのプレビュー(ADR-009、Day 31)。
@@ -63,12 +64,24 @@ export default async function LandingPagePreviewPage({
                 ))}
             </div>
             <p className="text-muted-foreground text-sm">
-              プロジェクト情報から AI がブロック構造の LP を生成します。公開 URL での配信は Day 33
-              で対応します。
+              プロジェクト情報から AI がブロック構造の LP を生成し、公開 URL で配信できます。
             </p>
+            {landingPage?.publishedAt && (
+              <p className="text-sm">
+                <span className="text-muted-foreground">公開 URL: </span>
+                <Link
+                  href={`/p/${slug}/${projectId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline underline-offset-2"
+                >
+                  /p/{slug}/{projectId}
+                </Link>
+              </p>
+            )}
           </div>
           {canWrite && landingPage && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-start gap-2">
               <Button variant="outline" size="sm" asChild>
                 <Link href={`/w/${slug}/projects/${projectId}/landing-page/edit`}>
                   <Pencil className="size-4" aria-hidden="true" />
@@ -76,6 +89,11 @@ export default async function LandingPagePreviewPage({
                 </Link>
               </Button>
               <GenerateLpDialog slug={slug} projectId={projectId} mode="regenerate" />
+              <PublishToggle
+                slug={slug}
+                projectId={projectId}
+                published={!!landingPage.publishedAt}
+              />
             </div>
           )}
         </div>

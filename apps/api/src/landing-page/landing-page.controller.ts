@@ -5,6 +5,7 @@ import {
   Get,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Put,
   UseGuards,
@@ -21,6 +22,7 @@ import { WorkspaceGuard } from '../auth/workspace.guard';
 import { ProjectsService } from '../projects/projects.service';
 import type { WorkspaceAccess } from '../workspaces/membership.service';
 import { GenerateLandingPageDto } from './dto/generate-landing-page.dto';
+import { PublishLandingPageDto } from './dto/publish-landing-page.dto';
 import { UpdateLandingPageDto } from './dto/update-landing-page.dto';
 import { LandingPageService } from './landing-page.service';
 import { parseLpBlocks } from './lp-blocks';
@@ -89,6 +91,32 @@ export class LandingPageController {
     }
 
     const updated = await this.landingPage.updateBlocks(ws.tenantId, projectId, blocks);
+    if (!updated) {
+      throw new NotFoundException('このプロジェクトのランディングページはまだ生成されていません。');
+    }
+    return updated;
+  }
+
+  /**
+   * PATCH /workspaces/:slug/projects/:projectId/landing-page/publish
+   * - 未所属 / slug・project 不在 → 404
+   * - LP 未生成 → 404
+   * - DEVELOPER 未満のロール → 403(`WorkspaceGuard` + `@Roles`)
+   * - published が boolean でない → 400(`PublishLandingPageDto`)
+   *
+   * LP の公開状態を切り替える(Day 33)。`published=true` で公開 URL `/p/{slug}/{projectId}` から
+   * 未認証でも閲覧可能になる。
+   */
+  @Patch('publish')
+  @Roles(...WRITER_ROLES)
+  async setPublished(
+    @CurrentWorkspace() ws: WorkspaceAccess,
+    @Param('projectId') projectId: string,
+    @Body() dto: PublishLandingPageDto,
+  ) {
+    await this.projects.getOwnedOrThrow(ws.tenantId, projectId);
+
+    const updated = await this.landingPage.setPublished(ws.tenantId, projectId, dto.published);
     if (!updated) {
       throw new NotFoundException('このプロジェクトのランディングページはまだ生成されていません。');
     }

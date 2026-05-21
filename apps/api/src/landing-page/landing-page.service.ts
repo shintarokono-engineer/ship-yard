@@ -66,4 +66,39 @@ export class LandingPageService {
     if (result.count === 0) return null;
     return this.findByProject(tenantId, projectId);
   }
+
+  /**
+   * LP の公開状態を切り替える
+   * `published=true` で `publishedAt` に現在時刻、
+   * `false` で null。対象 LP が無ければ null(呼び出し側で 404)。
+   *
+   * `publishedAt` は「公開した瞬間のスナップショット」なので `new Date()` を許容(implementation-rules
+   * 日付の例外)。
+   */
+  async setPublished(
+    tenantId: string,
+    projectId: string,
+    published: boolean,
+  ): Promise<LandingPage | null> {
+    const result = await this.prisma.landingPage.updateMany({
+      where: { tenantId, projectId },
+      data: { publishedAt: published ? new Date() : null },
+    });
+    if (result.count === 0) return null;
+    return this.findByProject(tenantId, projectId);
+  }
+
+  /**
+   * 公開済み LP を tenant slug + projectId で取得する(公開 URL `/p/{slug}/{projectId}` 用、Day 33)。
+   *
+   * 未認証で叩かれる公開エンドポイント用。テナント所属の概念が無いため `tenant.slug` でテナントを
+   * 特定し、`publishedAt` がセットされた LP のみ返す(未公開 / 未生成は null)。OG メタのタイトル用に
+   * 親 Project の名前のみ併せて返す(`description` 等の内部フィールドは公開面に出さない)。
+   */
+  async findPublished(slug: string, projectId: string) {
+    return this.prisma.landingPage.findFirst({
+      where: { projectId, publishedAt: { not: null }, tenant: { slug } },
+      include: { project: { select: { name: true } } },
+    });
+  }
 }
