@@ -578,8 +578,21 @@ export interface LandingPage {
   projectId: string;
   /** 表示順に並んだブロック配列。 */
   blocks: LpBlock[];
-  /** 公開日時(ISO8601)。未公開は null(公開トグルは Day 33)。 */
+  /** 公開日時(ISO8601)。未公開は null。`null` でなければ公開 URL から閲覧可能。 */
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * `GET /public/landing-pages/:slug/:projectId`(未認証)のレスポンス。
+ * 公開済み(`publishedAt != null`)の LP のみ。公開ページ `/p/{slug}/{projectId}` が参照する。
+ * OG メタの description は内部フィールドを出さず、hero ブロックの `sub` から web 側で導出する。
+ */
+export interface PublicLandingPage {
+  blocks: LpBlock[];
+  /** OG メタ・タイトル用のプロジェクト名。 */
+  projectName: string;
+  /** 公開日時(ISO8601)。 */
+  publishedAt: string;
 }
