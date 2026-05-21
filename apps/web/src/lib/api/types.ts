@@ -496,3 +496,90 @@ export interface MonthlyUsageSummary {
   /** feature 別の内訳(`OTHER` を含む全件、count 降順)。 */
   byFeature: { feature: Feature; count: number }[];
 }
+
+// ----- LandingPage(ADR-009)-----
+//
+// LP ブロックの型は apps/api `landing-page/lp-blocks.ts` の `LpBlock` 判別ユニオンと一致させる。
+// 既存 enum 群と同じく packages/types 共通化は将来課題のため、現状は web 側で重複定義する。
+
+/** LP ブロックの種別(ADR-009 の MVP 5 種 + footer 任意)。 */
+export const LP_BLOCK_TYPES = [
+  'hero',
+  'features',
+  'stats',
+  'testimonial',
+  'cta',
+  'footer',
+] as const;
+export type LpBlockType = (typeof LP_BLOCK_TYPES)[number];
+
+/** ファーストビュー。見出し + サブコピー + CTA ボタン。 */
+export interface HeroBlock {
+  type: 'hero';
+  heading: string;
+  sub: string;
+  ctaText: string;
+  ctaHref: string;
+  image?: string;
+}
+
+/** 主要機能の紹介。複数の機能項目を持つ。 */
+export interface FeaturesBlock {
+  type: 'features';
+  title: string;
+  items: { icon: string; title: string; body: string }[];
+}
+
+/** 数値アピール(導入実績・パフォーマンス等)。 */
+export interface StatsBlock {
+  type: 'stats';
+  items: { value: string; label: string }[];
+}
+
+/** 利用者の声。 */
+export interface TestimonialBlock {
+  type: 'testimonial';
+  quote: string;
+  name: string;
+  role: string;
+  avatar?: string;
+}
+
+/** 行動喚起(ページ下部の CTA)。 */
+export interface CtaBlock {
+  type: 'cta';
+  heading: string;
+  buttonText: string;
+  buttonHref: string;
+}
+
+/** フッター(任意)。 */
+export interface FooterBlock {
+  type: 'footer';
+  copyright: string;
+  links: { label: string; href: string }[];
+}
+
+/** LP を構成する 1 ブロック(判別ユニオン、`type` で判別)。 */
+export type LpBlock =
+  | HeroBlock
+  | FeaturesBlock
+  | StatsBlock
+  | TestimonialBlock
+  | CtaBlock
+  | FooterBlock;
+
+/**
+ * `GET /workspaces/:slug/projects/:projectId/landing-page` のレスポンス。
+ * 1 プロジェクト = 1 LP(`projectId` は API 側で `@unique`)。
+ */
+export interface LandingPage {
+  id: string;
+  projectId: string;
+  /** 表示順に並んだブロック配列。 */
+  blocks: LpBlock[];
+  /** 公開日時(ISO8601)。未公開は null(公開トグルは Day 33)。 */
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

@@ -1,4 +1,14 @@
-import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
 
 import { Feature } from '@shipyard/db';
 
@@ -11,7 +21,9 @@ import { WorkspaceGuard } from '../auth/workspace.guard';
 import { ProjectsService } from '../projects/projects.service';
 import type { WorkspaceAccess } from '../workspaces/membership.service';
 import { GenerateLandingPageDto } from './dto/generate-landing-page.dto';
+import { UpdateLandingPageDto } from './dto/update-landing-page.dto';
 import { LandingPageService } from './landing-page.service';
+import { parseLpBlocks } from './lp-blocks';
 import { LpGenService } from './lp-gen.service';
 
 /**
@@ -33,6 +45,55 @@ export class LandingPageController {
     private readonly aiUsage: AIUsageService,
     private readonly ragSearch: RagSearchService,
   ) {}
+
+  /**
+   * GET /workspaces/:slug/projects/:projectId/landing-page
+   * - 未所属 / slug・project 不在 → 404
+   * - LP 未生成 → 404(プロジェクトは存在するが LP がまだ無い状態)
+   *
+   * 閲覧のみなので `@Roles` は付けず全テナントメンバーが参照可(プレビュー UI 用、Day 31)。
+   */
+  @Get()
+  async get(@CurrentWorkspace() ws: WorkspaceAccess, @Param('projectId') projectId: string) {
+    await this.projects.getOwnedOrThrow(ws.tenantId, projectId);
+    const landingPage = await this.landingPage.findByProject(ws.tenantId, projectId);
+    if (!landingPage) {
+      throw new NotFoundException('このプロジェクトのランディングページはまだ生成されていません。');
+    }
+    return landingPage;
+  }
+
+  /**
+   * PUT /workspaces/:slug/projects/:projectId/landing-page
+   * - 未所属 / slug・project 不在 → 404
+   * - LP 未生成 → 404(生成前のプロジェクトは編集できない)
+   * - DEVELOPER 未満のロール → 403(`WorkspaceGuard` + `@Roles`)
+   * - blocks が配列でない → 400(`UpdateLandingPageDto`)
+   * - blocks の正規化結果が空 → 400(最低 1 ブロック必須)
+   *
+   * 編集 UI(Day 32)からの保存。受け取った blocks は `parseLpBlocks` で正規化・検証し、
+   * 既存 LP の `blocks` を上書きする(AI 呼び出しなし、`publishedAt` は変更しない)。
+   */
+  @Put()
+  @Roles(...WRITER_ROLES)
+  async update(
+    @CurrentWorkspace() ws: WorkspaceAccess,
+    @Param('projectId') projectId: string,
+    @Body() dto: UpdateLandingPageDto,
+  ) {
+    await this.projects.getOwnedOrThrow(ws.tenantId, projectId);
+
+    const blocks = parseLpBlocks(dto.blocks);
+    if (blocks.length === 0) {
+      throw new BadRequestException('ランディングページには最低 1 ブロックが必要です。');
+    }
+
+    const updated = await this.landingPage.updateBlocks(ws.tenantId, projectId, blocks);
+    if (!updated) {
+      throw new NotFoundException('このプロジェクトのランディングページはまだ生成されていません。');
+    }
+    return updated;
+  }
 
   /**
    * POST /workspaces/:slug/projects/:projectId/landing-page/generate

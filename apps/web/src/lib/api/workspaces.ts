@@ -10,6 +10,8 @@ import type {
   DocType,
   GeneratableDocType,
   ItemStatus,
+  LandingPage,
+  LpBlock,
   MonthlyUsageSummary,
   MyWorkspaceListItem,
   Project,
@@ -416,10 +418,7 @@ export async function refineDocument(
  *
  * 壁打ちセッション一覧を `updatedAt` 降順(新しい順)で返す。全テナントメンバーが閲覧可。
  */
-export async function listRagQaSessions(
-  slug: string,
-  projectId: string,
-): Promise<RagQaSession[]> {
+export async function listRagQaSessions(slug: string, projectId: string): Promise<RagQaSession[]> {
   return apiFetch<RagQaSession[]>(
     `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/qa/sessions`,
   );
@@ -483,6 +482,69 @@ export async function askRagQaMessage(
     `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/qa/sessions/${encodeURIComponent(sessionId)}/messages`,
     {
       method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+// ----- LandingPage(ADR-009)-----
+
+/**
+ * `GET /workspaces/:slug/projects/:projectId/landing-page`
+ *
+ * プロジェクトの LP(ブロック構造)を取得。LP 未生成 / プロジェクト不在は 404 → null。
+ * 呼び出し側は先に `fetchProject` で 404→`notFound()` 済みの想定なので、ここでの null は
+ * 「プロジェクトは存在するが LP 未生成」を意味する。`React.cache` で同一リクエスト内 dedup。
+ */
+export const fetchLandingPage = cache(
+  async (slug: string, projectId: string): Promise<LandingPage | null> => {
+    try {
+      return await apiFetch<LandingPage>(
+        `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/landing-page`,
+      );
+    } catch (e) {
+      if (e instanceof ApiError && (e.status === 404 || e.status === 401)) return null;
+      throw e;
+    }
+  },
+);
+
+/**
+ * `POST /workspaces/:slug/projects/:projectId/landing-page/generate`
+ *
+ * Sonnet 4 + Tool Use(`submit_landing_page`)で LP をブロック構造として生成し、`LandingPage`
+ * に upsert して返す。1 プロジェクト = 1 LP のため、既存 LP があれば上書き(再生成)。
+ * Free プランは月 20 回上限(達成時 403 + メッセージに「AI 利用上限」)。
+ */
+export async function generateLandingPage(
+  slug: string,
+  projectId: string,
+  body: { instructions?: string },
+): Promise<LandingPage> {
+  return apiFetch<LandingPage>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/landing-page/generate`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+/**
+ * `PUT /workspaces/:slug/projects/:projectId/landing-page`
+ *
+ * 編集 UI(Day 32)からの保存。LP のブロック配列をまるごと差し替える(AI 呼び出しなし)。
+ * WRITER_ROLES のみ。LP 未生成のプロジェクトは 404、blocks が空 / 不正なら 400。
+ */
+export async function updateLandingPage(
+  slug: string,
+  projectId: string,
+  body: { blocks: LpBlock[] },
+): Promise<LandingPage> {
+  return apiFetch<LandingPage>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/landing-page`,
+    {
+      method: 'PUT',
       body: JSON.stringify(body),
     },
   );
