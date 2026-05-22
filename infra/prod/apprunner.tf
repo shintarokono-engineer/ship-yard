@@ -5,8 +5,7 @@
 #
 # App Runner サービスは ECR に API イメージが push 済みになるまで作成できない
 # ため、enable_apprunner_service 変数で作成可否を切り替える(既定 false)。
-# API のコンテナ化(apps/api/Dockerfile)と env / Secrets 連携は Day 37 の
-# 本番連携で詰める。
+# runtime の env / Secrets は image_configuration で連携する(secrets.tf 参照)。
 
 # VPC コネクタ: App Runner を VPC に接続する。これを付けると App Runner の
 # 外向き通信が全量 VPC 経由(= NAT 経由)になる。
@@ -40,6 +39,17 @@ resource "aws_apprunner_service" "api" {
       image_configuration {
         # NestJS API のリッスンポート。
         port = "3000"
+
+        # 非機密の設定値。ドメインから導出する。
+        runtime_environment_variables = {
+          APP_BASE_URL = "https://${var.domain_name}"
+          MAIL_FROM    = var.mail_from
+        }
+
+        # 機密値は Secrets Manager(secrets.tf)の JSON キーを参照する。
+        runtime_environment_secrets = {
+          for k in local.app_secret_keys : k => "${aws_secretsmanager_secret.app.arn}:${k}::"
+        }
       }
     }
 
@@ -72,17 +82,18 @@ resource "aws_apprunner_service" "api" {
   }
 }
 
-# App Runner インスタンスロールに RDS マスターユーザーシークレットの読み取りを
-# 許可する(App Runner の runtime secrets で DB 認証情報を注入するため)。
-data "aws_iam_policy_document" "apprunner_rds_secret" {
+# App Runner インスタンスロールに、runtime シークレット(secrets.tf のアプリ
+# 設定シークレット)の読み取りを許可する。App Runner はこのロールで
+# runtime_environment_secrets を解決する。
+data "aws_iam_policy_document" "apprunner_secrets" {
   statement {
     actions   = ["secretsmanager:GetSecretValue"]
-    resources = [aws_db_instance.main.master_user_secret[0].secret_arn]
+    resources = [aws_secretsmanager_secret.app.arn]
   }
 }
 
-resource "aws_iam_role_policy" "apprunner_rds_secret" {
-  name   = "rds-secret-access"
+resource "aws_iam_role_policy" "apprunner_secrets" {
+  name   = "app-secrets-access"
   role   = aws_iam_role.apprunner_instance.id
-  policy = data.aws_iam_policy_document.apprunner_rds_secret.json
+  policy = data.aws_iam_policy_document.apprunner_secrets.json
 }
