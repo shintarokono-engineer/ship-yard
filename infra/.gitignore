@@ -1,0 +1,16 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# tfvars は機微情報を含みうるためコミットしない(example は許可)
+*.tfvars
+!*.tfvars.example
+
+# .terraform.lock.hcl は依存固定のため意図的にコミットする(ignore しない)
