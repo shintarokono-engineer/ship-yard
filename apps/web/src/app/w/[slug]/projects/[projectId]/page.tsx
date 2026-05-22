@@ -100,10 +100,10 @@ export default async function ProjectDetailPage({
           href={`/w/${slug}/projects/${projectId}/documents`}
           className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
         >
-          <Card className="hover:bg-accent/30 cursor-pointer transition-colors [&_*]:cursor-pointer">
+          <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <FileText className="size-4" aria-hidden="true" />
+                <FileText className="text-primary size-4" aria-hidden="true" />
                 ドキュメント
                 <span className="text-muted-foreground ml-auto text-xs font-normal">
                   {project._count.documents} 件
@@ -122,10 +122,10 @@ export default async function ProjectDetailPage({
           href={`/w/${slug}/projects/${projectId}/checklist`}
           className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
         >
-          <Card className="hover:bg-accent/30 cursor-pointer transition-colors [&_*]:cursor-pointer">
+          <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <ListChecks className="size-4" aria-hidden="true" />
+                <ListChecks className="text-primary size-4" aria-hidden="true" />
                 チェックリスト
                 <span className="text-muted-foreground ml-auto text-xs font-normal">
                   {project._count.checklist} 件
@@ -144,10 +144,10 @@ export default async function ProjectDetailPage({
           href={`/w/${slug}/projects/${projectId}/rag-qa`}
           className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
         >
-          <Card className="hover:bg-accent/30 cursor-pointer transition-colors [&_*]:cursor-pointer">
+          <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <MessageCircle className="size-4" aria-hidden="true" />
+                <MessageCircle className="text-primary size-4" aria-hidden="true" />
                 AI 壁打ち
               </CardTitle>
             </CardHeader>
@@ -163,10 +163,10 @@ export default async function ProjectDetailPage({
           href={`/w/${slug}/projects/${projectId}/landing-page`}
           className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
         >
-          <Card className="hover:bg-accent/30 cursor-pointer transition-colors [&_*]:cursor-pointer">
+          <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <LayoutTemplate className="size-4" aria-hidden="true" />
+                <LayoutTemplate className="text-primary size-4" aria-hidden="true" />
                 ランディングページ
               </CardTitle>
             </CardHeader>

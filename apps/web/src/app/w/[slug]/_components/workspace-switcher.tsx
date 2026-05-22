@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Check, ChevronsUpDown, Plus, Rocket, Settings } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus, Rocket } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import {
@@ -19,7 +19,8 @@ import { cn } from '@/lib/utils';
 /**
  * ヘッダー左上のワークスペーススイッチャー(案 A、Linear / Slack 流)。
  *
- * 1 コンポーネントで「WS 切替」「WS 設定への導線」「WS 作成」を集約する。
+ * 1 コンポーネントで「WS 切替」「WS 作成」を集約する。WS 設定への導線は
+ * ヘッダー下の WorkspaceNav タブに一本化したのでここには置かない。
  * アカウント単位の操作(プロフィール / サインアウト)は右上の Clerk UserButton に分離。
  */
 export function WorkspaceSwitcher({
@@ -32,7 +33,7 @@ export function WorkspaceSwitcher({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm font-semibold transition-colors outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50">
-        <Rocket className="size-4" />
+        <Rocket className="text-primary size-4" />
         <span className="max-w-[12rem] truncate">{current.name}</span>
         <Badge variant="secondary" className="font-mono text-[10px]">
           {current.plan}
@@ -61,12 +62,6 @@ export function WorkspaceSwitcher({
           ))}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href={`/w/${current.slug}/settings`}>
-            <Settings className="size-4" aria-hidden="true" />
-            ワークスペース設定
-          </Link>
-        </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/onboarding">
             <Plus className="size-4" aria-hidden="true" />

@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { fetchWorkspace, listMyWorkspaces } from '@/lib/api/workspaces';
 import { isValidTenantSlug } from '@/lib/tenant-slug';
 
+import { WorkspaceNav } from './_components/workspace-nav';
 import { WorkspaceSwitcher } from './_components/workspace-switcher';
 
 /**
@@ -38,11 +39,12 @@ export default async function WorkspaceLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b">
+      <header className="bg-card border-b">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3">
           <WorkspaceSwitcher current={workspace} workspaces={myWorkspaces} />
           <UserButton afterSignOutUrl="/" />
         </div>
+        <WorkspaceNav slug={workspace.slug} />
       </header>
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>

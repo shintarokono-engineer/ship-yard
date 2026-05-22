@@ -31,15 +31,16 @@ export const LP_THEME_META: Record<
 > = {
   default: {
     label: 'デフォルト',
-    swatch: 'bg-primary',
+    swatch: 'bg-zinc-900',
     classes: {
-      // default は無着色で従来のニュートラルな見た目を維持する。
+      // アプリの --primary は indigo。LP の default はそれと独立にニュートラルを
+      // 保ちたいため、差し色は token ではなく zinc リテラルに固定する。
       heroBg: 'bg-background',
       sectionBg: 'bg-muted/30',
       accentText: 'text-foreground',
-      accentSolid: 'bg-primary text-primary-foreground',
-      accentSolidHover: 'hover:bg-primary/90',
-      accentSoft: 'bg-primary/10 text-primary',
+      accentSolid: 'bg-zinc-900 text-white',
+      accentSolidHover: 'hover:bg-zinc-800',
+      accentSoft: 'bg-zinc-100 text-zinc-900',
     },
   },
   blue: {
