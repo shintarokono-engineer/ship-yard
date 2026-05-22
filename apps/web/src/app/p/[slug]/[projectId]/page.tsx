@@ -47,7 +47,7 @@ export default async function PublicLandingPage({ params }: { params: PublicLand
 
   return (
     <main>
-      <LpRenderer blocks={lp.blocks} />
+      <LpRenderer blocks={lp.blocks} theme={lp.theme} />
     </main>
   );
 }

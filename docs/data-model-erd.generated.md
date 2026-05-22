@@ -160,6 +160,7 @@ RETRYING RETRYING
   "LandingPage" {
     String id "🗝️"
     Json blocks 
+    String theme 
     DateTime publishedAt "❓"
     DateTime createdAt 
     DateTime updatedAt 

@@ -47,21 +47,22 @@ export class LandingPageService {
   }
 
   /**
-   * 既存 `LandingPage` の `blocks` を編集後の配列で上書きする(Day 32 編集 UI)。
+   * 既存 `LandingPage` の `blocks` と `theme` を編集後の値で上書きする(Day 32 編集 UI + Phase 5a)。
    *
    * `update`(`where: { projectId }`)はテナント絞り込みを併用できないため、`updateMany` +
    * `tenantId` 明示注入でテナント越境を防ぐ。対象 LP が存在しなければ `null` を返す
    * (呼び出し側で 404 にする想定。LP 未生成のプロジェクトは編集できない)。
    */
-  async updateBlocks(
+  async updateContent(
     tenantId: string,
     projectId: string,
     blocks: LpBlock[],
+    theme: string,
   ): Promise<LandingPage | null> {
     const blocksJson = blocks as unknown as Prisma.InputJsonValue;
     const result = await this.prisma.landingPage.updateMany({
       where: { tenantId, projectId },
-      data: { blocks: blocksJson },
+      data: { blocks: blocksJson, theme },
     });
     if (result.count === 0) return null;
     return this.findByProject(tenantId, projectId);

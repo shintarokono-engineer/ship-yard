@@ -361,6 +361,8 @@ model LandingPage {
   projectId   String    @unique
   /// ブロック配列(hero / features / stats / testimonial / cta / footer、ADR-009 のブロックスキーマ)
   blocks      Json
+  /// カラーテーマ(プリセット、ADR-009 Phase 5a)。アクセント色のみを切り替える。不正値は描画側で default 扱い
+  theme       String    @default("default")
   /// 公開日時(null = 非公開 / 値あり = 公開中)。公開 URL `/p/{slug}/{projectId}` の表示可否を決める
   publishedAt DateTime?
   /// 作成日時

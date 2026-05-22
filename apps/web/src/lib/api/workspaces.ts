@@ -12,12 +12,13 @@ import type {
   ItemStatus,
   LandingPage,
   LpBlock,
+  LpTheme,
   MonthlyUsageSummary,
-  PublicLandingPage,
   MyWorkspaceListItem,
   Project,
   ProjectDocument,
   ProjectStatus,
+  PublicLandingPage,
   RagQaSession,
   RagQaSessionDetail,
   Workspace,
@@ -534,13 +535,13 @@ export async function generateLandingPage(
 /**
  * `PUT /workspaces/:slug/projects/:projectId/landing-page`
  *
- * 編集 UI(Day 32)からの保存。LP のブロック配列をまるごと差し替える(AI 呼び出しなし)。
- * WRITER_ROLES のみ。LP 未生成のプロジェクトは 404、blocks が空 / 不正なら 400。
+ * LP のブロック配列とカラーテーマをまるごと差し替える
+ * (AI 呼び出しなし)。WRITER_ROLES のみ。LP 未生成のプロジェクトは 404、blocks が空 / 不正なら 400。
  */
 export async function updateLandingPage(
   slug: string,
   projectId: string,
-  body: { blocks: LpBlock[] },
+  body: { blocks: LpBlock[]; theme: LpTheme },
 ): Promise<LandingPage> {
   return apiFetch<LandingPage>(
     `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/landing-page`,

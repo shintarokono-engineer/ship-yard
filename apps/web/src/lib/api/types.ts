@@ -483,6 +483,13 @@ export type LpBlock =
   | FooterBlock;
 
 /**
+ * LP のカラーテーマ(プリセット、ADR-009 Phase 5a)。apps/api `lp-blocks.ts:LP_THEMES` と一致させる。
+ * アクセント色のみを切り替え、レイアウトは不変。
+ */
+export const LP_THEMES = ['default', 'blue', 'emerald', 'violet', 'rose', 'amber'] as const;
+export type LpTheme = (typeof LP_THEMES)[number];
+
+/**
  * `GET /workspaces/:slug/projects/:projectId/landing-page` のレスポンス。
  * 1 プロジェクト = 1 LP(`projectId` は API 側で `@unique`)。
  */
@@ -491,6 +498,8 @@ export interface LandingPage {
   projectId: string;
   /** 表示順に並んだブロック配列。 */
   blocks: LpBlock[];
+  /** カラーテーマ。API 側で正規化済み(未知値は `default`)。 */
+  theme: LpTheme;
   /** 公開日時(ISO8601)。未公開は null。`null` でなければ公開 URL から閲覧可能。 */
   publishedAt: string | null;
   createdAt: string;
@@ -506,6 +515,8 @@ export interface PublicLandingPage {
   blocks: LpBlock[];
   /** OG メタ・タイトル用のプロジェクト名。 */
   projectName: string;
+  /** カラーテーマ。 */
+  theme: LpTheme;
   /** 公開日時(ISO8601)。 */
   publishedAt: string;
 }
