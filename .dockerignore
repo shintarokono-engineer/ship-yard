@@ -1,0 +1,18 @@
+# Docker build context から除外する。API イメージのビルドはリポジトリルートを
+# context に取るため、不要・大容量・無関係なものをここで落とす。
+**/node_modules
+**/dist
+**/.turbo
+.turbo
+# tsc インクリメンタルビルドのキャッシュ。混入すると tsc が再生成をスキップし
+# dist が不完全になるため除外する。
+**/*.tsbuildinfo
+.git
+.github
+.claude
+.vscode
+docs
+infra
+**/*.tfstate
+**/*.tfstate.*
+*.log
