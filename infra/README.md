@@ -49,18 +49,33 @@ terraform plan      # 変更内容を確認
 terraform apply
 ```
 
-## prod で管理するリソース(Day 34 時点)
+## prod で管理するリソース
 
-| ファイル | リソース |
-| --- | --- |
-| `network.tf` | VPC / Public・Private Subnet ×2AZ / IGW / Route Table |
-| `security.tf` | Security Group(NAT インスタンス / App Runner VPC コネクタ / RDS) |
-| `iam.tf` | App Runner アクセスロール / インスタンスロール |
-| `ecr.tf` | ECR リポジトリ(`shipyard/api`) |
+| ファイル | Day | リソース |
+| --- | --- | --- |
+| `network.tf` | 34 | VPC / Public・Private Subnet ×2AZ / IGW / Route Table |
+| `security.tf` | 34 | Security Group(NAT インスタンス / App Runner VPC コネクタ / RDS) |
+| `iam.tf` | 34 | App Runner アクセスロール / インスタンスロール |
+| `ecr.tf` | 34 | ECR リポジトリ(`shipyard/api`) |
+| `rds.tf` | 35 | RDS PostgreSQL(`db.t4g.micro`)/ サブネットグループ / パラメータグループ |
+| `nat.tf` | 36 | NAT インスタンス(fck-nat)/ Private Subnet の外向きルート |
+| `apprunner.tf` | 36 | App Runner サービス(API)/ VPC コネクタ |
+| `route53.tf` | 37 | Route53 ホストゾーン / App Runner カスタムドメイン関連付け |
+| `cicd.tf` | 38 | GitHub OIDC プロバイダ / デプロイ用 IAM ロール |
+| `monitoring.tf` | 39 | CloudWatch アラーム / SNS / AWS Budgets |
 
-RDS(Day 35)、NAT インスタンス・App Runner・VPC コネクタ(Day 36)、Route53 / ACM
-(Day 37)は後続の Day で追加する。NAT インスタンス向けの Private Subnet ルートも
-Day 36 で追加する。
+### apply 前に必要な準備
+
+- **環境固有の変数**:`domain_name` と `budget_alert_email` は default を持たないため、
+  `terraform.tfvars`(`.gitignore` 済み)等で指定する。
+- **App Runner**:`enable_apprunner_service` は既定 `false`。`apps/api/Dockerfile` を用意して
+  API イメージを ECR に push 後、`true` にして App Runner サービスを作成する。ECR は IMMUTABLE
+  タグのため、初回作成時は `apprunner_image_tag` に push 済みの実在タグ(コミット SHA)を指定する
+  (既定 `latest` は push されない)。以降のデプロイは GitHub Actions が担う。
+- **NAT インスタンス**:`nat.tf` は fck-nat の公開 AMI を参照する。owner ID / name パターンは
+  apply 前に fck-nat の公式ドキュメントで確認する。
+- **デプロイ**:`.github/workflows/deploy.yml` の有効化には GitHub Secrets
+  (`AWS_DEPLOY_ROLE_ARN` / `APPRUNNER_SERVICE_ARN`)の設定が必要。
 
 ## 運用メモ
 
