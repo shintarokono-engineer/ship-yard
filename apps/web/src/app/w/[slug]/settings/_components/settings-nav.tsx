@@ -37,7 +37,7 @@ export function SettingsNav({ slug }: { slug: string }) {
                 className={cn(
                   'inline-flex items-center px-4 py-2 text-sm border-b-2 transition-colors',
                   isActive
-                    ? 'border-foreground text-foreground font-medium'
+                    ? 'border-primary text-primary font-medium'
                     : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/50',
                 )}
               >

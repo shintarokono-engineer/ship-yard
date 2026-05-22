@@ -13,7 +13,7 @@ export function ProjectCard({ slug, project }: { slug: string; project: Project 
       href={`/w/${slug}/projects/${project.id}`}
       className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
     >
-      <Card className="hover:bg-accent/30 h-full cursor-pointer transition-colors [&_*]:cursor-pointer">
+      <Card className="hover:border-primary/40 h-full cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
         <CardHeader className="gap-2">
           <div className="flex items-start justify-between gap-2">
             <h2 className="text-base leading-none font-semibold">{project.name}</h2>
