@@ -61,8 +61,9 @@ terraform apply
 | `nat.tf` | 36 | NAT インスタンス(fck-nat)/ Private Subnet の外向きルート |
 | `apprunner.tf` | 36 | App Runner サービス(API)/ VPC コネクタ |
 | `route53.tf` | 37 | Route53 ホストゾーン / App Runner カスタムドメイン関連付け |
+| `secrets.tf` | 37 | App Runner runtime シークレット(Secrets Manager、値は手動投入) |
 | `cicd.tf` | 38 | GitHub OIDC プロバイダ / デプロイ用 IAM ロール |
-| `monitoring.tf` | 39 | CloudWatch アラーム / SNS / AWS Budgets |
+| `monitoring.tf` | 39 | CloudWatch アラーム / SNS / AWS Budgets / VPC Flow Logs |
 
 ### apply 前に必要な準備
 
@@ -74,6 +75,10 @@ terraform apply
   (既定 `latest` は push されない)。以降のデプロイは GitHub Actions が担う。
 - **NAT インスタンス**:`nat.tf` は fck-nat の公開 AMI を参照する。owner ID / name パターンは
   apply 前に fck-nat の公式ドキュメントで確認する。
+- **App Runner の runtime シークレット**:`secrets.tf` が Secrets Manager に
+  シークレットの「箱」を作る。`DATABASE_URL` / Clerk / Stripe / Anthropic / OpenAI /
+  Resend のキーは apply 後に AWS コンソール / CLI で実値を投入する(Terraform は
+  キー構造のみ管理し、値は state に残さない)。
 - **デプロイ**:`.github/workflows/deploy.yml` の有効化には GitHub Secrets
   (`AWS_DEPLOY_ROLE_ARN` / `APPRUNNER_SERVICE_ARN`)の設定が必要。
 

@@ -39,3 +39,33 @@ jobs:
 
       - name: Prettier check
         run: pnpm format:check
+
+  terraform:
+    name: Terraform Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.10.5'
+
+      - name: Terraform fmt
+        run: terraform fmt -recursive -check
+        working-directory: infra
+
+      # -backend=false で S3 バックエンドへ接続せず構文・参照のみ検証する。
+      - name: Terraform validate (prod)
+        working-directory: infra/prod
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+      - name: Terraform validate (bootstrap)
+        working-directory: infra/bootstrap
+        run: |
+          terraform init -backend=false
+          terraform validate

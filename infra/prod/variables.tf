@@ -157,6 +157,12 @@ variable "apprunner_image_tag" {
   default     = "latest"
 }
 
+variable "mail_from" {
+  description = "メール送信元アドレス(Resend)。独自ドメインのメール DNS(SPF/DKIM/DMARC)設定後に notifications@<domain> 等へ変更する。"
+  type        = string
+  default     = "Shipyard <onboarding@resend.dev>"
+}
+
 # --- ドメイン(Day 37) ---
 
 variable "domain_name" {

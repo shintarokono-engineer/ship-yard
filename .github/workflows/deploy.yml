@@ -52,8 +52,10 @@ jobs:
           docker push "$IMAGE"
           echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
 
+      # 新しいイメージタグへ更新する。update-service は変更を検知して
+      # 自動的にデプロイを開始する。source-configuration は JSON で渡す。
       - name: Deploy to App Runner
         run: |
           aws apprunner update-service \
             --service-arn "${{ secrets.APPRUNNER_SERVICE_ARN }}" \
-            --source-configuration "ImageRepository={ImageIdentifier=$IMAGE,ImageRepositoryType=ECR,ImageConfiguration={Port=3000}}"
+            --source-configuration "{\"ImageRepository\":{\"ImageIdentifier\":\"$IMAGE\",\"ImageRepositoryType\":\"ECR\",\"ImageConfiguration\":{\"Port\":\"3000\"}}}"

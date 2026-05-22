@@ -96,3 +96,56 @@ resource "aws_budgets_budget" "monthly" {
     }
   }
 }
+
+# --- VPC Flow Logs(通信監査・インシデント調査用)---
+
+resource "aws_cloudwatch_log_group" "vpc_flow" {
+  name_prefix       = "/${var.project}/${var.environment}/vpc-flow-"
+  retention_in_days = 14
+}
+
+# Flow Logs が CloudWatch Logs へ書き込むためのロール。
+data "aws_iam_policy_document" "flow_log_assume" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["vpc-flow-logs.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "flow_log" {
+  name_prefix        = "${local.name_prefix}-flowlog-"
+  assume_role_policy = data.aws_iam_policy_document.flow_log_assume.json
+}
+
+data "aws_iam_policy_document" "flow_log" {
+  statement {
+    actions = [
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+      "logs:DescribeLogGroups",
+      "logs:DescribeLogStreams",
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "flow_log" {
+  name   = "flow-log"
+  role   = aws_iam_role.flow_log.id
+  policy = data.aws_iam_policy_document.flow_log.json
+}
+
+resource "aws_flow_log" "main" {
+  vpc_id          = aws_vpc.main.id
+  traffic_type    = "ALL"
+  log_destination = aws_cloudwatch_log_group.vpc_flow.arn
+  iam_role_arn    = aws_iam_role.flow_log.arn
+
+  tags = {
+    Name = "${local.name_prefix}-vpc-flow-log"
+  }
+}
