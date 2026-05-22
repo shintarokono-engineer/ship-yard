@@ -32,7 +32,7 @@ export function WorkspaceSwitcher({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm font-semibold transition-colors outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50">
-        <Rocket className="size-4" />
+        <Rocket className="text-primary size-4" />
         <span className="max-w-[12rem] truncate">{current.name}</span>
         <Badge variant="secondary" className="font-mono text-[10px]">
           {current.plan}

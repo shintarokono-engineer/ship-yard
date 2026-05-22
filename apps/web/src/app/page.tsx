@@ -10,7 +10,7 @@ import { listMyWorkspaces } from '@/lib/api/workspaces';
  * ルート `/`。
  *
  * - 認証済み: 所属する workspace を判定して `/onboarding`(未所属)または最初の `/w/{slug}` へ redirect
- * - 未認証: サインイン / サインアップ導線(暫定 LP、Day 34 で本番 LP に差し替え予定)
+ * - 未認証: サインイン / サインアップ導線(暫定 LP、Day 40 で本番 LP に差し替え予定)
  *
  * Clerk の afterSignUpUrl 設定で `/onboarding` に直接飛ばす経路もあるが、再訪問 / 直 URL アクセスの
  * fallback としてこのページでも所属判定を行う。
