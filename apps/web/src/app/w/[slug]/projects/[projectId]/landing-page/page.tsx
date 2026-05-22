@@ -113,7 +113,7 @@ export default async function LandingPagePreviewPage({
                 shipyard.app/p/{slug}/{projectId}
               </span>
             </div>
-            <LpRenderer blocks={landingPage.blocks} headingLevel={2} />
+            <LpRenderer blocks={landingPage.blocks} theme={landingPage.theme} headingLevel={2} />
           </div>
           <p className="text-muted-foreground text-xs">
             最終更新 {formatDateTime(landingPage.updatedAt)}

@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { ApiError, extractValidationMessages } from '@/lib/api/errors';
-import type { LpBlock } from '@/lib/api/types';
+import type { LpBlock, LpTheme } from '@/lib/api/types';
 import { updateLandingPage } from '@/lib/api/workspaces';
 
 import { type UpdateLpState } from '../_shared/lp-edit';
@@ -13,16 +13,16 @@ import { type UpdateLpState } from '../_shared/lp-edit';
 export type { UpdateLpState } from '../_shared/lp-edit';
 
 /**
- * LP ブロック編集(ADR-009、Day 32)の保存 Server Action。
+ * LP ブロック編集(ADR-009、Day 32 / Phase 5a)の保存 Server Action。
  *
- * 編集 UI が保持する `LpBlock[]` を `useActionState` 経由でそのまま受け取る(FormData ではない)。
+ * 編集 UI が保持する `blocks` と `theme` を `useActionState` 経由でそのまま受け取る(FormData ではない)。
  * 成功時はプレビューページへ redirect する(編集 UI はそこで unmount される)。
  */
 export async function updateLandingPageAction(
   slug: string,
   projectId: string,
   _prev: UpdateLpState,
-  blocks: LpBlock[],
+  payload: { blocks: LpBlock[]; theme: LpTheme },
 ): Promise<UpdateLpState> {
   void _prev;
 
@@ -32,7 +32,7 @@ export async function updateLandingPageAction(
   }
 
   try {
-    await updateLandingPage(slug, projectId, { blocks });
+    await updateLandingPage(slug, projectId, payload);
   } catch (e) {
     if (e instanceof ApiError) {
       if (e.status === 403) {

@@ -1,4 +1,4 @@
-import { IsArray } from 'class-validator';
+import { IsArray, IsOptional, IsString } from 'class-validator';
 
 /** `PUT /workspaces/:slug/projects/:projectId/landing-page` のリクエストボディ。 */
 export class UpdateLandingPageDto {
@@ -9,4 +9,12 @@ export class UpdateLandingPageDto {
    */
   @IsArray()
   blocks!: unknown[];
+
+  /**
+   * カラーテーマ(ADR-009 Phase 5a)。値の正規化は controller の `parseLpTheme` に委ねるため、
+   * ここでは文字列であることだけ検証する(未知値は `default` にフォールバック)。
+   */
+  @IsOptional()
+  @IsString()
+  theme?: string;
 }

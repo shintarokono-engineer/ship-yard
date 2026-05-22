@@ -26,6 +26,7 @@ export class PublicLandingPageController {
     return {
       blocks: lp.blocks,
       projectName: lp.project.name,
+      theme: lp.theme,
       publishedAt: lp.publishedAt,
     };
   }

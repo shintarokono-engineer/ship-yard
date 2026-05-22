@@ -137,6 +137,20 @@ export const LP_MAX_BLOCKS = 12;
 /** LP 生成の Anthropic API `max_tokens`。複数ブロック × 平均 + 余裕 ≒ 4096。 */
 export const LP_GEN_MAX_TOKENS = 4096;
 
+/**
+ * LP のカラーテーマ(プリセット、ADR-009 Phase 5a)。アクセント色のみを切り替え、レイアウトは不変。
+ * `default` はアプリのニュートラル配色。それ以外は Tailwind の同名カラーをアクセントに使う。
+ */
+export const LP_THEMES = ['default', 'blue', 'emerald', 'violet', 'rose', 'amber'] as const;
+export type LpTheme = (typeof LP_THEMES)[number];
+
+/** リクエスト由来のテーマ文字列を既知のテーマに正規化する。未知 / 未指定は `default` にフォールバック。 */
+export function parseLpTheme(raw: unknown): LpTheme {
+  return typeof raw === 'string' && (LP_THEMES as readonly string[]).includes(raw)
+    ? (raw as LpTheme)
+    : 'default';
+}
+
 function asString(v: unknown): string {
   return typeof v === 'string' ? v.trim() : '';
 }

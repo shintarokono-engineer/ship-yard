@@ -1,7 +1,7 @@
 # Shipyard プロジェクト ステータスドキュメント
 
 **最終更新**: 2026-05-21
-**現在のフェーズ**: Week 3 完了 → Week 4 進行中(Day 33 完了、LP ブロック化 Phase 1+2 完了)。Day 16-17 + Day 18/19/24/25 並行 BE + Day 26 RAG コールドスタート対策 + **Day 27 RAG_QA BE 永続化 + Day 28 RAG_QA FE**(`RagQaSession` / `RagQaMessage` 2 model + `RagQaService` / `RagQaController` 4 エンドポイント + FE セッション一覧 + チャット UI(`useOptimistic`)+ `RagQaMessage.references` 永続化、E2E 9/9 ✅)+ **Day 29 DRAFT_GEN 6 種別拡張 + AIUsage 月次集計 API** + **Day 30-33 LP ブロック化 Phase 1+2**(ADR-009「LP ブロック型アーキテクチャ」起票・承認、`LandingPage` 専用テーブル + ブロック生成 API + アプリ内プレビュー / 編集 UI + 公開 URL `/p/{slug}/{projectId}`)。フロントは Day 18 → 22 → 23 → 28 → 29 → 30 → 31 → 32 → 33 と進行(すべて main マージ済)。**ロードマップ(2026-05-20 再引き直し)**:RAG_QA を C 案永続化で実装し Day 27〜28 統合 → Day 29 以降を +1 Day シフト。**Day 31-33 = LP ブロック化 Phase 1 残 + Phase 2、Day 34-39 = Week 5 本番化、Day 40-44 = Week 6 公開準備**。**新公開目標 = Day 44**(元 Day 43 から +1 Day、案 1 採用)、短縮版 Day 42
+**現在のフェーズ**: Week 3 完了 → Week 4 進行中(Day 33 + LP カラーテーマ完了、LP ブロック化 Phase 1+2+5a 完了)。Day 16-17 + Day 18/19/24/25 並行 BE + Day 26 RAG コールドスタート対策 + **Day 27 RAG_QA BE 永続化 + Day 28 RAG_QA FE**(`RagQaSession` / `RagQaMessage` 2 model + `RagQaService` / `RagQaController` 4 エンドポイント + FE セッション一覧 + チャット UI(`useOptimistic`)+ `RagQaMessage.references` 永続化、E2E 9/9 ✅)+ **Day 29 DRAFT_GEN 6 種別拡張 + AIUsage 月次集計 API** + **Day 30-33 LP ブロック化 Phase 1+2 + カラーテーマ Phase 5a**(ADR-009「LP ブロック型アーキテクチャ」起票・承認、`LandingPage` 専用テーブル + ブロック生成 API + アプリ内プレビュー / 編集 UI + 公開 URL `/p/{slug}/{projectId}` + カラーテーマ 6 プリセット)。フロントは Day 18 → 22 → 23 → 28 → 29 → 30 → 31 → 32 → 33 と進行(すべて main マージ済)。**ロードマップ(2026-05-20 再引き直し)**:RAG_QA を C 案永続化で実装し Day 27〜28 統合 → Day 29 以降を +1 Day シフト。**Day 31-33 = LP ブロック化 Phase 1 残 + Phase 2、Day 34-39 = Week 5 本番化、Day 40-44 = Week 6 公開準備**。**新公開目標 = Day 44**(元 Day 43 から +1 Day、案 1 採用)、短縮版 Day 42
 
 ---
 
@@ -810,8 +810,8 @@ Day 22 FE 着手時のセッションで、ADR-005「決定」セクションと
 **決定方針**:
 
 - **出力形式**: 構造化 JSON(ブロック型)— Notion / Framer / Webflow / Linear が採用する業界標準アプローチ
-- **MVP スコープ**: **Phase 1 + Phase 2 を MVP に含める**(下記参照)
-- **v2 送り**: Phase 3(静的 HTML エクスポート)、Phase 4(カスタムドメイン)、Phase 5(デザイン / カラーのカスタマイズ)
+- **MVP スコープ**: **Phase 1 + Phase 2 + Phase 5a(カラーテーマ)を MVP に含める**(下記参照。5a は 2026-05-21 に v2→MVP へ前倒し)
+- **v2 送り**: Phase 3(静的 HTML エクスポート)、Phase 4(カスタムドメイン)、Phase 5b(レイアウト variant)
 
 **Phase 構成**:
 
@@ -821,9 +821,10 @@ Day 22 FE 着手時のセッションで、ADR-005「決定」セクションと
 | 2 | 公開 URL(`shipyard.app/p/{slug}/{projectId}` + 公開トグル + OG メタ) | 1.5 日 | ✅ MVP |
 | 3 | 静的 HTML エクスポート(ZIP ダウンロード) | 2.5 日 | ❌ v2 |
 | 4 | カスタムドメイン(`your-product.com` を Shipyard に向ける) | 大 | ❌ v2 |
-| 5 | デザイン / カラーのカスタマイズ(配色テーマ・レイアウト変種を LP 単位で選択) | 中 | ❌ v2 |
+| 5a | カラーテーマ(プリセット配色を LP 単位で選択、`LandingPage.theme`) | 小 | ✅ MVP |
+| 5b | レイアウト variant(各ブロックの配置の変種、`block.variant`) | 中 | ❌ v2 |
 
-> **Phase 5 補足(2026-05-21 追記)**:Day 30-33 時点では LP の配色・レイアウトはレンダリングコンポーネント(`components/lp-blocks/`)に固定で、ユーザーが編集できるのは各ブロックのテキストと画像 URL のみ(色・デザイン・ブロックの並び替えは不可)。カスタマイズを入れる場合は `LandingPage` にカラーテーマ、各ブロックに `variant`(レイアウト変種)フィールドを追加する方向。MVP 優先で v2 送り。
+> **Phase 5a 完了(2026-05-21)**:2026-05-21 に v2→MVP へ前倒し。`LandingPage.theme` 列 + migration、6 プリセット(default / blue / emerald / violet / rose / amber)、編集 UI のテーマピッカー、ブロックレンダリングのアクセント色差し替え、公開 API / 公開ページへの伝播。レイアウトの変更(5b)とブロックの並び替え / 追加削除は引き続き v2。
 
 **ブロックスキーマ案(MVP 最小 5 種、AI Tool Use の input_schema に反映)**:
 

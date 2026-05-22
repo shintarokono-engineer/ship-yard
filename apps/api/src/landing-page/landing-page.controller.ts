@@ -25,7 +25,7 @@ import { GenerateLandingPageDto } from './dto/generate-landing-page.dto';
 import { PublishLandingPageDto } from './dto/publish-landing-page.dto';
 import { UpdateLandingPageDto } from './dto/update-landing-page.dto';
 import { LandingPageService } from './landing-page.service';
-import { parseLpBlocks } from './lp-blocks';
+import { parseLpBlocks, parseLpTheme } from './lp-blocks';
 import { LpGenService } from './lp-gen.service';
 
 /**
@@ -89,8 +89,9 @@ export class LandingPageController {
     if (blocks.length === 0) {
       throw new BadRequestException('ランディングページには最低 1 ブロックが必要です。');
     }
+    const theme = parseLpTheme(dto.theme);
 
-    const updated = await this.landingPage.updateBlocks(ws.tenantId, projectId, blocks);
+    const updated = await this.landingPage.updateContent(ws.tenantId, projectId, blocks, theme);
     if (!updated) {
       throw new NotFoundException('このプロジェクトのランディングページはまだ生成されていません。');
     }

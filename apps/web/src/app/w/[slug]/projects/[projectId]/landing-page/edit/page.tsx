@@ -51,7 +51,12 @@ export default async function LandingPageEditPage({
         </p>
       </div>
 
-      <LpEditor slug={slug} projectId={projectId} initialBlocks={landingPage.blocks} />
+      <LpEditor
+        slug={slug}
+        projectId={projectId}
+        initialBlocks={landingPage.blocks}
+        initialTheme={landingPage.theme}
+      />
     </div>
   );
 }
