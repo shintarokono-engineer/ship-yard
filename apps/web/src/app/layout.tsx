@@ -4,10 +4,33 @@ import './globals.css';
 
 import { Toaster } from '@/components/ui/sonner';
 
+// OG 画像・メタデータの絶対 URL 解決に使うベース URL。本番ドメインは Day 37 で取得予定のため、
+// 環境変数 → Vercel 本番 URL → localhost の順でフォールバックする。
+const siteUrl =
+  process.env.SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : 'http://localhost:3000');
+
+const description =
+  '個人開発者および小規模開発チーム向けの、アイデアからリリースまでを一元管理する AI 支援付き SaaS';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: 'Shipyard',
-  description:
-    '個人開発者および小規模開発チーム向けの、アイデアからリリースまでを一元管理する AI 支援付き SaaS',
+  description,
+  openGraph: {
+    title: 'Shipyard',
+    description,
+    siteName: 'Shipyard',
+    locale: 'ja_JP',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Shipyard',
+    description,
+  },
 };
 
 export default function RootLayout({

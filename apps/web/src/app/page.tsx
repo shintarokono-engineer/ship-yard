@@ -1,16 +1,21 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from '@clerk/nextjs';
 
-import { Button } from '@/components/ui/button';
-import { ShipyardMark } from '@/components/shipyard-logo';
 import { listMyWorkspaces } from '@/lib/api/workspaces';
+
+import { CtaSection } from './_components/marketing/cta-section';
+import { FeaturesSection } from './_components/marketing/features-section';
+import { HeroSection } from './_components/marketing/hero-section';
+import { HowItWorksSection } from './_components/marketing/how-it-works-section';
+import { PricingSection } from './_components/marketing/pricing-section';
+import { SiteFooter } from './_components/marketing/site-footer';
+import { SiteHeader } from './_components/marketing/site-header';
 
 /**
  * ルート `/`。
  *
  * - 認証済み: 所属する workspace を判定して `/onboarding`(未所属)または最初の `/w/{slug}` へ redirect
- * - 未認証: サインイン / サインアップ導線(暫定 LP、Day 40 で本番 LP に差し替え予定)
+ * - 未認証: マーケティングランディングページを表示(Day 40)
  *
  * Clerk の afterSignUpUrl 設定で `/onboarding` に直接飛ばす経路もあるが、再訪問 / 直 URL アクセスの
  * fallback としてこのページでも所属判定を行う。
@@ -28,29 +33,16 @@ export default async function HomePage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8">
-      <div className="flex flex-col items-center gap-3">
-        <ShipyardMark className="text-primary size-14" />
-        <h1 className="text-4xl font-semibold tracking-tight">Shipyard</h1>
-      </div>
-      <p className="text-muted-foreground max-w-md text-center text-lg">
-        個人開発者・小規模チームのプロダクトリリースを支援する AI 機能付き B2B SaaS。
-      </p>
-
-      <div className="flex items-center gap-3">
-        <SignedOut>
-          <SignInButton mode="modal">
-            <Button>サインイン</Button>
-          </SignInButton>
-          <SignUpButton mode="modal">
-            <Button variant="outline">サインアップ</Button>
-          </SignUpButton>
-        </SignedOut>
-        <SignedIn>
-          <span className="text-muted-foreground text-sm">サインイン済み</span>
-          <UserButton />
-        </SignedIn>
-      </div>
-    </main>
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader />
+      <main className="flex-1">
+        <HeroSection />
+        <FeaturesSection />
+        <HowItWorksSection />
+        <PricingSection />
+        <CtaSection />
+      </main>
+      <SiteFooter />
+    </div>
   );
 }
