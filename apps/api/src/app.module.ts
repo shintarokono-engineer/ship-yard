@@ -34,6 +34,8 @@ import { MailModule } from './mail/mail.module';
 import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
 import { PrismaModule } from './prisma/prisma.module';
+import { ProductDiagnosisController } from './product-diagnosis/product-diagnosis.controller';
+import { ProductDiagnosisService } from './product-diagnosis/product-diagnosis.service';
 import { ProjectsController } from './projects/projects.controller';
 import { ProjectsService } from './projects/projects.service';
 import { StripeModule } from './stripe/stripe.module';
@@ -69,6 +71,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     UsageController,
     LandingPageController,
     PublicLandingPageController,
+    ProductDiagnosisController,
     InvitationsController,
     PublicInvitationsController,
     MembersController,
@@ -93,6 +96,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     MembersService,
     LandingPageService,
     LpGenService,
+    ProductDiagnosisService,
   ],
 })
 export class AppModule implements NestModule {

@@ -68,6 +68,7 @@ TASK_SPLIT TASK_SPLIT
 RAG_QA RAG_QA
 CHECKLIST_GEN CHECKLIST_GEN
 REFINE_DOC REFINE_DOC
+PRODUCT_DIAGNOSIS PRODUCT_DIAGNOSIS
 OTHER OTHER
         }
     
@@ -167,6 +168,18 @@ RETRYING RETRYING
     }
   
 
+  "ServiceScore" {
+    String id "🗝️"
+    Int totalScore 
+    Json breakdown 
+    Json suggestions 
+    Json competitorRefs 
+    Boolean webSearchUsed 
+    String modelUsed 
+    DateTime createdAt 
+    }
+  
+
   "AIUsage" {
     String id "🗝️"
     String model 
@@ -247,6 +260,9 @@ RETRYING RETRYING
     "ProjectDocument" }o--|| "User" : "createdBy"
     "LandingPage" }o--|| "Tenant" : "tenant"
     "LandingPage" |o--|| "Project" : "project"
+    "ServiceScore" }o--|| "Tenant" : "tenant"
+    "ServiceScore" }o--|| "Project" : "project"
+    "ServiceScore" }o--|| "User" : "createdBy"
     "AIUsage" |o--|| "Feature" : "enum:feature"
     "AIUsage" }o--|| "Tenant" : "tenant"
     "AIUsage" }o--|| "User" : "user"
