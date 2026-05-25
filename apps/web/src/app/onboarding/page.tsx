@@ -7,6 +7,10 @@ import { listMyWorkspaces } from '@/lib/api/workspaces';
 
 import { CreateWorkspaceForm } from './_components/create-workspace-form';
 
+// 認証済みユーザー個別のワークスペース一覧を fetch するため、静的プリレンダリング
+// せず常に request 時にレンダリングする(build 時に API_URL を要求しない)。
+export const dynamic = 'force-dynamic';
+
 /**
  * `/onboarding` — サインアップ直後の初回テナント作成フロー(Day 18)。
  *
