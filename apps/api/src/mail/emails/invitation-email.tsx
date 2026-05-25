@@ -60,7 +60,8 @@ export function InvitationEmail({
 
           <Section>
             <Text style={textStyle}>
-              {inviterName} さんから、 Shipyard ワークスペース「{workspaceName}」への招待が届いています。
+              {inviterName} さんから、 Shipyard ワークスペース「{workspaceName}
+              」への招待が届いています。
             </Text>
             <Text style={textStyle}>
               ロール: <strong>{roleLabel}</strong>
@@ -86,7 +87,8 @@ export function InvitationEmail({
 
           <Section>
             <Text style={mutedTextStyle}>
-              この招待リンクは <strong>{expiresAtLabel}</strong> まで有効です。期限を過ぎた場合は招待者に再発行を依頼してください。
+              この招待リンクは <strong>{expiresAtLabel}</strong>{' '}
+              まで有効です。期限を過ぎた場合は招待者に再発行を依頼してください。
             </Text>
             <Text style={mutedTextStyle}>
               心当たりがない場合は、このメールを破棄してください。承諾しない限りワークスペースには参加されません。

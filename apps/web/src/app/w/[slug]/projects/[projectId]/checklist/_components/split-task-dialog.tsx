@@ -19,14 +19,8 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import type { ChecklistItem } from '@/lib/api/types';
 
-import {
-  splitTaskAction,
-  type SplitTaskFormState,
-} from '../_actions/split-task';
-import {
-  INITIAL_SPLIT_TASK_FORM_STATE,
-  INSTRUCTIONS_MAX_LENGTH,
-} from '../_shared/split-task-form';
+import { splitTaskAction, type SplitTaskFormState } from '../_actions/split-task';
+import { INITIAL_SPLIT_TASK_FORM_STATE, INSTRUCTIONS_MAX_LENGTH } from '../_shared/split-task-form';
 
 /**
  * TASK_SPLIT(親 ChecklistItem を AI でサブタスクに分解)を起動する Dialog。
@@ -86,7 +80,8 @@ export function SplitTaskDialog({
         <DialogHeader>
           <DialogTitle>タスクを AI で分解</DialogTitle>
           <DialogDescription>
-            「{parent.title}」を実行可能なサブタスク(最大 10 件)に分解します。生成されたタスクは親の直下にぶら下がり、既存項目には影響しません。
+            「{parent.title}」を実行可能なサブタスク(最大 10
+            件)に分解します。生成されたタスクは親の直下にぶら下がり、既存項目には影響しません。
           </DialogDescription>
         </DialogHeader>
 
@@ -138,12 +133,7 @@ export function SplitTaskDialog({
           </p>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setOpen(false)}
-              disabled={pending}
-            >
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>
               キャンセル
             </Button>
             <Button type="submit" disabled={pending} aria-busy={pending}>

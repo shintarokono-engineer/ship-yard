@@ -34,13 +34,15 @@ export function SubscriptionStatus({ billing }: { billing: BillingDetail }) {
             role="alert"
             className="border-destructive/40 bg-destructive/10 text-destructive rounded-md border px-3 py-2 text-sm"
           >
-            支払いに失敗しています。Portal で支払い方法を更新してください(更新されない場合、利用が停止されます)。
+            支払いに失敗しています。Portal
+            で支払い方法を更新してください(更新されない場合、利用が停止されます)。
           </p>
         )}
 
         {cancelScheduled && billing.currentPeriodEnd && (
           <p className="text-muted-foreground text-sm">
-            解約予約済み: {formatDate(billing.currentPeriodEnd)} まで現在のプランをご利用いただけます。
+            解約予約済み: {formatDate(billing.currentPeriodEnd)}{' '}
+            まで現在のプランをご利用いただけます。
           </p>
         )}
 
@@ -57,9 +59,7 @@ export function SubscriptionStatus({ billing }: { billing: BillingDetail }) {
         )}
 
         {billing.status === 'CANCELED' && billing.canceledAt && (
-          <p className="text-muted-foreground text-sm">
-            解約日: {formatDate(billing.canceledAt)}
-          </p>
+          <p className="text-muted-foreground text-sm">解約日: {formatDate(billing.canceledAt)}</p>
         )}
       </CardContent>
     </Card>

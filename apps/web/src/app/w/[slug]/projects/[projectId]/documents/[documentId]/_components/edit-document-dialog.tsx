@@ -85,9 +85,7 @@ export function EditDocumentDialog({
                 name="title"
                 required
                 aria-invalid={titleErrors && titleErrors.length > 0 ? 'true' : undefined}
-                aria-describedby={
-                  titleErrors && titleErrors.length > 0 ? 'title-error' : undefined
-                }
+                aria-describedby={titleErrors && titleErrors.length > 0 ? 'title-error' : undefined}
                 maxLength={TITLE_MAX_LENGTH}
                 defaultValue={initialTitle}
                 onChange={(e) => setTitleLength(e.currentTarget.value.length)}

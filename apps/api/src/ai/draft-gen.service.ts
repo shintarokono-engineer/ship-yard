@@ -43,14 +43,12 @@ const KIND_LABEL: Record<DocKind, string> = {
 
 /** DocType ごとの構成指示(systemPrompt 用)。`GENERATABLE_DOC_TYPES` の全 6 種を網羅する。 */
 const STRUCTURE_HINT: Record<DocKind, string> = {
-  [DocType.README]:
-    '「概要」「主要機能」「セットアップ手順」「使い方」の節を含めること。',
+  [DocType.README]: '「概要」「主要機能」「セットアップ手順」「使い方」の節を含めること。',
   [DocType.RELEASE_BLOG]:
     '「リリース概要」「背景・課題」「新機能の紹介」「使い方」「今後の予定」の流れで構成すること。',
   [DocType.TWEET]:
     '280 文字程度の簡潔な告知文。プロダクト名・主要価値・リンク誘導を含め、ハッシュタグを 1〜3 個添えること。',
-  [DocType.PRODUCT_HUNT]:
-    '「タグライン(短い一文)」「説明文」「主要機能 3〜5 点」を含めること。',
+  [DocType.PRODUCT_HUNT]: '「タグライン(短い一文)」「説明文」「主要機能 3〜5 点」を含めること。',
   [DocType.EMAIL]:
     '「件名」「挨拶」「お知らせ本文」「CTA(行動喚起)」「署名」の流れで構成すること。',
 };

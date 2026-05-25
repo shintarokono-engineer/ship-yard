@@ -7,6 +7,10 @@ import { listMyWorkspaces } from '@/lib/api/workspaces';
 
 import { CreateWorkspaceForm } from './_components/create-workspace-form';
 
+// 認証済みユーザー個別のワークスペース一覧を fetch するため、静的プリレンダリング
+// せず常に request 時にレンダリングする(build 時に API_URL を要求しない)。
+export const dynamic = 'force-dynamic';
+
 /**
  * `/onboarding` — サインアップ直後の初回テナント作成フロー(Day 18)。
  *
@@ -43,9 +47,7 @@ export default async function OnboardingPage() {
                   <CardHeader className="flex flex-row items-center justify-between gap-3">
                     <div className="space-y-1">
                       <CardTitle className="text-base">{ws.name}</CardTitle>
-                      <p className="text-muted-foreground text-xs">
-                        shipyard.app/w/{ws.slug}
-                      </p>
+                      <p className="text-muted-foreground text-xs">shipyard.app/w/{ws.slug}</p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <Badge variant="outline" className="font-mono text-[10px]">

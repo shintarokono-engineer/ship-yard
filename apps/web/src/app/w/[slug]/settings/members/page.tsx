@@ -33,8 +33,7 @@ const INVITATION_STATUS_META: Record<
   ACCEPTED: {
     label: '承諾済み',
     variant: 'outline',
-    className:
-      'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    className: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
   },
   EXPIRED: { label: '期限切れ', variant: 'secondary' },
   REVOKED: { label: '取り消し', variant: 'secondary' },
@@ -49,11 +48,7 @@ const INVITATION_STATUS_META: Record<
  *   ケース insensitive 比較。BE 側にも同じ判定(`actor.userId === target.userId`)があり
  *   矛盾しない。BE が真実の源、UI はあくまで誤操作防止のための表示分岐
  */
-export default async function MembersPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export default async function MembersPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
   const workspace = await fetchWorkspace(slug);
@@ -131,10 +126,18 @@ function MemberTable({
       <table className="w-full text-sm">
         <thead className="bg-muted/40 text-muted-foreground">
           <tr>
-            <th scope="col" className="px-4 py-2 text-left font-medium">メンバー</th>
-            <th scope="col" className="px-4 py-2 text-left font-medium">ロール</th>
-            <th scope="col" className="px-4 py-2 text-left font-medium">参加日</th>
-            <th scope="col" className="px-4 py-2 text-right font-medium">操作</th>
+            <th scope="col" className="px-4 py-2 text-left font-medium">
+              メンバー
+            </th>
+            <th scope="col" className="px-4 py-2 text-left font-medium">
+              ロール
+            </th>
+            <th scope="col" className="px-4 py-2 text-left font-medium">
+              参加日
+            </th>
+            <th scope="col" className="px-4 py-2 text-right font-medium">
+              操作
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -154,9 +157,7 @@ function MemberTable({
                 <td className="px-4 py-3">
                   <div className="font-medium">
                     {memberName}
-                    {isSelf && (
-                      <span className="text-muted-foreground ml-2 text-xs">(あなた)</span>
-                    )}
+                    {isSelf && <span className="text-muted-foreground ml-2 text-xs">(あなた)</span>}
                   </div>
                   <div className="text-muted-foreground text-xs">{m.user.email}</div>
                 </td>
@@ -174,16 +175,10 @@ function MemberTable({
                     </Badge>
                   )}
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {formatDateTime(m.joinedAt)}
-                </td>
+                <td className="px-4 py-3 text-muted-foreground">{formatDateTime(m.joinedAt)}</td>
                 <td className="px-4 py-3 text-right">
                   {showDelete && (
-                    <DeleteMemberDialog
-                      slug={slug}
-                      member={m}
-                      isSelfWithdrawal={isSelf}
-                    />
+                    <DeleteMemberDialog slug={slug} member={m} isSelfWithdrawal={isSelf} />
                   )}
                 </td>
               </tr>
@@ -215,12 +210,24 @@ function InvitationTable({
       <table className="w-full text-sm">
         <thead className="bg-muted/40 text-muted-foreground">
           <tr>
-            <th scope="col" className="px-4 py-2 text-left font-medium">メールアドレス</th>
-            <th scope="col" className="px-4 py-2 text-left font-medium">ロール</th>
-            <th scope="col" className="px-4 py-2 text-left font-medium">状態</th>
-            <th scope="col" className="px-4 py-2 text-left font-medium">有効期限</th>
-            <th scope="col" className="px-4 py-2 text-left font-medium">招待者</th>
-            <th scope="col" className="px-4 py-2 text-right font-medium">操作</th>
+            <th scope="col" className="px-4 py-2 text-left font-medium">
+              メールアドレス
+            </th>
+            <th scope="col" className="px-4 py-2 text-left font-medium">
+              ロール
+            </th>
+            <th scope="col" className="px-4 py-2 text-left font-medium">
+              状態
+            </th>
+            <th scope="col" className="px-4 py-2 text-left font-medium">
+              有効期限
+            </th>
+            <th scope="col" className="px-4 py-2 text-left font-medium">
+              招待者
+            </th>
+            <th scope="col" className="px-4 py-2 text-right font-medium">
+              操作
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -240,16 +247,10 @@ function InvitationTable({
                     {meta.label}
                   </Badge>
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {formatDateTime(inv.expiresAt)}
-                </td>
+                <td className="px-4 py-3 text-muted-foreground">{formatDateTime(inv.expiresAt)}</td>
                 <td className="px-4 py-3 text-muted-foreground">{inviter}</td>
                 <td className="px-4 py-3 text-right">
-                  <InvitationRowActions
-                    slug={slug}
-                    invitationId={inv.id}
-                    status={inv.status}
-                  />
+                  <InvitationRowActions slug={slug} invitationId={inv.id} status={inv.status} />
                 </td>
               </tr>
             );

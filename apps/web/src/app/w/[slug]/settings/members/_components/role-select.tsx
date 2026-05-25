@@ -94,10 +94,7 @@ export function RoleSelect({
             <DialogTitle>ロールを変更しますか?</DialogTitle>
             <DialogDescription>
               <span className="font-medium text-foreground">{memberName}</span> のロールを{' '}
-              <span className="font-medium text-foreground">
-                {ROLE_LABELS[currentRole]}
-              </span>{' '}
-              から{' '}
+              <span className="font-medium text-foreground">{ROLE_LABELS[currentRole]}</span> から{' '}
               <span className="font-medium text-foreground">
                 {pendingRole && ROLE_LABELS[pendingRole]}
               </span>{' '}

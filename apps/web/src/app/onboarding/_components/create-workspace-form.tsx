@@ -7,10 +7,7 @@ import { FormField } from '@/app/w/[slug]/_shared/form-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-import {
-  createWorkspaceAction,
-  type OnboardingFormState,
-} from '../_actions/create-workspace';
+import { createWorkspaceAction, type OnboardingFormState } from '../_actions/create-workspace';
 import {
   INITIAL_ONBOARDING_FORM_STATE,
   NAME_MAX_LENGTH,

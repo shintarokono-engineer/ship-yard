@@ -1,11 +1,6 @@
 import { randomBytes } from 'crypto';
 
-import {
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
 
 import { Plan, Role } from '@shipyard/db';
 
@@ -176,7 +171,9 @@ export class WorkspacesService {
    * 全文字が ASCII 外などで slug 化結果が空文字になる場合は `workspace-<random>` にフォールバックする。
    */
   private async generateUniqueSlug(name: string): Promise<string> {
-    const base = slugify(name) || `${FALLBACK_SLUG_PREFIX}-${randomBytes(FALLBACK_SLUG_RANDOM_BYTES).toString('base64url').toLowerCase()}`;
+    const base =
+      slugify(name) ||
+      `${FALLBACK_SLUG_PREFIX}-${randomBytes(FALLBACK_SLUG_RANDOM_BYTES).toString('base64url').toLowerCase()}`;
 
     // base, base-2, base-3, ... の順で空きを探す
     for (let attempt = 1; attempt <= SLUG_GENERATION_MAX_ATTEMPTS; attempt++) {

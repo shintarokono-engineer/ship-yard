@@ -51,19 +51,19 @@ terraform apply
 
 ## prod で管理するリソース
 
-| ファイル | Day | リソース |
-| --- | --- | --- |
-| `network.tf` | 34 | VPC / Public・Private Subnet ×2AZ / IGW / Route Table |
-| `security.tf` | 34 | Security Group(NAT インスタンス / App Runner VPC コネクタ / RDS) |
-| `iam.tf` | 34 | App Runner アクセスロール / インスタンスロール |
-| `ecr.tf` | 34 | ECR リポジトリ(`shipyard/api`) |
-| `rds.tf` | 35 | RDS PostgreSQL(`db.t4g.micro`)/ サブネットグループ / パラメータグループ |
-| `nat.tf` | 36 | NAT インスタンス(fck-nat)/ Private Subnet の外向きルート |
-| `apprunner.tf` | 36 | App Runner サービス(API)/ VPC コネクタ |
-| `route53.tf` | 37 | Route53 ホストゾーン / App Runner カスタムドメイン関連付け |
-| `secrets.tf` | 37 | App Runner runtime シークレット(Secrets Manager、値は手動投入) |
-| `cicd.tf` | 38 | GitHub OIDC プロバイダ / デプロイ用 IAM ロール |
-| `monitoring.tf` | 39 | CloudWatch アラーム / SNS / AWS Budgets / VPC Flow Logs |
+| ファイル        | Day | リソース                                                                |
+| --------------- | --- | ----------------------------------------------------------------------- |
+| `network.tf`    | 34  | VPC / Public・Private Subnet ×2AZ / IGW / Route Table                   |
+| `security.tf`   | 34  | Security Group(NAT インスタンス / App Runner VPC コネクタ / RDS)        |
+| `iam.tf`        | 34  | App Runner アクセスロール / インスタンスロール                          |
+| `ecr.tf`        | 34  | ECR リポジトリ(`shipyard/api`)                                          |
+| `rds.tf`        | 35  | RDS PostgreSQL(`db.t4g.micro`)/ サブネットグループ / パラメータグループ |
+| `nat.tf`        | 36  | NAT インスタンス(fck-nat)/ Private Subnet の外向きルート                |
+| `apprunner.tf`  | 36  | App Runner サービス(API)/ VPC コネクタ                                  |
+| `route53.tf`    | 37  | Route53 ホストゾーン / App Runner カスタムドメイン関連付け              |
+| `secrets.tf`    | 37  | App Runner runtime シークレット(Secrets Manager、値は手動投入)          |
+| `cicd.tf`       | 38  | GitHub OIDC プロバイダ / デプロイ用 IAM ロール                          |
+| `monitoring.tf` | 39  | CloudWatch アラーム / SNS / AWS Budgets / VPC Flow Logs                 |
 
 ### apply 前に必要な準備
 

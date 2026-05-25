@@ -65,7 +65,8 @@ async function OwnerView({ slug, currentPlan }: { slug: string; currentPlan: Pla
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-muted-foreground text-sm">
-            支払い方法の更新、請求書履歴の確認、プラン変更、解約はすべて Stripe のポータルから行います。
+            支払い方法の更新、請求書履歴の確認、プラン変更、解約はすべて Stripe
+            のポータルから行います。
           </p>
           <PortalButton slug={slug} />
         </CardContent>

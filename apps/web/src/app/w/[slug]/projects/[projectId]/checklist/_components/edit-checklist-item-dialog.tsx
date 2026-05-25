@@ -96,9 +96,7 @@ export function EditChecklistItemDialog({
       <DialogContent className="flex max-h-[90vh] flex-col gap-0 sm:max-w-lg">
         <DialogHeader className="shrink-0 pb-4">
           <DialogTitle>項目を編集</DialogTitle>
-          <DialogDescription>
-            タイトル / カテゴリ / 説明 / 進捗状態を更新します。
-          </DialogDescription>
+          <DialogDescription>タイトル / カテゴリ / 説明 / 進捗状態を更新します。</DialogDescription>
         </DialogHeader>
 
         <form action={formAction} noValidate className="flex min-h-0 flex-1 flex-col gap-4">
@@ -116,9 +114,7 @@ export function EditChecklistItemDialog({
                 required
                 aria-required="true"
                 aria-invalid={titleErrors && titleErrors.length > 0 ? 'true' : undefined}
-                aria-describedby={
-                  titleErrors && titleErrors.length > 0 ? 'title-error' : undefined
-                }
+                aria-describedby={titleErrors && titleErrors.length > 0 ? 'title-error' : undefined}
                 maxLength={TITLE_MAX_LENGTH}
                 defaultValue={initialTitle}
                 onChange={(e) => setTitleLength(e.currentTarget.value.length)}
@@ -129,9 +125,7 @@ export function EditChecklistItemDialog({
               <Select name="category" defaultValue={initialCategory}>
                 <SelectTrigger
                   id="category"
-                  aria-invalid={
-                    categoryErrors && categoryErrors.length > 0 ? 'true' : undefined
-                  }
+                  aria-invalid={categoryErrors && categoryErrors.length > 0 ? 'true' : undefined}
                 >
                   <SelectValue />
                 </SelectTrigger>

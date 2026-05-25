@@ -78,7 +78,8 @@ export function GenerateDocumentDialog({
         <DialogHeader>
           <DialogTitle>{typeLabel} を AI で生成</DialogTitle>
           <DialogDescription>
-            プロジェクト情報をもとに AI が初稿を作成します。追加の指示(任意)があれば下に入力してください。
+            プロジェクト情報をもとに AI
+            が初稿を作成します。追加の指示(任意)があれば下に入力してください。
           </DialogDescription>
         </DialogHeader>
 
@@ -130,12 +131,7 @@ export function GenerateDocumentDialog({
           </p>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setOpen(false)}
-              disabled={pending}
-            >
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>
               キャンセル
             </Button>
             <Button type="submit" disabled={pending} aria-busy={pending}>

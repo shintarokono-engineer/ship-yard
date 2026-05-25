@@ -11,12 +11,12 @@ Hono - _**means flame🔥 in Japanese**_ - is a small, simple, and ultrafast web
 Fast, but not only fast.
 
 ```ts
-import { Hono } from 'hono'
-const app = new Hono()
+import { Hono } from 'hono';
+const app = new Hono();
 
-app.get('/', (c) => c.text('Hono!'))
+app.get('/', (c) => c.text('Hono!'));
 
-export default app
+export default app;
 ```
 
 ## Quick Start

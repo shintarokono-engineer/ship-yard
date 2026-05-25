@@ -7,10 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { Category } from '@/lib/api/types';
 
-import {
-  INITIAL_CHECKLIST_FORM_STATE,
-  TITLE_MAX_LENGTH,
-} from '../_shared/checklist-form';
+import { INITIAL_CHECKLIST_FORM_STATE, TITLE_MAX_LENGTH } from '../_shared/checklist-form';
 import {
   createChecklistItemAction,
   type ChecklistItemFormState,

@@ -53,9 +53,7 @@ export function EditProjectDialog({ slug, project }: { slug: string; project: Pr
       <DialogContent className="flex max-h-[90vh] flex-col gap-0 sm:max-w-lg">
         <DialogHeader className="shrink-0 pb-4">
           <DialogTitle>プロジェクトを編集</DialogTitle>
-          <DialogDescription>
-            名前 / 概要 / ライフサイクル状態を更新します。
-          </DialogDescription>
+          <DialogDescription>名前 / 概要 / ライフサイクル状態を更新します。</DialogDescription>
         </DialogHeader>
 
         <form action={formAction} noValidate className="flex min-h-0 flex-1 flex-col gap-4">

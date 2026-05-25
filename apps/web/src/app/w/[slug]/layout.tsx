@@ -29,10 +29,7 @@ export default async function WorkspaceLayout({
     notFound();
   }
 
-  const [workspace, myWorkspaces] = await Promise.all([
-    fetchWorkspace(slug),
-    listMyWorkspaces(),
-  ]);
+  const [workspace, myWorkspaces] = await Promise.all([fetchWorkspace(slug), listMyWorkspaces()]);
   if (!workspace) {
     notFound();
   }

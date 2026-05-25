@@ -41,10 +41,7 @@ export function PlanComparison({ currentPlan }: { currentPlan: Plan }) {
               <p className="text-xl font-semibold">{meta.priceLabel}</p>
               <ul className="space-y-1.5">
                 {meta.limits.map((limit) => (
-                  <li
-                    key={limit}
-                    className="text-muted-foreground flex items-start gap-2 text-sm"
-                  >
+                  <li key={limit} className="text-muted-foreground flex items-start gap-2 text-sm">
                     <Check className="text-primary mt-0.5 size-4 shrink-0" aria-hidden="true" />
                     <span>{limit}</span>
                   </li>

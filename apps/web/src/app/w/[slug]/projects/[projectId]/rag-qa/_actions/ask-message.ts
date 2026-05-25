@@ -7,10 +7,7 @@ import { classifyAiApiError } from '@/app/w/[slug]/_shared/ai-form';
 import { ApiError } from '@/lib/api/errors';
 import { askRagQaMessage } from '@/lib/api/workspaces';
 
-import {
-  parseAskMessageFormData,
-  type AskMessageFormState,
-} from '../_shared/ask-message-form';
+import { parseAskMessageFormData, type AskMessageFormState } from '../_shared/ask-message-form';
 
 export type { AskMessageFormState } from '../_shared/ask-message-form';
 

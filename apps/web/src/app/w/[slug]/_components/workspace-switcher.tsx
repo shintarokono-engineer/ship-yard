@@ -47,10 +47,7 @@ export function WorkspaceSwitcher({
             <DropdownMenuItem key={ws.id} asChild>
               <Link href={`/w/${ws.slug}`}>
                 <Check
-                  className={cn(
-                    'size-4',
-                    ws.slug === current.slug ? 'opacity-100' : 'opacity-0',
-                  )}
+                  className={cn('size-4', ws.slug === current.slug ? 'opacity-100' : 'opacity-0')}
                   aria-hidden="true"
                 />
                 <span className="flex-1 truncate">{ws.name}</span>

@@ -47,7 +47,8 @@ export async function resendInvitationAction(
       if (e.status === 409) {
         return {
           ok: false,
-          formError: 'この招待は受諾済みまたは取り消し済みのため再送できません。新規に招待し直してください。',
+          formError:
+            'この招待は受諾済みまたは取り消し済みのため再送できません。新規に招待し直してください。',
         };
       }
       return { ok: false, formError: `招待の再送に失敗しました (HTTP ${e.status})` };

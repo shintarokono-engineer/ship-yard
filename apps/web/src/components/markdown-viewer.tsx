@@ -13,13 +13,7 @@ import { cn } from '@/lib/utils';
  * ProjectDocument の本文表示(documents)と RAG_QA の AI 回答表示(rag-qa)で共有するため、
  * ルート専用の `_components` ではなく `src/components/` 直下に置く。
  */
-export function MarkdownViewer({
-  source,
-  className,
-}: {
-  source: string;
-  className?: string;
-}) {
+export function MarkdownViewer({ source, className }: { source: string; className?: string }) {
   return (
     <div
       className={cn(

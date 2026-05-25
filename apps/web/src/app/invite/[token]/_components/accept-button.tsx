@@ -35,12 +35,7 @@ export function AcceptButton({ token, disabled }: { token: string; disabled?: bo
           {state.formError}
         </p>
       )}
-      <Button
-        type="submit"
-        disabled={pending || disabled}
-        aria-busy={pending}
-        className="w-full"
-      >
+      <Button type="submit" disabled={pending || disabled} aria-busy={pending} className="w-full">
         <Check aria-hidden="true" />
         {pending ? '承諾中...' : '招待を承諾する'}
       </Button>

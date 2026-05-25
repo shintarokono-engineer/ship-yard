@@ -44,10 +44,7 @@ export class InvitationsController {
   @Post('workspaces/:slug/invitations')
   @UseGuards(WorkspaceGuard)
   @Roles(...ADMIN_ROLES)
-  create(
-    @CurrentWorkspace() ws: WorkspaceAccess,
-    @Body() dto: CreateInvitationDto,
-  ) {
+  create(@CurrentWorkspace() ws: WorkspaceAccess, @Body() dto: CreateInvitationDto) {
     return this.invitations.create(ws.tenantId, ws.name, ws.userId, dto);
   }
 
@@ -87,10 +84,7 @@ export class InvitationsController {
   @Post('workspaces/:slug/invitations/:id/resend')
   @UseGuards(WorkspaceGuard)
   @Roles(...ADMIN_ROLES)
-  resend(
-    @CurrentWorkspace() ws: WorkspaceAccess,
-    @Param('id') invitationId: string,
-  ) {
+  resend(@CurrentWorkspace() ws: WorkspaceAccess, @Param('id') invitationId: string) {
     return this.invitations.resend(ws.tenantId, invitationId, ws.name, ws.userId);
   }
 

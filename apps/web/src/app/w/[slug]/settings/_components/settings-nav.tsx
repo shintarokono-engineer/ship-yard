@@ -27,8 +27,7 @@ export function SettingsNav({ slug }: { slug: string }) {
         {TABS.map((tab) => {
           const href = `/w/${slug}/settings/${tab.segment}`;
           // segment 単位の前方一致(`/settings/members/...` のような子ルートにも対応)
-          const isActive =
-            pathname === href || pathname.startsWith(`${href}/`);
+          const isActive = pathname === href || pathname.startsWith(`${href}/`);
           return (
             <li key={tab.key}>
               <Link

@@ -7,10 +7,7 @@ import { classifyAiApiError } from '@/app/w/[slug]/_shared/ai-form';
 import { ApiError } from '@/lib/api/errors';
 import { splitChecklistItem } from '@/lib/api/workspaces';
 
-import {
-  parseSplitTaskFormData,
-  type SplitTaskFormState,
-} from '../_shared/split-task-form';
+import { parseSplitTaskFormData, type SplitTaskFormState } from '../_shared/split-task-form';
 
 export type { SplitTaskFormState } from '../_shared/split-task-form';
 

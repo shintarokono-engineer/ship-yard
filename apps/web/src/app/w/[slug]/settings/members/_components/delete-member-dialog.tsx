@@ -15,10 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import type { Member } from '@/lib/api/types';
 
-import {
-  removeMemberAction,
-  type RemoveMemberState,
-} from '../_actions/remove-member';
+import { removeMemberAction, type RemoveMemberState } from '../_actions/remove-member';
 
 const INITIAL_STATE: RemoveMemberState = { ok: false };
 
@@ -70,9 +67,7 @@ export function DeleteMemberDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {isSelfWithdrawal
-              ? 'このワークスペースから退会しますか?'
-              : 'メンバーを削除しますか?'}
+            {isSelfWithdrawal ? 'このワークスペースから退会しますか?' : 'メンバーを削除しますか?'}
           </DialogTitle>
           <DialogDescription>
             {isSelfWithdrawal ? (

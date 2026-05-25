@@ -34,12 +34,7 @@ export function StatusCheckbox({
     if (disabled || pending) return;
     const nextStatus: ItemStatus = checked ? 'TODO' : 'DONE';
     startTransition(async () => {
-      const result = await toggleChecklistItemStatusAction(
-        slug,
-        projectId,
-        item.id,
-        nextStatus,
-      );
+      const result = await toggleChecklistItemStatusAction(slug, projectId, item.id, nextStatus);
       if (!result.ok && result.message) {
         toast.error(result.message);
       }
@@ -53,10 +48,7 @@ export function StatusCheckbox({
       onChange={handleToggle}
       disabled={disabled || pending}
       aria-label={`${item.title} を ${checked ? '未完了' : '完了'} にする`}
-      className={cn(
-        'size-4 shrink-0 cursor-pointer accent-emerald-600',
-        pending && 'opacity-50',
-      )}
+      className={cn('size-4 shrink-0 cursor-pointer accent-emerald-600', pending && 'opacity-50')}
     />
   );
 }

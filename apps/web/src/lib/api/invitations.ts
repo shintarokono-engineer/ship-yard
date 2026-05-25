@@ -51,13 +51,10 @@ export async function createInvitation(
   slug: string,
   body: { email: string; role: NonOwnerRole },
 ): Promise<CreateInvitationResult> {
-  return apiFetch<CreateInvitationResult>(
-    `/workspaces/${encodeURIComponent(slug)}/invitations`,
-    {
-      method: 'POST',
-      body: JSON.stringify(body),
-    },
-  );
+  return apiFetch<CreateInvitationResult>(`/workspaces/${encodeURIComponent(slug)}/invitations`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
 }
 
 /**
@@ -67,9 +64,7 @@ export async function createInvitation(
  * 非 ADMIN は 403 になるので、呼び出し側で先に `isAdminRole` で分岐する。
  */
 export async function listInvitations(slug: string): Promise<InvitationListItem[]> {
-  return apiFetch<InvitationListItem[]>(
-    `/workspaces/${encodeURIComponent(slug)}/invitations`,
-  );
+  return apiFetch<InvitationListItem[]>(`/workspaces/${encodeURIComponent(slug)}/invitations`);
 }
 
 /**

@@ -59,8 +59,7 @@ export async function createWorkspaceAction(
       if (e.status === 403) {
         return {
           ok: false,
-          formError:
-            'ユーザー情報の同期待ちです。少し時間を置いてから再度お試しください。',
+          formError: 'ユーザー情報の同期待ちです。少し時間を置いてから再度お試しください。',
           fields: parsed.fields,
         };
       }

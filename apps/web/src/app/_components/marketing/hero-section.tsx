@@ -15,7 +15,8 @@ export function HeroSection() {
             アイデアからリリースまで、一直線に。
           </h1>
           <p className="text-muted-foreground mt-6 max-w-2xl text-lg text-pretty">
-            Shipyard は個人開発者と小さなチームのためのプロダクト開発プラットフォーム。AI がドキュメント・ランディングページ・チェックリスト作成を支え、リリースまでの道のりを短くします。
+            Shipyard は個人開発者と小さなチームのためのプロダクト開発プラットフォーム。AI
+            がドキュメント・ランディングページ・チェックリスト作成を支え、リリースまでの道のりを短くします。
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <SignUpButton mode="modal">

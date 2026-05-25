@@ -7,14 +7,8 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import type { InvitationStatus } from '@/lib/api/types';
 
-import {
-  resendInvitationAction,
-  type ResendInvitationState,
-} from '../_actions/resend-invitation';
-import {
-  revokeInvitationAction,
-  type RevokeInvitationState,
-} from '../_actions/revoke-invitation';
+import { resendInvitationAction, type ResendInvitationState } from '../_actions/resend-invitation';
+import { revokeInvitationAction, type RevokeInvitationState } from '../_actions/revoke-invitation';
 
 const REVOKE_INITIAL: RevokeInvitationState = { ok: false };
 const RESEND_INITIAL: ResendInvitationState = { ok: false };
