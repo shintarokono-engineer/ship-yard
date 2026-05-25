@@ -24,12 +24,12 @@ ADR-005(AI 戦略)では DRAFT_GEN の生成対象に「ランディングペー
 
 ### LP は既存 `ProjectDocument` と性質が異なる
 
-| 観点 | 既存 `ProjectDocument` | ブロック化後の LP |
-| --- | --- | --- |
-| データ構造 | Markdown 文字列(`content: String`) | ブロック配列 JSON |
-| 編集モデル | append-only(編集 = `MAX(version)+1` の新行 INSERT、Day 10) | mutable(同じ LP を上書き編集) |
-| 公開 | 非公開(ログインユーザーのみ) | 公開 URL `/p/{slug}/{projectId}` + 公開トグル |
-| 用途 | ドキュメント(読み物) | プロダクト(ユーザーが公開して使う成果物) |
+| 観点       | 既存 `ProjectDocument`                                     | ブロック化後の LP                             |
+| ---------- | ---------------------------------------------------------- | --------------------------------------------- |
+| データ構造 | Markdown 文字列(`content: String`)                         | ブロック配列 JSON                             |
+| 編集モデル | append-only(編集 = `MAX(version)+1` の新行 INSERT、Day 10) | mutable(同じ LP を上書き編集)                 |
+| 公開       | 非公開(ログインユーザーのみ)                               | 公開 URL `/p/{slug}/{projectId}` + 公開トグル |
+| 用途       | ドキュメント(読み物)                                       | プロダクト(ユーザーが公開して使う成果物)      |
 
 この性質差をデータモデルでどう扱うかが本 ADR の核心である。
 
@@ -105,14 +105,14 @@ model LandingPage {
 
 `blocks` は次の判別ユニオン配列。各ブロックは `type` で判別する。
 
-| ブロック | フィールド |
-| --- | --- |
-| `hero` | `heading` / `sub` / `ctaText` / `ctaHref` / `image?` |
-| `features` | `title` / `items[]`(各 `icon` / `title` / `body`) |
-| `stats` | `items[]`(各 `value` / `label`) |
-| `testimonial` | `quote` / `name` / `role` / `avatar?` |
-| `cta` | `heading` / `buttonText` / `buttonHref` |
-| `footer`(任意) | `copyright` / `links[]` |
+| ブロック       | フィールド                                           |
+| -------------- | ---------------------------------------------------- |
+| `hero`         | `heading` / `sub` / `ctaText` / `ctaHref` / `image?` |
+| `features`     | `title` / `items[]`(各 `icon` / `title` / `body`)    |
+| `stats`        | `items[]`(各 `value` / `label`)                      |
+| `testimonial`  | `quote` / `name` / `role` / `avatar?`                |
+| `cta`          | `heading` / `buttonText` / `buttonHref`              |
+| `footer`(任意) | `copyright` / `links[]`                              |
 
 ブロックスキーマは AI Tool Use の `input_schema`、編集 UI のフィールド、レンダリングコンポーネントの 3 箇所で共有するため、TypeScript の型定義を単一の真実の源とする(配置先は実装時に決定、`packages` 共通化も検討)。
 
@@ -146,21 +146,21 @@ LP は本 ADR で `LandingPage` テーブルへ移るため、`ProjectDocument` 
 
 ### Phase 構成と MVP 範囲
 
-| Phase | 内容 | 工数 | MVP / v2 |
-| --- | --- | --- | --- |
-| 1 | LP ブロック化(JSON 化 + AI Tool Use + アプリ内プレビュー / 編集 UI) | 3 日 | ✅ MVP(Day 30-32) |
-| 2 | 公開 URL(`/p/{slug}/{projectId}` + 公開トグル + OG メタ) | 1.5 日 | ✅ MVP(Day 33) |
-| 3 | 静的 HTML エクスポート(ZIP ダウンロード) | 2.5 日 | ❌ v2 |
-| 4 | カスタムドメイン(`your-product.com` を Shipyard に向ける) | 大 | ❌ v2 |
+| Phase | 内容                                                                | 工数   | MVP / v2          |
+| ----- | ------------------------------------------------------------------- | ------ | ----------------- |
+| 1     | LP ブロック化(JSON 化 + AI Tool Use + アプリ内プレビュー / 編集 UI) | 3 日   | ✅ MVP(Day 30-32) |
+| 2     | 公開 URL(`/p/{slug}/{projectId}` + 公開トグル + OG メタ)            | 1.5 日 | ✅ MVP(Day 33)    |
+| 3     | 静的 HTML エクスポート(ZIP ダウンロード)                            | 2.5 日 | ❌ v2             |
+| 4     | カスタムドメイン(`your-product.com` を Shipyard に向ける)           | 大     | ❌ v2             |
 
 実装の Day 配分(§6 Week 4 末):
 
-| Day | 内容 |
-| --- | --- |
-| 30 | Phase 1(1/3):`LandingPage` migration + ブロック型定義 + `submit_landing_page` ツール + LP 生成経路 |
-| 31 | Phase 1(2/3):`lp-blocks/` レンダリングコンポーネント + アプリ内プレビュー UI |
-| 32 | Phase 1(3/3):編集 UI(各ブロックのテキストフィールド編集 + mutable 保存) |
-| 33 | Phase 2:公開 URL `/p/{slug}/{projectId}` + middleware 認証除外 + `publishedAt` 公開トグル + OG メタ |
+| Day | 内容                                                                                                |
+| --- | --------------------------------------------------------------------------------------------------- |
+| 30  | Phase 1(1/3):`LandingPage` migration + ブロック型定義 + `submit_landing_page` ツール + LP 生成経路  |
+| 31  | Phase 1(2/3):`lp-blocks/` レンダリングコンポーネント + アプリ内プレビュー UI                        |
+| 32  | Phase 1(3/3):編集 UI(各ブロックのテキストフィールド編集 + mutable 保存)                             |
+| 33  | Phase 2:公開 URL `/p/{slug}/{projectId}` + middleware 認証除外 + `publishedAt` 公開トグル + OG メタ |
 
 ## 理由
 

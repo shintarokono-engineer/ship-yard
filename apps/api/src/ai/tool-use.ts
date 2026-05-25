@@ -33,10 +33,7 @@ export function extractToolUseBlock(
  *
  * 空 / 欠落時は 502(`AIBadResponseError`、上流依存の不正レスポンス)。
  */
-export function extractTextContent(
-  res: Anthropic.Messages.Message,
-  featureName: string,
-): string {
+export function extractTextContent(res: Anthropic.Messages.Message, featureName: string): string {
   const text = res.content
     .filter((b): b is Anthropic.Messages.TextBlock => b.type === 'text')
     .map((b) => b.text)

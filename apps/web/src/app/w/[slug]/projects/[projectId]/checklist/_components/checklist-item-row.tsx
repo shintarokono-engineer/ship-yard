@@ -47,12 +47,7 @@ export function ChecklistItemRow({
       </div>
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={cn(
-              'text-sm',
-              isDone && 'text-muted-foreground line-through',
-            )}
-          >
+          <span className={cn('text-sm', isDone && 'text-muted-foreground line-through')}>
             {item.title}
           </span>
           {showStatusBadge && (

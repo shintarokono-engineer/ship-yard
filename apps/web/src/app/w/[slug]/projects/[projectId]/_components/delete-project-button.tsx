@@ -15,10 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import type { Project } from '@/lib/api/types';
 
-import {
-  deleteProjectAction,
-  type DeleteProjectFormState,
-} from '../_actions/delete-project';
+import { deleteProjectAction, type DeleteProjectFormState } from '../_actions/delete-project';
 
 const INITIAL_STATE: DeleteProjectFormState = { ok: false };
 
@@ -29,13 +26,7 @@ const INITIAL_STATE: DeleteProjectFormState = { ok: false };
  * 件数を表示してユーザーに影響範囲を把握させる。成功時は Server Action 側で
  * `/w/{slug}` にリダイレクトするのでこちら側に close ロジックは不要。
  */
-export function DeleteProjectButton({
-  slug,
-  project,
-}: {
-  slug: string;
-  project: Project;
-}) {
+export function DeleteProjectButton({ slug, project }: { slug: string; project: Project }) {
   const [open, setOpen] = useState(false);
   const boundAction = useMemo(
     () => deleteProjectAction.bind(null, slug, project.id),

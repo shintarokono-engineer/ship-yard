@@ -78,8 +78,6 @@ export async function createProjectAction(
   revalidatePath(`/w/${slug}`);
   const startChat = String(formData.get('mode') ?? 'write') === 'chat';
   redirect(
-    startChat
-      ? `/w/${slug}/projects/${projectId}/rag-qa`
-      : `/w/${slug}/projects/${projectId}`,
+    startChat ? `/w/${slug}/projects/${projectId}/rag-qa` : `/w/${slug}/projects/${projectId}`,
   );
 }

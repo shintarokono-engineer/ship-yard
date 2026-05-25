@@ -33,10 +33,10 @@ shipyard/
 
 ### 階層の責務
 
-| 階層        | 性質                                            | 中身                                | 依存方向                                       |
-| ----------- | ----------------------------------------------- | ----------------------------------- | ---------------------------------------------- |
-| `apps/`     | **実行可能アプリケーション**(プロセスを起動)  | `web` / `api`                       | `apps/* → packages/*` のみ                     |
-| `packages/` | **共有ライブラリ**(他から import される)      | `db` / `types`                      | `packages/*` から `apps/*` への依存禁止        |
+| 階層        | 性質                                         | 中身           | 依存方向                                |
+| ----------- | -------------------------------------------- | -------------- | --------------------------------------- |
+| `apps/`     | **実行可能アプリケーション**(プロセスを起動) | `web` / `api`  | `apps/* → packages/*` のみ              |
+| `packages/` | **共有ライブラリ**(他から import される)     | `db` / `types` | `packages/*` から `apps/*` への依存禁止 |
 
 > 詳細: [ADR-006: モノレポのディレクトリ構成と DB 層の配置](./adr/006-monorepo-structure.md)
 
@@ -84,6 +84,7 @@ apps/web/src/
 - 日付・時刻は `lib/format.ts` の `Intl.DateTimeFormat`(`timeZone: 'Asia/Tokyo'` 固定)
 
 > 関連:
+>
 > - Server / Client Component の使い分け: 学習ノート `Web開発/Next.js.md`
 > - ADR-003: `/w/{slug}` サブパス方式
 
@@ -168,25 +169,25 @@ packages/db/
 
 設計ドキュメント。基本は `PROJECT_STATUS.md`(SSoT)から辿る。
 
-| ファイル                          | 役割                                                      |
-| --------------------------------- | --------------------------------------------------------- |
-| `PROJECT_STATUS.md`               | プロジェクト全体の現状 / ロードマップ(**SSoT**)         |
-| `OVERVIEW.md`                     | プロダクト概要(まず読む)                                |
-| `GOALS.md`                        | プロジェクトゴール                                        |
-| `architecture.md`                 | C4 Context/Container + AWS デプロイ構成                   |
-| `data-model.md`                   | ER + Prisma スキーマ + インデックス戦略                   |
-| `data-model-erd.generated.md`     | schema.prisma から自動生成(Mermaid ER)                  |
-| `screen-flow.md`                  | 6 つの主要ユーザーフロー                                  |
-| `setup-vercel.md`                 | Vercel セットアップ手順                                   |
-| `directory-structure.md`          | **本ファイル**                                            |
-| `adr/000-template.md`             | ADR テンプレート                                          |
-| `adr/001-tech-stack.md`           | 技術スタック選定                                          |
-| `adr/002-multitenancy.md`         | マルチテナント分離方式(Pool model)                      |
-| `adr/003-tenant-resolution.md`    | テナント解決方式(サブパス方式)                          |
-| `adr/004-billing-plans.md`        | 課金プランと Stripe 連携                                  |
-| `adr/005-ai-responsibility.md`    | AI 機能の責務分担                                         |
-| `adr/006-monorepo-structure.md`   | モノレポのディレクトリ構成と DB 層の配置                  |
-| `adr/007-mail-provider.md`        | メール送信基盤(Resend を MVP 採用)                     |
+| ファイル                        | 役割                                            |
+| ------------------------------- | ----------------------------------------------- |
+| `PROJECT_STATUS.md`             | プロジェクト全体の現状 / ロードマップ(**SSoT**) |
+| `OVERVIEW.md`                   | プロダクト概要(まず読む)                        |
+| `GOALS.md`                      | プロジェクトゴール                              |
+| `architecture.md`               | C4 Context/Container + AWS デプロイ構成         |
+| `data-model.md`                 | ER + Prisma スキーマ + インデックス戦略         |
+| `data-model-erd.generated.md`   | schema.prisma から自動生成(Mermaid ER)          |
+| `screen-flow.md`                | 6 つの主要ユーザーフロー                        |
+| `setup-vercel.md`               | Vercel セットアップ手順                         |
+| `directory-structure.md`        | **本ファイル**                                  |
+| `adr/000-template.md`           | ADR テンプレート                                |
+| `adr/001-tech-stack.md`         | 技術スタック選定                                |
+| `adr/002-multitenancy.md`       | マルチテナント分離方式(Pool model)              |
+| `adr/003-tenant-resolution.md`  | テナント解決方式(サブパス方式)                  |
+| `adr/004-billing-plans.md`      | 課金プランと Stripe 連携                        |
+| `adr/005-ai-responsibility.md`  | AI 機能の責務分担                               |
+| `adr/006-monorepo-structure.md` | モノレポのディレクトリ構成と DB 層の配置        |
+| `adr/007-mail-provider.md`      | メール送信基盤(Resend を MVP 採用)              |
 
 ADR は **承認済み = 勝手に覆さない**。方針転換時は `adr/000-template.md` に従って新 ADR を起こす。
 
@@ -194,37 +195,37 @@ ADR は **承認済み = 勝手に覆さない**。方針転換時は `adr/000-t
 
 ## 5. ルート直下の設定ファイル
 
-| ファイル                                    | 用途                                                                       |
-| ------------------------------------------- | -------------------------------------------------------------------------- |
-| `pnpm-workspace.yaml`                       | `apps/*` と `packages/*` を workspace 対象として宣言                       |
-| `turbo.json`                                | Turborepo タスク定義(`build` / `dev` / `lint` / `test`)                  |
-| `tsconfig.base.json`                        | 共通 TS 設定。各 workspace が `extends` する                               |
-| `eslint.config.js`                          | Flat Config(全 workspace 横断、`eslint-rules/` のカスタムルールも適用)   |
-| `.prettierrc.json` / `.prettierignore`      | フォーマッタ設定                                                           |
-| `.mise.toml` / `.nvmrc`                     | Node 22 + pnpm 10 のバージョン固定                                         |
-| `docker-compose.yml`                        | ローカル PostgreSQL 16 + pgvector                                          |
-| `CLAUDE.md`                                 | Claude Code 向けプロジェクト指示(コーディング規約)                       |
-| `README.md`                                 | リポジトリ入口                                                             |
+| ファイル                               | 用途                                                                   |
+| -------------------------------------- | ---------------------------------------------------------------------- |
+| `pnpm-workspace.yaml`                  | `apps/*` と `packages/*` を workspace 対象として宣言                   |
+| `turbo.json`                           | Turborepo タスク定義(`build` / `dev` / `lint` / `test`)                |
+| `tsconfig.base.json`                   | 共通 TS 設定。各 workspace が `extends` する                           |
+| `eslint.config.js`                     | Flat Config(全 workspace 横断、`eslint-rules/` のカスタムルールも適用) |
+| `.prettierrc.json` / `.prettierignore` | フォーマッタ設定                                                       |
+| `.mise.toml` / `.nvmrc`                | Node 22 + pnpm 10 のバージョン固定                                     |
+| `docker-compose.yml`                   | ローカル PostgreSQL 16 + pgvector                                      |
+| `CLAUDE.md`                            | Claude Code 向けプロジェクト指示(コーディング規約)                     |
+| `README.md`                            | リポジトリ入口                                                         |
 
 ### `eslint-rules/`
 
 プロジェクト固有 ESLint カスタムルール。
 
-| ルール                              | 役割                                                                          |
-| ----------------------------------- | ----------------------------------------------------------------------------- |
+| ルール                                | 役割                                                                       |
+| ------------------------------------- | -------------------------------------------------------------------------- |
 | `no-raw-sql-without-tenant-filter.js` | Raw SQL に `tenantId` フィルタが無いものを検出(ADR-002 のテナント漏洩防止) |
 
 ### `.claude/`
 
 Claude Code(AI ペアプロ)の設定 / agents / skills を集約。チームで共有。`claude-template` から派生。
 
-| サブディレクトリ / ファイル | 役割                                                                |
-| --------------------------- | ------------------------------------------------------------------- |
-| `agents/`                   | サブエージェント定義(planner / code-reviewer / debugger 等)        |
-| `skills/`                   | スキル定義(`/understanding-ticket`, `/reviewing-own-changes` 等)   |
-| `settings.json`             | 共有設定(コミット対象)                                            |
-| `settings.local.json`       | 個人ローカル設定(`.gitignore` 対象)                               |
-| `output/`                   | スキル実行結果の出力先(git 管轄外)                                |
+| サブディレクトリ / ファイル | 役割                                                             |
+| --------------------------- | ---------------------------------------------------------------- |
+| `agents/`                   | サブエージェント定義(planner / code-reviewer / debugger 等)      |
+| `skills/`                   | スキル定義(`/understanding-ticket`, `/reviewing-own-changes` 等) |
+| `settings.json`             | 共有設定(コミット対象)                                           |
+| `settings.local.json`       | 個人ローカル設定(`.gitignore` 対象)                              |
+| `output/`                   | スキル実行結果の出力先(git 管轄外)                               |
 
 ### `.github/workflows/`
 
@@ -253,13 +254,13 @@ GitHub Actions の CI 定義。main への push / PR で lint + format チェッ
 
 ## 7. 関連ドキュメント
 
-| 知りたいこと                     | 参照先                                                                 |
-| -------------------------------- | ---------------------------------------------------------------------- |
-| 現状と次の作業                   | `docs/PROJECT_STATUS.md`                                               |
-| プロダクトの概要                 | `docs/OVERVIEW.md`                                                     |
-| アーキテクチャ全体図             | `docs/architecture.md`                                                 |
-| DB スキーマ                      | `docs/data-model.md` / `docs/data-model-erd.generated.md`              |
-| 画面遷移                         | `docs/screen-flow.md`                                                  |
-| 個別の設計判断                   | `docs/adr/*`                                                           |
-| コーディング規約 / 制約          | `CLAUDE.md`                                                            |
-| Next.js App Router の汎用知識   | 学習ノート vault: `Web開発/Next.js.md`(個人 Obsidian、本リポジトリ外) |
+| 知りたいこと                  | 参照先                                                                |
+| ----------------------------- | --------------------------------------------------------------------- |
+| 現状と次の作業                | `docs/PROJECT_STATUS.md`                                              |
+| プロダクトの概要              | `docs/OVERVIEW.md`                                                    |
+| アーキテクチャ全体図          | `docs/architecture.md`                                                |
+| DB スキーマ                   | `docs/data-model.md` / `docs/data-model-erd.generated.md`             |
+| 画面遷移                      | `docs/screen-flow.md`                                                 |
+| 個別の設計判断                | `docs/adr/*`                                                          |
+| コーディング規約 / 制約       | `CLAUDE.md`                                                           |
+| Next.js App Router の汎用知識 | 学習ノート vault: `Web開発/Next.js.md`(個人 Obsidian、本リポジトリ外) |

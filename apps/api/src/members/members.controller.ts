@@ -75,10 +75,6 @@ export class MembersController {
     @CurrentWorkspace() ws: WorkspaceAccess,
     @Param('userId') targetUserId: string,
   ): Promise<void> {
-    await this.members.remove(
-      ws.tenantId,
-      { userId: ws.userId, role: ws.role },
-      targetUserId,
-    );
+    await this.members.remove(ws.tenantId, { userId: ws.userId, role: ws.role }, targetUserId);
   }
 }

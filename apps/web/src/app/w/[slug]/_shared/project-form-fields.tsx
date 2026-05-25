@@ -14,11 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { PROJECT_STATUSES, PROJECT_STATUS_META } from '@/lib/api/types';
 
 import { FormField } from './form-field';
-import {
-  DESCRIPTION_MAX_LENGTH,
-  NAME_MAX_LENGTH,
-  type ProjectFormState,
-} from './project-form';
+import { DESCRIPTION_MAX_LENGTH, NAME_MAX_LENGTH, type ProjectFormState } from './project-form';
 
 /**
  * プロジェクト作成 / 編集ダイアログで共通利用する入力フィールド一式。
@@ -91,13 +87,9 @@ export function ProjectFormFields({
               id="description"
               name="description"
               rows={5}
-              aria-invalid={
-                descriptionErrors && descriptionErrors.length > 0 ? 'true' : undefined
-              }
+              aria-invalid={descriptionErrors && descriptionErrors.length > 0 ? 'true' : undefined}
               aria-describedby={
-                descriptionErrors && descriptionErrors.length > 0
-                  ? 'description-error'
-                  : undefined
+                descriptionErrors && descriptionErrors.length > 0 ? 'description-error' : undefined
               }
               maxLength={DESCRIPTION_MAX_LENGTH}
               placeholder="解きたい課題、想定ユーザー、差別化のメモなど"

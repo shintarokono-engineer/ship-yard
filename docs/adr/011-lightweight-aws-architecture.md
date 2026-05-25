@@ -53,13 +53,13 @@ PROJECT_STATUS §6
 
 **B 案(軽量 AWS)を採用する。**
 
-| レイヤ | 採用 | 不採用にしたもの |
-| --- | --- | --- |
-| Web(Next.js) | Vercel | ECS / App Runner での Web ホスティング |
-| API(NestJS) | AWS App Runner | ECS Fargate + ALB |
-| DB | RDS PostgreSQL `db.t4g.micro`(Single-AZ、pgvector、private subnet) | Aurora Serverless v2 |
-| Redis(BullMQ) | Upstash Redis(serverless、無料枠) | ElastiCache |
-| 外向き通信 | NAT インスタンス(fck-nat、`t4g.nano`) | NAT Gateway |
+| レイヤ        | 採用                                                               | 不採用にしたもの                       |
+| ------------- | ------------------------------------------------------------------ | -------------------------------------- |
+| Web(Next.js)  | Vercel                                                             | ECS / App Runner での Web ホスティング |
+| API(NestJS)   | AWS App Runner                                                     | ECS Fargate + ALB                      |
+| DB            | RDS PostgreSQL `db.t4g.micro`(Single-AZ、pgvector、private subnet) | Aurora Serverless v2                   |
+| Redis(BullMQ) | Upstash Redis(serverless、無料枠)                                  | ElastiCache                            |
+| 外向き通信    | NAT インスタンス(fck-nat、`t4g.nano`)                              | NAT Gateway                            |
 
 ### App Runner と RDS の接続(本構成の肝)
 
@@ -72,14 +72,14 @@ RDS は private subnet のまま隔離でき、マルチテナント SaaS のデ
 
 ### Week 5 ロードマップの改訂
 
-| Day | 当初 | 改訂後(本 ADR) |
-| --- | --- | --- |
-| 34 | VPC / Subnet / IAM / SG / ECR | 同左(SG / IAM を App Runner 構成に、ECR は `api` のみ) |
-| 35 | Aurora + ElastiCache | RDS `db.t4g.micro`(pgvector) |
-| 36 | ECS Fargate + ALB | NAT インスタンス + App Runner(API)+ VPC コネクタ。Web は Vercel |
-| 37 | Route53 / ACM | 同左 + 本番 Clerk / Stripe / Resend / Upstash 連携 |
-| 38 | GitHub Actions → ECS | GitHub Actions → App Runner / Terraform |
-| 39 | 監視 | 監視 + **AWS Budgets アラート**(クレジット枯渇後の課金事故防止) |
+| Day | 当初                          | 改訂後(本 ADR)                                                  |
+| --- | ----------------------------- | --------------------------------------------------------------- |
+| 34  | VPC / Subnet / IAM / SG / ECR | 同左(SG / IAM を App Runner 構成に、ECR は `api` のみ)          |
+| 35  | Aurora + ElastiCache          | RDS `db.t4g.micro`(pgvector)                                    |
+| 36  | ECS Fargate + ALB             | NAT インスタンス + App Runner(API)+ VPC コネクタ。Web は Vercel |
+| 37  | Route53 / ACM                 | 同左 + 本番 Clerk / Stripe / Resend / Upstash 連携              |
+| 38  | GitHub Actions → ECS          | GitHub Actions → App Runner / Terraform                         |
+| 39  | 監視                          | 監視 + **AWS Budgets アラート**(クレジット枯渇後の課金事故防止) |
 
 ## 理由
 

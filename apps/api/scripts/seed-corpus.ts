@@ -84,7 +84,9 @@ function parseMarkdown(text: string, filename: string): ParsedMarkdown {
   const normalized = text.replace(/\r\n/g, '\n');
   const match = normalized.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!match) {
-    throw new Error(`Invalid frontmatter format in ${filename} (expected "---" delimited block at top)`);
+    throw new Error(
+      `Invalid frontmatter format in ${filename} (expected "---" delimited block at top)`,
+    );
   }
   const frontmatter = match[1];
   let content = match[2].trim();

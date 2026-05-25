@@ -1,13 +1,7 @@
 import { Sparkles } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FEATURE_META, type MonthlyUsageSummary, type Plan } from '@/lib/api/types';
 import { fetchUsage } from '@/lib/api/workspaces';
 import { formatYearMonth } from '@/lib/format';
@@ -23,11 +17,7 @@ const NEAR_LIMIT_RATIO = 0.8;
  * 全テナントメンバーが閲覧可。所属判定は親 `/w/{slug}/layout.tsx` が済ませているので、
  * ここでは集計取得と描画のみを担う。
  */
-export default async function UsagePage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export default async function UsagePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const usage = await fetchUsage(slug);
   const periodLabel = formatYearMonth(usage.periodStart);
@@ -114,21 +104,14 @@ function LimitedUsage({ used, limit }: { used: number; limit: number }) {
   const nearLimit = !reached && used / limit >= NEAR_LIMIT_RATIO;
   const remaining = Math.max(0, limit - used);
 
-  const barColor = reached
-    ? 'bg-destructive'
-    : nearLimit
-      ? 'bg-amber-500'
-      : 'bg-foreground';
+  const barColor = reached ? 'bg-destructive' : nearLimit ? 'bg-amber-500' : 'bg-foreground';
 
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between">
         <div>
           <span className="text-2xl font-semibold tabular-nums">{used}</span>
-          <span className="text-muted-foreground text-sm tabular-nums">
-            {' '}
-            / {limit} 回
-          </span>
+          <span className="text-muted-foreground text-sm tabular-nums"> / {limit} 回</span>
         </div>
         <span
           className={cn(
@@ -166,11 +149,7 @@ function LimitedUsage({ used, limit }: { used: number; limit: number }) {
 }
 
 /** feature 別の内訳(`OTHER` 除外済み)。count 降順のまま表示する。 */
-function FeatureBreakdownCard({
-  byFeature,
-}: {
-  byFeature: MonthlyUsageSummary['byFeature'];
-}) {
+function FeatureBreakdownCard({ byFeature }: { byFeature: MonthlyUsageSummary['byFeature'] }) {
   // バー幅は最大 count を 100% とした相対比(視覚的な大小比較のみが目的)。
   const maxCount = Math.max(...byFeature.map((f) => f.count), 1);
 
@@ -193,9 +172,7 @@ function FeatureBreakdownCard({
               <li key={feature} className="space-y-1">
                 <div className="flex items-center justify-between text-sm">
                   <span>{FEATURE_META[feature].label}</span>
-                  <span className="text-muted-foreground tabular-nums">
-                    {count} 回
-                  </span>
+                  <span className="text-muted-foreground tabular-nums">{count} 回</span>
                 </div>
                 <div
                   aria-hidden="true"

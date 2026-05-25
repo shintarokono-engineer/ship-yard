@@ -55,12 +55,12 @@ Build [AI agents](https://trigger.dev/product/ai-agents) using all the framework
 Create tasks where they belong: in your codebase. Version control, localhost, test and review like you're already used to.
 
 ```ts
-import { task } from "@trigger.dev/sdk";
+import { task } from '@trigger.dev/sdk';
 
 // 1. You need to export each task
 export const helloWorld = task({
   // 2. Use a unique id for each task
-  id: "hello-world",
+  id: 'hello-world',
   // 3. The run function is the main function of the task
   run: async (payload: { message: string }) => {
     // 4. You can write code that runs for a long time here, there are no timeouts

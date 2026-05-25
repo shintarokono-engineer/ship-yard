@@ -40,10 +40,7 @@ export class RagQaController {
 
   /** GET /workspaces/:slug/projects/:projectId/qa/sessions — セッション一覧(新しい順)。 */
   @Get()
-  async list(
-    @CurrentWorkspace() ws: WorkspaceAccess,
-    @Param('projectId') projectId: string,
-  ) {
+  async list(@CurrentWorkspace() ws: WorkspaceAccess, @Param('projectId') projectId: string) {
     await this.projects.assertExists(ws.tenantId, projectId);
     return this.ragQa.listSessions(ws.tenantId, projectId);
   }

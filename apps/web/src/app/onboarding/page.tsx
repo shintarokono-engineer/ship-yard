@@ -43,9 +43,7 @@ export default async function OnboardingPage() {
                   <CardHeader className="flex flex-row items-center justify-between gap-3">
                     <div className="space-y-1">
                       <CardTitle className="text-base">{ws.name}</CardTitle>
-                      <p className="text-muted-foreground text-xs">
-                        shipyard.app/w/{ws.slug}
-                      </p>
+                      <p className="text-muted-foreground text-xs">shipyard.app/w/{ws.slug}</p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <Badge variant="outline" className="font-mono text-[10px]">

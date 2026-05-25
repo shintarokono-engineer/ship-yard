@@ -17,8 +17,7 @@ export function WorkspaceNav({ slug }: { slug: string }) {
 
   const projectsHref = `/w/${slug}`;
   const settingsHref = `/w/${slug}/settings`;
-  const isSettings =
-    pathname === settingsHref || pathname.startsWith(`${settingsHref}/`);
+  const isSettings = pathname === settingsHref || pathname.startsWith(`${settingsHref}/`);
 
   const tabs: ReadonlyArray<{ label: string; href: string; isActive: boolean }> = [
     { label: 'プロジェクト', href: projectsHref, isActive: !isSettings },

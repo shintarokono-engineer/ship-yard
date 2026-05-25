@@ -15,10 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import type { ProjectDocument } from '@/lib/api/types';
 
-import {
-  deleteDocumentAction,
-  type DeleteDocumentFormState,
-} from '../_actions/delete-document';
+import { deleteDocumentAction, type DeleteDocumentFormState } from '../_actions/delete-document';
 
 const INITIAL_STATE: DeleteDocumentFormState = { ok: false };
 
@@ -53,8 +50,8 @@ export function DeleteDocumentButton({
         <DialogHeader>
           <DialogTitle>このドキュメントを削除しますか?</DialogTitle>
           <DialogDescription>
-            <span className="font-medium text-foreground">{document.title}</span>{' '}
-            (v{document.version}) を削除します。この操作は元に戻せません。
+            <span className="font-medium text-foreground">{document.title}</span> (v
+            {document.version}) を削除します。この操作は元に戻せません。
           </DialogDescription>
         </DialogHeader>
 

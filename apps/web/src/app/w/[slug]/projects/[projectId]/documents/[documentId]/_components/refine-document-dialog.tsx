@@ -17,10 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 
-import {
-  refineDocumentAction,
-  type RefineDocumentFormState,
-} from '../_actions/refine-document';
+import { refineDocumentAction, type RefineDocumentFormState } from '../_actions/refine-document';
 import {
   GOAL_MAX_LENGTH,
   INITIAL_REFINE_DOCUMENT_FORM_STATE,
@@ -71,7 +68,8 @@ export function RefineDocumentDialog({
         <DialogHeader>
           <DialogTitle>ドキュメントを AI で推敲</DialogTitle>
           <DialogDescription>
-            現在の本文を AI が推敲し、新しい version として履歴に積まれます(append-only)。完了後は最新版に自動遷移します。
+            現在の本文を AI が推敲し、新しい version
+            として履歴に積まれます(append-only)。完了後は最新版に自動遷移します。
           </DialogDescription>
         </DialogHeader>
 
@@ -123,12 +121,7 @@ export function RefineDocumentDialog({
           </p>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setOpen(false)}
-              disabled={pending}
-            >
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>
               キャンセル
             </Button>
             <Button type="submit" disabled={pending} aria-busy={pending}>

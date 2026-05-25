@@ -1,8 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { Role } from '@shipyard/db';
 
@@ -109,7 +105,9 @@ export class MembersService {
     if (!target) throw new NotFoundException();
 
     if (target.role === Role.OWNER) {
-      throw new ForbiddenException('Cannot change the OWNER role. Ownership transfer is a separate operation.');
+      throw new ForbiddenException(
+        'Cannot change the OWNER role. Ownership transfer is a separate operation.',
+      );
     }
 
     if (actor.role === Role.ADMIN && target.role === Role.ADMIN) {
@@ -148,7 +146,9 @@ export class MembersService {
     if (!target) throw new NotFoundException();
 
     if (target.role === Role.OWNER) {
-      throw new ForbiddenException('Cannot remove the OWNER. Ownership transfer is required first.');
+      throw new ForbiddenException(
+        'Cannot remove the OWNER. Ownership transfer is required first.',
+      );
     }
 
     const isSelfWithdrawal = actor.userId === targetUserId;

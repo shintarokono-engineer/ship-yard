@@ -16,11 +16,7 @@ import { AcceptButton } from './_components/accept-button';
  *
  * BE: `GET /invitations/:token`(未認証可)+ `POST /invitations/:token/accept`(認証必須)
  */
-export default async function InvitePage({
-  params,
-}: {
-  params: Promise<{ token: string }>;
-}) {
+export default async function InvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
 
   const invitation = await fetchInvitation(token);
@@ -92,7 +88,8 @@ export default async function InvitePage({
 
           {acceptable && (
             <p className="text-muted-foreground text-xs">
-              承諾には Shipyard へのサインインが必要です。サインアップしていない場合は承諾ボタンを押すとサインアップ画面に進みます。
+              承諾には Shipyard
+              へのサインインが必要です。サインアップしていない場合は承諾ボタンを押すとサインアップ画面に進みます。
             </p>
           )}
         </CardContent>

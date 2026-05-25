@@ -97,13 +97,7 @@ export interface CreateWorkspaceResult {
  * Subscription の課金状態(`SubStatus` enum、packages/db/prisma/schema.prisma)。
  * Stripe 側の status をミラーした値で、Billing 画面で詳細表示に使う。
  */
-export const SUB_STATUSES = [
-  'ACTIVE',
-  'PAST_DUE',
-  'CANCELED',
-  'INCOMPLETE',
-  'TRIALING',
-] as const;
+export const SUB_STATUSES = ['ACTIVE', 'PAST_DUE', 'CANCELED', 'INCOMPLETE', 'TRIALING'] as const;
 export type SubStatus = (typeof SUB_STATUSES)[number];
 
 /**
@@ -161,12 +155,7 @@ export const PLAN_META: Record<
     label: 'Team',
     priceLabel: '¥2,800 / 人・月',
     tagline: '小規模開発チーム(2〜10 人)向け',
-    limits: [
-      'Pro のすべて',
-      '共同編集 / レビュー',
-      '監査ログ',
-      '人数課金(メンバー数で自動調整)',
-    ],
+    limits: ['Pro のすべて', '共同編集 / レビュー', '監査ログ', '人数課金(メンバー数で自動調整)'],
   },
 };
 

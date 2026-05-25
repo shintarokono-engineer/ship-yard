@@ -5,12 +5,7 @@ import { ChevronLeft } from 'lucide-react';
 import { MarkdownViewer } from '@/components/markdown-viewer';
 import { Badge } from '@/components/ui/badge';
 import { DOC_TYPE_META, isWriterRole } from '@/lib/api/types';
-import {
-  fetchDocument,
-  fetchProject,
-  fetchWorkspace,
-  listDocuments,
-} from '@/lib/api/workspaces';
+import { fetchDocument, fetchProject, fetchWorkspace, listDocuments } from '@/lib/api/workspaces';
 import { formatDateTime } from '@/lib/format';
 
 import { DeleteDocumentButton } from './_components/delete-document-button';
@@ -74,11 +69,7 @@ export default async function DocumentDetailPage({
 
           {canWrite && (
             <div className="flex shrink-0 gap-2">
-              <RefineDocumentDialog
-                slug={slug}
-                projectId={projectId}
-                documentId={document.id}
-              />
+              <RefineDocumentDialog slug={slug} projectId={projectId} documentId={document.id} />
               <EditDocumentDialog slug={slug} projectId={projectId} document={document} />
               <DeleteDocumentButton slug={slug} projectId={projectId} document={document} />
             </div>

@@ -25,10 +25,7 @@ import {
 } from '@/components/ui/select';
 import { NON_OWNER_ROLES, ROLE_LABELS } from '@/lib/api/types';
 
-import {
-  createInvitationAction,
-  type InvitationFormState,
-} from '../_actions/create-invitation';
+import { createInvitationAction, type InvitationFormState } from '../_actions/create-invitation';
 import { INITIAL_INVITATION_FORM_STATE } from '../_shared/invitation-form';
 
 const DEFAULT_ROLE = 'DEVELOPER';

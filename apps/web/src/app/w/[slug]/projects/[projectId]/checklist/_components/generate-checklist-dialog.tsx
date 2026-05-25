@@ -35,13 +35,7 @@ import {
  * 数〜十数秒の同期処理なので Dialog 内 pending インジケータで状態表示。成功時は Dialog 自動 close
  * + toast で生成件数を通知。redirect なし(同じページに留まる)。
  */
-export function GenerateChecklistDialog({
-  slug,
-  projectId,
-}: {
-  slug: string;
-  projectId: string;
-}) {
+export function GenerateChecklistDialog({ slug, projectId }: { slug: string; projectId: string }) {
   const [open, setOpen] = useState(false);
   const boundAction = useMemo(
     () => generateChecklistAction.bind(null, slug, projectId),
@@ -95,7 +89,8 @@ export function GenerateChecklistDialog({
         <DialogHeader>
           <DialogTitle>チェックリストを AI で一括生成</DialogTitle>
           <DialogDescription>
-            プロジェクト情報をもとに AI が必要なタスクを最大 30 件まで提案します。既存の項目には影響せず、後ろに追記されます。
+            プロジェクト情報をもとに AI が必要なタスクを最大 30
+            件まで提案します。既存の項目には影響せず、後ろに追記されます。
           </DialogDescription>
         </DialogHeader>
 
@@ -181,12 +176,7 @@ export function GenerateChecklistDialog({
           </p>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setOpen(false)}
-              disabled={pending}
-            >
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>
               キャンセル
             </Button>
             <Button type="submit" disabled={submitDisabled} aria-busy={pending}>

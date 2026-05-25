@@ -31,7 +31,10 @@ export async function openPortalSessionAction(
   } catch (e) {
     if (e instanceof ApiError) {
       if (e.status === 403) {
-        return { ok: false, error: 'Stripe Portal を開く権限がありません(OWNER のみ操作可能です)。' };
+        return {
+          ok: false,
+          error: 'Stripe Portal を開く権限がありません(OWNER のみ操作可能です)。',
+        };
       }
       if (e.status === 404) {
         return { ok: false, error: 'ワークスペースが見つかりませんでした。' };

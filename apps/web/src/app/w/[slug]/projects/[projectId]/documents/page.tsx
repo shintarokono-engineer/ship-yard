@@ -105,10 +105,7 @@ export default async function DocumentsPage({
             <Card key={type} className="border-dashed">
               <CardHeader className="gap-2">
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <FileText
-                    className="text-muted-foreground/60 size-4"
-                    aria-hidden="true"
-                  />
+                  <FileText className="text-muted-foreground/60 size-4" aria-hidden="true" />
                   <span className="text-muted-foreground">{meta.label}</span>
                 </CardTitle>
               </CardHeader>

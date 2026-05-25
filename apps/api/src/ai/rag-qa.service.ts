@@ -156,9 +156,7 @@ export class RagQaService {
       usageHint:
         '以下は同じテナント内の過去ドキュメントです。回答の参考にしてください。引用するときは出典(タイトル)を明示してください。',
     });
-    const userContent = [`# 質問\n${input.question}`, referenceSection]
-      .filter(Boolean)
-      .join('\n');
+    const userContent = [`# 質問\n${input.question}`, referenceSection].filter(Boolean).join('\n');
 
     const apiMessages: Array<{ role: 'user' | 'assistant'; content: string }> = [
       ...history.map((m) => ({

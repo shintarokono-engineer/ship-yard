@@ -38,7 +38,9 @@ export function parseOnboardingFormData(formData: FormData): {
   fields: { name: string; slug: string };
 } {
   const name = String(formData.get('name') ?? '').trim();
-  const slug = String(formData.get('slug') ?? '').trim().toLowerCase();
+  const slug = String(formData.get('slug') ?? '')
+    .trim()
+    .toLowerCase();
 
   const fieldErrors: Partial<Record<FieldName, string[]>> = {};
 
@@ -50,18 +52,12 @@ export function parseOnboardingFormData(formData: FormData): {
 
   if (slug.length > 0) {
     if (slug.length < SLUG_MIN_LENGTH) {
-      (fieldErrors.slug ??= []).push(
-        `URL は ${SLUG_MIN_LENGTH} 文字以上で入力してください。`,
-      );
+      (fieldErrors.slug ??= []).push(`URL は ${SLUG_MIN_LENGTH} 文字以上で入力してください。`);
     } else if (slug.length > SLUG_MAX_LENGTH) {
-      (fieldErrors.slug ??= []).push(
-        `URL は ${SLUG_MAX_LENGTH} 文字以内で入力してください。`,
-      );
+      (fieldErrors.slug ??= []).push(`URL は ${SLUG_MAX_LENGTH} 文字以内で入力してください。`);
     }
     if (!SLUG_PATTERN.test(slug)) {
-      (fieldErrors.slug ??= []).push(
-        'URL は小文字英数字とハイフンのみ使用できます(例: my-team)。',
-      );
+      (fieldErrors.slug ??= []).push('URL は小文字英数字とハイフンのみ使用できます(例: my-team)。');
     }
   }
 

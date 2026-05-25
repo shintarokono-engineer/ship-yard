@@ -29,13 +29,7 @@ import {
  * 作成は AI 呼び出しを伴わない軽い操作なので、成功時は Dialog を閉じず
  * そのままチャット画面(`/rag-qa/{sessionId}`)へ遷移する。
  */
-export function StartSessionDialog({
-  slug,
-  projectId,
-}: {
-  slug: string;
-  projectId: string;
-}) {
+export function StartSessionDialog({ slug, projectId }: { slug: string; projectId: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const boundAction = useMemo(
@@ -107,12 +101,7 @@ export function StartSessionDialog({
           )}
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setOpen(false)}
-              disabled={pending}
-            >
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>
               キャンセル
             </Button>
             <Button type="submit" disabled={pending} aria-busy={pending}>
