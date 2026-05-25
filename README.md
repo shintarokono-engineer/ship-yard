@@ -8,7 +8,7 @@
 
 個人開発者および小規模開発チーム(2〜10 人)向けの、「アイデア → 設計 → 開発 → リリース → 初期ユーザー獲得」までを一元管理する AI 支援付き B2B SaaS です。
 
-> **現在のステータス**: Week 6 進行中(Day 42 完了 / 公開目標 Day 49)。マルチテナント基盤・課金基盤・AI 基盤・RAG・LP ブロック化と公開 URL・AWS インフラ(Terraform、ADR-011 軽量構成)・マーケティングランディングページ・OG 画像・PRODUCT_DIAGNOSIS の設計確定(ADR-012、Day 43-46 で実装)までを完了済。
+> **現在のステータス**: Week 6 進行中(Day 42 完了 / 公開目標 Day 49)。マルチテナント基盤・課金基盤・AI 基盤・RAG・LP ブロック化と公開 URL・AWS インフラ(Terraform、ADR-011 軽量構成)・マーケティングランディングページ・OG 画像・PRODUCT_DIAGNOSIS の設計確定(ADR-013、Day 43-46 で実装)までを完了済。
 
 <!-- TODO: Day 37 で本番ドメイン取得・Day 44 公開後にリンク差し替え -->
 
@@ -253,7 +253,8 @@ shipyard/
 | [009](./docs/adr/009-landing-page-block-architecture.md) | LP ブロック型アーキテクチャ                                                            |
 | [010](./docs/adr/010-iac-tool.md)                        | IaC ツールに Terraform を採用                                                          |
 | [011](./docs/adr/011-lightweight-aws-architecture.md)    | 軽量 AWS 構成(App Runner + db.t4g.micro + Upstash)                                     |
-| [012](./docs/adr/012-product-diagnosis.md)               | PRODUCT_DIAGNOSIS(競合調査 + サービスレベルスコア化、Sonnet 4 + Web Search + Tool Use) |
+| [012](./docs/adr/012-plan-structure-revision.md)         | プラン構造の全面見直し(Free 廃止 + 7 日 Pro トライアル + Pro ¥1,480 + AI クレジット制) |
+| [013](./docs/adr/013-product-diagnosis.md)               | PRODUCT_DIAGNOSIS(競合調査 + サービスレベルスコア化、Sonnet 4 + Web Search + Tool Use) |
 
 ADR は承認済の方針を表すため、方針転換が必要な場合は新しい ADR を [docs/adr/000-template.md](./docs/adr/000-template.md) に従って起こします。
 
