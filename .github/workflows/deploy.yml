@@ -29,6 +29,10 @@ env:
 
 jobs:
   deploy:
+    # AWS ブートストラップ前は失敗ではなく skip にする。AWS アカウント作成 +
+    # terraform apply 完了 + Secrets 投入が済んだら、GitHub の Settings →
+    # Variables で AWS_BOOTSTRAPPED=true に設定すると自動的に走り始める。
+    if: ${{ vars.AWS_BOOTSTRAPPED == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
