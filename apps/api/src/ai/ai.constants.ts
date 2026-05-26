@@ -149,3 +149,24 @@ export const IDEA_VALIDATION_TEMPERATURE = 0.2;
  * Free フォールバック状態は本機能の実行自体を 403 で弾くため月次上限の対象外。
  */
 export const IDEA_VALIDATION_MAX_PER_MONTH_PRO = 30;
+
+/**
+ * Anthropic server-side Web Search Tool の type 名(ADR-013、PRODUCT_DIAGNOSIS / IDEA_VALIDATION で使用)。
+ *
+ * Anthropic 公式ドキュメント(docs.claude.com、2026-02 時点)で確認した正式 type 名。
+ * 採用バージョン:`web_search_20250305`(標準版、動的フィルタリングなし)。
+ *
+ * 別バージョン `web_search_20260209`(動的フィルタリング対応)は code_execution tool の有効化が必須で、
+ * モデルも Claude Mythos / Opus 4.7・4.6 / Sonnet 4.6 限定。MVP では標準版で必要十分のため不採用。
+ * v1.x で診断品質改善が必要になったら 20260209 への切替を検討。
+ */
+export const WEB_SEARCH_TOOL_TYPE = 'web_search_20250305';
+
+/** Web Search Tool の `name`(両バージョン共通、Anthropic 公式)。 */
+export const WEB_SEARCH_TOOL_NAME = 'web_search';
+
+/**
+ * Web Search Tool の `max_uses`(PRODUCT_DIAGNOSIS / IDEA_VALIDATION の競合 3-5 件取得想定で 5 回まで)。
+ * Anthropic の Web Search は $10 / 1000 searches なので、5 回でも 1 回あたり最大 $0.05 ≒ 7.5 円。
+ */
+export const WEB_SEARCH_MAX_USES = 5;

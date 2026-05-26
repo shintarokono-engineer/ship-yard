@@ -7,7 +7,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   FALLBACK_PRICING_USD_PER_MTOK,
   FREE_MONTHLY_AI_LIMIT,
+  IDEA_VALIDATION_MAX_PER_MONTH_PRO,
   MODEL_PRICING_USD_PER_MTOK,
+  PRODUCT_DIAGNOSIS_MAX_PER_MONTH_PRO,
   USD_PER_JPY,
 } from './ai.constants';
 
@@ -107,6 +109,63 @@ export class AIUsageService {
       limit: tenant.plan === Plan.FREE ? FREE_MONTHLY_AI_LIMIT : null,
       byFeature,
     };
+  }
+
+  /**
+   * PRODUCT_DIAGNOSIS の月次実行回数をチェック(ADR-013、Day 45)。
+   *
+   * - FREE プラン:本機能を実行不可(ADR-012 改訂版「Free フォールバック = AI 機能停止」)→ 403
+   * - PRO / TEAM:本機能のみの月次上限 `PRODUCT_DIAGNOSIS_MAX_PER_MONTH_PRO`(50 回)+ 全体 `assertWithinFreeQuota` 内
+   *
+   * MVP の暴走防止枠。v1.0.1 で AI クレジット制(3 cr/回、ADR-012 §段階的実装)に移行する際に
+   * 本メソッドは `assertWithinCreditQuota({ feature, costInCredits })` 等に置き換える。
+   */
+  async assertWithinDiagnosisQuota(tenant: { id: string; plan: Plan }): Promise<void> {
+    if (tenant.plan === Plan.FREE) {
+      throw new ForbiddenException(
+        'プロダクト診断は Pro / Team プラン限定の機能です。Pro へのアップグレードが必要です。',
+      );
+    }
+    const used = await this.prisma.aIUsage.count({
+      where: {
+        tenantId: tenant.id,
+        createdAt: { gte: startOfMonthUtc() },
+        feature: Feature.PRODUCT_DIAGNOSIS,
+      },
+    });
+    if (used >= PRODUCT_DIAGNOSIS_MAX_PER_MONTH_PRO) {
+      throw new ForbiddenException(
+        `プロダクト診断の月次実行回数上限(${PRODUCT_DIAGNOSIS_MAX_PER_MONTH_PRO} 回)に達しました。翌月リセットされます。`,
+      );
+    }
+  }
+
+  /**
+   * IDEA_VALIDATION の月次実行回数をチェック(ADR-013 改訂版、Day 45)。
+   *
+   * - FREE プラン:本機能を実行不可 → 403(同上、ADR-012 改訂版整合)
+   * - PRO / TEAM:本機能のみの月次上限 `IDEA_VALIDATION_MAX_PER_MONTH_PRO`(30 回)
+   *
+   * PRODUCT_DIAGNOSIS よりやや少なめの 30 回設定(発案 → Pivot → 再検証ループ想定でも十分)。
+   */
+  async assertWithinValidationQuota(tenant: { id: string; plan: Plan }): Promise<void> {
+    if (tenant.plan === Plan.FREE) {
+      throw new ForbiddenException(
+        'アイデア検証は Pro / Team プラン限定の機能です。Pro へのアップグレードが必要です。',
+      );
+    }
+    const used = await this.prisma.aIUsage.count({
+      where: {
+        tenantId: tenant.id,
+        createdAt: { gte: startOfMonthUtc() },
+        feature: Feature.IDEA_VALIDATION,
+      },
+    });
+    if (used >= IDEA_VALIDATION_MAX_PER_MONTH_PRO) {
+      throw new ForbiddenException(
+        `アイデア検証の月次実行回数上限(${IDEA_VALIDATION_MAX_PER_MONTH_PRO} 回)に達しました。翌月リセットされます。`,
+      );
+    }
   }
 
   /** AI 呼び出し 1 回分をテナント単位で記録する。 */
