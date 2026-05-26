@@ -9,6 +9,7 @@ import type {
   CreateWorkspaceResult,
   DocType,
   GeneratableDocType,
+  IdeaValidation,
   ItemStatus,
   LandingPage,
   LpBlock,
@@ -21,6 +22,7 @@ import type {
   PublicLandingPage,
   RagQaSession,
   RagQaSessionDetail,
+  ServiceScore,
   Workspace,
 } from './types';
 
@@ -97,6 +99,11 @@ export async function createProject(
     description?: string;
     status?: ProjectStatus;
     launchDate?: string;
+    /** ADR-013 改訂版「2 モード化」 の詳細情報フィールド(IDEA 新規作成時の入力)。 */
+    targetUsers?: string;
+    problemStatement?: string;
+    proposedFeatures?: string;
+    pricingModel?: string;
   },
 ): Promise<Project> {
   return apiFetch<Project>(`/workspaces/${encodeURIComponent(slug)}/projects`, {
@@ -139,6 +146,11 @@ export async function updateProject(
     description?: string | null;
     status?: ProjectStatus;
     launchDate?: string | null;
+    /** ADR-013 改訂版「2 モード化」 の詳細情報フィールド(null で列クリア)。 */
+    targetUsers?: string | null;
+    problemStatement?: string | null;
+    proposedFeatures?: string | null;
+    pricingModel?: string | null;
   },
 ): Promise<Project> {
   return apiFetch<Project>(
@@ -585,6 +597,97 @@ export const fetchPublicLandingPage = cache(
       return await apiFetch<PublicLandingPage>(
         `/public/landing-pages/${encodeURIComponent(slug)}/${encodeURIComponent(projectId)}`,
         { skipAuth: true },
+      );
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return null;
+      throw e;
+    }
+  },
+);
+
+// ============================================================================
+// PRODUCT_DIAGNOSIS / IDEA_VALIDATION(ADR-013 + 改訂版「2 モード化」)
+// ============================================================================
+
+/**
+ * `POST /workspaces/:slug/projects/:projectId/diagnoses`
+ *
+ * プロダクト診断を新規実行(Sonnet 4 + Web Search Tool + Tool Use、30-60 秒)。
+ * Pro/Team プラン限定、Free フォールバック状態は 403。月次上限到達も 403。
+ */
+export async function runDiagnosis(
+  slug: string,
+  projectId: string,
+  instructions?: string,
+): Promise<ServiceScore> {
+  return apiFetch<ServiceScore>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/diagnoses`,
+    {
+      method: 'POST',
+      body: JSON.stringify(instructions?.trim() ? { instructions: instructions.trim() } : {}),
+    },
+  );
+}
+
+/** `GET /workspaces/:slug/projects/:projectId/diagnoses` — 履歴一覧(新しい順)。 */
+export async function listDiagnoses(slug: string, projectId: string): Promise<ServiceScore[]> {
+  return apiFetch<ServiceScore[]>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/diagnoses`,
+  );
+}
+
+/** `GET /workspaces/:slug/projects/:projectId/diagnoses/:id` — 詳細取得。不在 / 他テナント = 404 → null。 */
+export const fetchDiagnosis = cache(
+  async (slug: string, projectId: string, id: string): Promise<ServiceScore | null> => {
+    try {
+      return await apiFetch<ServiceScore>(
+        `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/diagnoses/${encodeURIComponent(id)}`,
+      );
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return null;
+      throw e;
+    }
+  },
+);
+
+/**
+ * `POST /workspaces/:slug/projects/:projectId/idea-validations`
+ *
+ * アイデア検証を新規実行(Sonnet 4 + Web Search Tool + Tool Use、30-60 秒)。
+ * Pro/Team プラン限定、Free フォールバック 403。
+ * Project の詳細情報フィールド(targetUsers / problemStatement / proposedFeatures / pricingModel / description)が
+ * すべて空の場合は 400(編集画面で入力を促す)。
+ */
+export async function runIdeaValidation(
+  slug: string,
+  projectId: string,
+  instructions?: string,
+): Promise<IdeaValidation> {
+  return apiFetch<IdeaValidation>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/idea-validations`,
+    {
+      method: 'POST',
+      body: JSON.stringify(instructions?.trim() ? { instructions: instructions.trim() } : {}),
+    },
+  );
+}
+
+/** `GET /workspaces/:slug/projects/:projectId/idea-validations` — 履歴一覧(新しい順)。 */
+export async function listIdeaValidations(
+  slug: string,
+  projectId: string,
+): Promise<IdeaValidation[]> {
+  return apiFetch<IdeaValidation[]>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/idea-validations`,
+  );
+}
+
+/** `GET /workspaces/:slug/projects/:projectId/idea-validations/:id` — 詳細取得。不在 / 他テナント = 404 → null。 */
+export const fetchIdeaValidation = cache(
+  async (slug: string, projectId: string, id: string): Promise<IdeaValidation | null> => {
+    try {
+      return await apiFetch<IdeaValidation>(
+        `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/idea-validations/${encodeURIComponent(id)}`,
       );
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) return null;

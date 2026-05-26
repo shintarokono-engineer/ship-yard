@@ -14,7 +14,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { PROJECT_STATUSES, PROJECT_STATUS_META } from '@/lib/api/types';
 
 import { FormField } from './form-field';
-import { DESCRIPTION_MAX_LENGTH, NAME_MAX_LENGTH, type ProjectFormState } from './project-form';
+import {
+  DESCRIPTION_MAX_LENGTH,
+  NAME_MAX_LENGTH,
+  PRICING_MODEL_MAX_LENGTH,
+  PROBLEM_STATEMENT_MAX_LENGTH,
+  PROPOSED_FEATURES_MAX_LENGTH,
+  TARGET_USERS_MAX_LENGTH,
+  type ProjectFormState,
+} from './project-form';
 
 /**
  * プロジェクト作成 / 編集ダイアログで共通利用する入力フィールド一式。
@@ -32,12 +40,26 @@ export function ProjectFormFields({
   variant = 'full',
 }: {
   state: ProjectFormState;
-  defaults?: { name?: string; description?: string; status?: string };
+  defaults?: {
+    name?: string;
+    description?: string;
+    status?: string;
+    targetUsers?: string;
+    problemStatement?: string;
+    proposedFeatures?: string;
+    pricingModel?: string;
+  };
   variant?: 'full' | 'name-only';
 }) {
   const initialName = state.fields?.name ?? defaults?.name ?? '';
   const initialDescription = state.fields?.description ?? defaults?.description ?? '';
   const initialStatus = state.fields?.status ?? defaults?.status ?? 'IDEA';
+  const initialTargetUsers = state.fields?.targetUsers ?? defaults?.targetUsers ?? '';
+  const initialProblemStatement =
+    state.fields?.problemStatement ?? defaults?.problemStatement ?? '';
+  const initialProposedFeatures =
+    state.fields?.proposedFeatures ?? defaults?.proposedFeatures ?? '';
+  const initialPricingModel = state.fields?.pricingModel ?? defaults?.pricingModel ?? '';
 
   const [nameLength, setNameLength] = useState(initialName.length);
   const [descriptionLength, setDescriptionLength] = useState(initialDescription.length);
@@ -45,6 +67,21 @@ export function ProjectFormFields({
   const nameErrors = state.fieldErrors?.name;
   const descriptionErrors = state.fieldErrors?.description;
   const statusErrors = state.fieldErrors?.status;
+  const targetUsersErrors = state.fieldErrors?.targetUsers;
+  const problemStatementErrors = state.fieldErrors?.problemStatement;
+  const proposedFeaturesErrors = state.fieldErrors?.proposedFeatures;
+  const pricingModelErrors = state.fieldErrors?.pricingModel;
+
+  // 詳細フィールドにエラー or 既存値がある場合は初期 open(ユーザーが気づきやすい)
+  const briefHasContent =
+    !!initialTargetUsers ||
+    !!initialProblemStatement ||
+    !!initialProposedFeatures ||
+    !!initialPricingModel ||
+    !!targetUsersErrors ||
+    !!problemStatementErrors ||
+    !!proposedFeaturesErrors ||
+    !!pricingModelErrors;
 
   const nameOnly = variant === 'name-only';
 
@@ -118,6 +155,98 @@ export function ProjectFormFields({
               </SelectContent>
             </Select>
           </FormField>
+
+          {/*
+            ADR-013 改訂版「2 モード化」 の詳細情報フィールド 4 つを `<details>` アコーディオンに格納。
+            アイデア検証(IDEA 状態)/ プロダクト診断(IN_DEV 以降)の入力源として AI が読む。
+            診断時にフォーム入力させるのではなく、ここで一度入力 → AI 側は保存済データを読むだけ、
+            という UX 設計(diagnoses / idea-validations の各ページからはこのアコーディオンの編集を促す)。
+          */}
+          <details className="bg-muted/30 group rounded-md border" open={briefHasContent}>
+            <summary className="hover:bg-muted/50 cursor-pointer rounded-md px-3 py-2 text-sm font-medium select-none">
+              詳細情報(アイデア検証 / プロダクト診断の入力源、任意)
+            </summary>
+            <div className="space-y-4 border-t px-3 py-3">
+              <FormField id="targetUsers" label="想定ユーザー" errors={targetUsersErrors}>
+                <Textarea
+                  id="targetUsers"
+                  name="targetUsers"
+                  rows={2}
+                  aria-invalid={
+                    targetUsersErrors && targetUsersErrors.length > 0 ? 'true' : undefined
+                  }
+                  aria-describedby={
+                    targetUsersErrors && targetUsersErrors.length > 0
+                      ? 'targetUsers-error'
+                      : undefined
+                  }
+                  maxLength={TARGET_USERS_MAX_LENGTH}
+                  placeholder="例: リモートワーカー、副業/独立を視野に入れた個人開発エンジニア"
+                  defaultValue={initialTargetUsers}
+                />
+              </FormField>
+
+              <FormField id="problemStatement" label="解きたい課題" errors={problemStatementErrors}>
+                <Textarea
+                  id="problemStatement"
+                  name="problemStatement"
+                  rows={3}
+                  aria-invalid={
+                    problemStatementErrors && problemStatementErrors.length > 0 ? 'true' : undefined
+                  }
+                  aria-describedby={
+                    problemStatementErrors && problemStatementErrors.length > 0
+                      ? 'problemStatement-error'
+                      : undefined
+                  }
+                  maxLength={PROBLEM_STATEMENT_MAX_LENGTH}
+                  placeholder="例: 集中阻害要因の可視化機能を持つタイマーアプリが少ない"
+                  defaultValue={initialProblemStatement}
+                />
+              </FormField>
+
+              <FormField
+                id="proposedFeatures"
+                label="想定機能(Markdown 可)"
+                errors={proposedFeaturesErrors}
+              >
+                <Textarea
+                  id="proposedFeatures"
+                  name="proposedFeatures"
+                  rows={4}
+                  aria-invalid={
+                    proposedFeaturesErrors && proposedFeaturesErrors.length > 0 ? 'true' : undefined
+                  }
+                  aria-describedby={
+                    proposedFeaturesErrors && proposedFeaturesErrors.length > 0
+                      ? 'proposedFeatures-error'
+                      : undefined
+                  }
+                  maxLength={PROPOSED_FEATURES_MAX_LENGTH}
+                  placeholder={'- ポモドーロタイマー\n- 中断ログ\n- 週次レポート'}
+                  defaultValue={initialProposedFeatures}
+                />
+              </FormField>
+
+              <FormField id="pricingModel" label="想定価格モデル" errors={pricingModelErrors}>
+                <Input
+                  id="pricingModel"
+                  name="pricingModel"
+                  aria-invalid={
+                    pricingModelErrors && pricingModelErrors.length > 0 ? 'true' : undefined
+                  }
+                  aria-describedby={
+                    pricingModelErrors && pricingModelErrors.length > 0
+                      ? 'pricingModel-error'
+                      : undefined
+                  }
+                  maxLength={PRICING_MODEL_MAX_LENGTH}
+                  placeholder="例: Free / Pro ¥980 月 / Team ¥2,800 人月"
+                  defaultValue={initialPricingModel}
+                />
+              </FormField>
+            </div>
+          </details>
         </>
       )}
 

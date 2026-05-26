@@ -17,8 +17,22 @@ export const NAME_MAX_LENGTH = 100;
 /** description の最大長(apps/api `CreateProjectDto` / `UpdateProjectDto` と一致)。 */
 export const DESCRIPTION_MAX_LENGTH = 20_000;
 
-/** バリデーション対象フィールド。 */
-export const FORM_FIELDS = ['name', 'description', 'status'] as const;
+/** ADR-013 改訂版「2 モード化」 の詳細情報フィールドの最大長(apps/api DTO と一致)。 */
+export const TARGET_USERS_MAX_LENGTH = 2_000;
+export const PROBLEM_STATEMENT_MAX_LENGTH = 2_000;
+export const PROPOSED_FEATURES_MAX_LENGTH = 5_000;
+export const PRICING_MODEL_MAX_LENGTH = 500;
+
+/** バリデーション対象フィールド(ADR-013 改訂版で詳細情報フィールド 4 つを追加)。 */
+export const FORM_FIELDS = [
+  'name',
+  'description',
+  'status',
+  'targetUsers',
+  'problemStatement',
+  'proposedFeatures',
+  'pricingModel',
+] as const;
 export type FieldName = (typeof FORM_FIELDS)[number];
 
 /**
@@ -33,7 +47,15 @@ export interface ProjectFormState {
   ok: boolean;
   fieldErrors?: Partial<Record<FieldName, string[]>>;
   formError?: string;
-  fields?: { name?: string; description?: string; status?: string };
+  fields?: {
+    name?: string;
+    description?: string;
+    status?: string;
+    targetUsers?: string;
+    problemStatement?: string;
+    proposedFeatures?: string;
+    pricingModel?: string;
+  };
 }
 
 /** ダイアログ初期表示用の空 state(各ダイアログから参照する)。 */
@@ -47,9 +69,25 @@ export const INITIAL_PROJECT_FORM_STATE: ProjectFormState = { ok: false };
  * - `fields` は再表示用のスナップショット(成功時も失敗時もそのまま入力欄に戻せる)
  */
 export function parseProjectFormData(formData: FormData): {
-  data: { name: string; description: string; status: ProjectStatus | undefined } | null;
+  data: {
+    name: string;
+    description: string;
+    status: ProjectStatus | undefined;
+    targetUsers: string;
+    problemStatement: string;
+    proposedFeatures: string;
+    pricingModel: string;
+  } | null;
   fieldErrors: Partial<Record<FieldName, string[]>>;
-  fields: { name: string; description: string; status: string };
+  fields: {
+    name: string;
+    description: string;
+    status: string;
+    targetUsers: string;
+    problemStatement: string;
+    proposedFeatures: string;
+    pricingModel: string;
+  };
 } {
   const name = String(formData.get('name') ?? '').trim();
   const description = String(formData.get('description') ?? '').trim();
@@ -57,6 +95,10 @@ export function parseProjectFormData(formData: FormData): {
   const status = (PROJECT_STATUSES as readonly string[]).includes(statusRaw)
     ? (statusRaw as ProjectStatus)
     : undefined;
+  const targetUsers = String(formData.get('targetUsers') ?? '').trim();
+  const problemStatement = String(formData.get('problemStatement') ?? '').trim();
+  const proposedFeatures = String(formData.get('proposedFeatures') ?? '').trim();
+  const pricingModel = String(formData.get('pricingModel') ?? '').trim();
 
   const fieldErrors: Partial<Record<FieldName, string[]>> = {};
   if (name.length === 0) {
@@ -75,13 +117,61 @@ export function parseProjectFormData(formData: FormData): {
       `概要は ${DESCRIPTION_MAX_LENGTH} 文字以内で入力してください。`,
     );
   }
+  if (targetUsers.length > TARGET_USERS_MAX_LENGTH) {
+    pushFieldError(
+      fieldErrors,
+      'targetUsers',
+      `想定ユーザーは ${TARGET_USERS_MAX_LENGTH} 文字以内で入力してください。`,
+    );
+  }
+  if (problemStatement.length > PROBLEM_STATEMENT_MAX_LENGTH) {
+    pushFieldError(
+      fieldErrors,
+      'problemStatement',
+      `解きたい課題は ${PROBLEM_STATEMENT_MAX_LENGTH} 文字以内で入力してください。`,
+    );
+  }
+  if (proposedFeatures.length > PROPOSED_FEATURES_MAX_LENGTH) {
+    pushFieldError(
+      fieldErrors,
+      'proposedFeatures',
+      `想定機能は ${PROPOSED_FEATURES_MAX_LENGTH} 文字以内で入力してください。`,
+    );
+  }
+  if (pricingModel.length > PRICING_MODEL_MAX_LENGTH) {
+    pushFieldError(
+      fieldErrors,
+      'pricingModel',
+      `想定価格モデルは ${PRICING_MODEL_MAX_LENGTH} 文字以内で入力してください。`,
+    );
+  }
 
-  const fields = { name, description, status: statusRaw };
+  const fields = {
+    name,
+    description,
+    status: statusRaw,
+    targetUsers,
+    problemStatement,
+    proposedFeatures,
+    pricingModel,
+  };
 
   if (Object.keys(fieldErrors).length > 0) {
     return { data: null, fieldErrors, fields };
   }
-  return { data: { name, description, status }, fieldErrors, fields };
+  return {
+    data: {
+      name,
+      description,
+      status,
+      targetUsers,
+      problemStatement,
+      proposedFeatures,
+      pricingModel,
+    },
+    fieldErrors,
+    fields,
+  };
 }
 
 /** `fieldErrors` への push ヘルパー。 */

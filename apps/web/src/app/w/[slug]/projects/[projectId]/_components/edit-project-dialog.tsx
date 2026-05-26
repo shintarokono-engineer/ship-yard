@@ -64,6 +64,10 @@ export function EditProjectDialog({ slug, project }: { slug: string; project: Pr
                 name: project.name,
                 description: project.description ?? '',
                 status: project.status,
+                targetUsers: project.targetUsers ?? '',
+                problemStatement: project.problemStatement ?? '',
+                proposedFeatures: project.proposedFeatures ?? '',
+                pricingModel: project.pricingModel ?? '',
               }}
             />
           </div>

@@ -1,6 +1,14 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronLeft, FileText, LayoutTemplate, ListChecks, MessageCircle } from 'lucide-react';
+import {
+  ChevronLeft,
+  FileText,
+  Gauge,
+  LayoutTemplate,
+  Lightbulb,
+  ListChecks,
+  MessageCircle,
+} from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -177,6 +185,58 @@ export default async function ProjectDetailPage({
             </CardContent>
           </Card>
         </Link>
+
+        {/*
+          ADR-013 改訂版「2 モード化」:
+          - status=IDEA       → 「アイデア検証」 Card(IdeaValidation)
+          - status=IN_DEV 以降 → 「プロダクト診断」 Card(ServiceScore)
+          両 Card は同時には出さない(機能を分けて UX を明確にする ADR-013 改訂版の意図)。
+        */}
+        {project.status === 'IDEA' ? (
+          <Link
+            href={`/w/${slug}/projects/${projectId}/idea-validations`}
+            className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
+          >
+            <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Lightbulb className="text-primary size-4" aria-hidden="true" />
+                  アイデア検証
+                  <Badge variant="outline" className="ml-auto text-[10px] font-normal">
+                    Pro / Team
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  AI が実競合と比較して Go / Pivot / No-Go を判定します。発案段階の方向性検証に。
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+        ) : (
+          <Link
+            href={`/w/${slug}/projects/${projectId}/diagnoses`}
+            className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
+          >
+            <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Gauge className="text-primary size-4" aria-hidden="true" />
+                  プロダクト診断
+                  <Badge variant="outline" className="ml-auto text-[10px] font-normal">
+                    Pro / Team
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  AI が実競合と比較してプロダクトの実用性を 100 点満点でスコア化します。
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+        )}
       </div>
     </div>
   );

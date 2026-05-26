@@ -266,6 +266,14 @@ export interface Project {
   description: string | null;
   status: ProjectStatus;
   launchDate: string | null;
+  /** 想定ユーザー(ADR-013 改訂版「2 モード化」、アイデア検証 + プロダクト診断で参照)。 */
+  targetUsers: string | null;
+  /** 解きたい課題(ADR-013 改訂版)。 */
+  problemStatement: string | null;
+  /** 想定機能リスト(Markdown 可、ADR-013 改訂版)。 */
+  proposedFeatures: string | null;
+  /** 想定価格モデル(ADR-013 改訂版)。 */
+  pricingModel: string | null;
   createdById: string;
   createdAt: string;
   updatedAt: string;
@@ -453,6 +461,8 @@ export const FEATURES = [
   'RAG_QA',
   'CHECKLIST_GEN',
   'REFINE_DOC',
+  'PRODUCT_DIAGNOSIS',
+  'IDEA_VALIDATION',
   'OTHER',
 ] as const;
 export type Feature = (typeof FEATURES)[number];
@@ -470,6 +480,8 @@ export const FEATURE_META: Record<Feature, { label: string }> = {
   RAG_QA: { label: 'AI 壁打ち' },
   CHECKLIST_GEN: { label: 'チェックリスト生成' },
   REFINE_DOC: { label: '文章推敲' },
+  PRODUCT_DIAGNOSIS: { label: 'プロダクト診断' },
+  IDEA_VALIDATION: { label: 'アイデア検証' },
   OTHER: { label: 'その他' },
 };
 
@@ -596,3 +608,140 @@ export interface PublicLandingPage {
   /** 公開日時(ISO8601)。 */
   publishedAt: string;
 }
+
+// ============================================================================
+// PRODUCT_DIAGNOSIS / IDEA_VALIDATION(ADR-013 + 改訂版「2 モード化」)
+// ============================================================================
+
+/** プロダクト診断(PRODUCT_DIAGNOSIS)の評価軸。各 0-20 点 × 5 軸 = 100 点満点。 */
+export const DIAGNOSIS_AXES = [
+  'differentiation',
+  'targetClarity',
+  'featureCompleteness',
+  'releaseReadiness',
+  'competitiveAdvantage',
+] as const;
+export type DiagnosisAxis = (typeof DIAGNOSIS_AXES)[number];
+
+/** アイデア検証(IDEA_VALIDATION)の評価軸。各 0-20 点 × 5 軸 = 100 点満点。 */
+export const VALIDATION_AXES = [
+  'problemClarity',
+  'targetClarity',
+  'differentiation',
+  'competitiveAdvantage',
+  'marketPotential',
+] as const;
+export type ValidationAxis = (typeof VALIDATION_AXES)[number];
+
+/** アイデア検証の意思決定支援値。LLM が rubric に従って GO/PIVOT/NO_GO を判定。 */
+export const VALIDATION_RECOMMENDATIONS = ['GO', 'PIVOT', 'NO_GO'] as const;
+export type ValidationRecommendation = (typeof VALIDATION_RECOMMENDATIONS)[number];
+
+/** 各軸の日本語ラベル(プロダクト診断)。レーダーチャート / 棒グラフ表示用。 */
+export const DIAGNOSIS_AXIS_LABEL: Record<DiagnosisAxis, string> = {
+  differentiation: '差別化',
+  targetClarity: 'ターゲット明確性',
+  featureCompleteness: '機能完成度',
+  releaseReadiness: 'リリース準備度',
+  competitiveAdvantage: '競合優位性',
+};
+
+/** 各軸の日本語ラベル(アイデア検証)。 */
+export const VALIDATION_AXIS_LABEL: Record<ValidationAxis, string> = {
+  problemClarity: '問題明確性',
+  targetClarity: 'ターゲット明確性',
+  differentiation: '差別化',
+  competitiveAdvantage: '競合優位性',
+  marketPotential: '市場性',
+};
+
+/** recommendation の表示メタ(色 + 日本語ラベル + アクション説明)。 */
+export const VALIDATION_RECOMMENDATION_META: Record<
+  ValidationRecommendation,
+  { label: string; description: string; tone: 'positive' | 'neutral' | 'negative' }
+> = {
+  GO: { label: 'GO', description: '明確に進めるべきアイデア', tone: 'positive' },
+  PIVOT: { label: 'PIVOT', description: '方向修正で改善余地あり', tone: 'neutral' },
+  NO_GO: { label: 'NO_GO', description: '根本的に再検討推奨', tone: 'negative' },
+};
+
+/** 5 軸ブレークダウン(プロダクト診断 / アイデア検証 で共通の構造)。 */
+export type ScoreBreakdown<A extends string = string> = Record<
+  A,
+  { score: number; comment: string }
+>;
+
+/** 改善提案 1 件。優先度 + どの軸を改善するかを紐付け。 */
+export interface Suggestion<A extends string = string> {
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  /** 提案のタイトル(1 行、60 文字以内)。 */
+  title: string;
+  /** 提案の詳細(Markdown 可、500 文字以内)。 */
+  body: string;
+  /** どの軸を改善するか(DiagnosisAxis または ValidationAxis)。 */
+  axis: A;
+}
+
+/** 競合プロダクトのスナップショット(Web Search で取得した実競合の参照)。 */
+export interface CompetitorRef {
+  name: string;
+  /** 公式 URL(safeHref で javascript: 等を無害化、ADR-009 / 013 パターン)。 */
+  url: string;
+  /** Web Search で取得した概要(300 文字以内に切り詰め済)。 */
+  summary: string;
+  /** 本プロダクトとの類似性メモ(Sonnet が生成、200 文字以内)。 */
+  similarityNote: string;
+}
+
+/** プロダクト診断の結果(`GET /workspaces/:slug/projects/:projectId/diagnoses/:id` 等)。 */
+export interface ServiceScore {
+  id: string;
+  tenantId: string;
+  projectId: string;
+  /** 総合スコア(0-100、breakdown 合計と整合性アサート済)。 */
+  totalScore: number;
+  /** 5 軸ブレークダウン。 */
+  breakdown: ScoreBreakdown<DiagnosisAxis>;
+  /** 改善提案 3-5 件。 */
+  suggestions: Suggestion<DiagnosisAxis>[];
+  /** 競合参照 0-5 件(Web Search 失敗時 / 無効時は空配列)。 */
+  competitorRefs: CompetitorRef[];
+  /** Web Search Tool を使ったか(LLM 知識ベース fallback 時は false)。 */
+  webSearchUsed: boolean;
+  /** 使用したモデル ID(AI_MODEL_SONNET の値)。 */
+  modelUsed: string;
+  createdById: string;
+  /** 診断実行日時(ISO8601、履歴比較の主軸)。 */
+  createdAt: string;
+}
+
+/** アイデア検証の結果(`GET /workspaces/:slug/projects/:projectId/idea-validations/:id` 等)。 */
+export interface IdeaValidation {
+  id: string;
+  tenantId: string;
+  projectId: string;
+  /** 総合スコア(0-100、breakdown 合計と整合性アサート済)。 */
+  totalScore: number;
+  /** Lean Startup 意思決定支援('GO' | 'PIVOT' | 'NO_GO')。 */
+  recommendation: ValidationRecommendation;
+  /** 5 軸ブレークダウン(アイデア段階固有の軸)。 */
+  breakdown: ScoreBreakdown<ValidationAxis>;
+  /** 改善提案 3-5 件(Pivot 候補 / ターゲット絞り込み系が中心)。 */
+  suggestions: Suggestion<ValidationAxis>[];
+  /** 競合参照 0-5 件。 */
+  competitorRefs: CompetitorRef[];
+  webSearchUsed: boolean;
+  modelUsed: string;
+  createdById: string;
+  createdAt: string;
+}
+
+/** suggestion.priority の表示メタ(色 + ラベル、UI のバッジで使う)。 */
+export const SUGGESTION_PRIORITY_META: Record<
+  Suggestion['priority'],
+  { label: string; tone: 'negative' | 'neutral' | 'positive' }
+> = {
+  HIGH: { label: 'HIGH', tone: 'negative' },
+  MEDIUM: { label: 'MEDIUM', tone: 'neutral' },
+  LOW: { label: 'LOW', tone: 'positive' },
+};
