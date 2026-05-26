@@ -16,7 +16,7 @@ export type { AskMessageFormState } from '../_shared/ask-message-form';
  *
  * 成功時はチャット画面を revalidate し、Server Component 側が最新のメッセージ履歴を
  * 再取得する(楽観表示していた質問は実データに置き換わる)。生成結果そのものは
- * state に載せない(revalidate で取得するため)。Free プランは月 20 回上限。
+ * state に載せない(revalidate で取得するため)。プラン別 AI クレジット上限を消費(ADR-012)。
  */
 export async function askMessageAction(
   slug: string,

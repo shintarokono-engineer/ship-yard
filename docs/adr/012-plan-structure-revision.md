@@ -194,22 +194,22 @@ Week 6(MVP リリース)に全部入れず、3 段階に分けてリリースす
 
 #### ズレが起こる経路(write 同期だけでは塞ぎきれない)
 
-| # | きっかけ | 結果 | 第 1 層で防げるか |
-| --- | --- | --- | --- |
-| 1 | 招待承諾 | TenantMember 増 | ✅ |
-| 2 | メンバー退会・削除 | TenantMember 減 | ✅(同経路で実装する) |
-| 3 | 顧客が Stripe Customer Portal で seat 変更 | Stripe Quantity 増減 | ⚠ Webhook 受信後の eventual consistency |
-| 4 | Stripe Webhook の遅延・取りこぼし | 内部ミラーが古い | ❌ |
-| 5 | 招待承諾の同時実行(race condition)| check-then-act で 1 件超過 | ⚠ advisory lock 等が要る |
-| 6 | DB マイグレーション・運用作業で直接 SQL | TenantMember 直接変更 | ❌ |
+| #   | きっかけ                                   | 結果                       | 第 1 層で防げるか                       |
+| --- | ------------------------------------------ | -------------------------- | --------------------------------------- |
+| 1   | 招待承諾                                   | TenantMember 増            | ✅                                      |
+| 2   | メンバー退会・削除                         | TenantMember 減            | ✅(同経路で実装する)                    |
+| 3   | 顧客が Stripe Customer Portal で seat 変更 | Stripe Quantity 増減       | ⚠ Webhook 受信後の eventual consistency |
+| 4   | Stripe Webhook の遅延・取りこぼし          | 内部ミラーが古い           | ❌                                      |
+| 5   | 招待承諾の同時実行(race condition)         | check-then-act で 1 件超過 | ⚠ advisory lock 等が要る                |
+| 6   | DB マイグレーション・運用作業で直接 SQL    | TenantMember 直接変更      | ❌                                      |
 
 #### 3 段防御
 
-| 層 | 役割 | 実装タイミング |
-| --- | --- | --- |
-| **第 1 層(Write 同期)** | 招待承諾・退会で Stripe `subscription.update({ quantity })` を Saga パターンで同期。Stripe 成功 → DB tx commit、Stripe 失敗 → DB tx rollback | MVP リリース時(Day 49 前後)|
-| **第 2 層(Read 制限)** | AI クレジット計算を `Subscription.quantity`(Stripe ミラー)由来に切替。ズレが残っても「課金 seat × 800 cr」が上限のため経済的暴走を遮断 | MVP リリース時(同上) |
-| **第 3 層(Reconciliation)** | 日次バッチで Stripe Quantity と TenantMember.count を突合、ズレ検出 → Slack 通知 + 自動補正可能なら補正、無理なら運用判断 | v1.x |
+| 層                          | 役割                                                                                                                                         | 実装タイミング              |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| **第 1 層(Write 同期)**     | 招待承諾・退会で Stripe `subscription.update({ quantity })` を Saga パターンで同期。Stripe 成功 → DB tx commit、Stripe 失敗 → DB tx rollback | MVP リリース時(Day 49 前後) |
+| **第 2 層(Read 制限)**      | AI クレジット計算を `Subscription.quantity`(Stripe ミラー)由来に切替。ズレが残っても「課金 seat × 800 cr」が上限のため経済的暴走を遮断       | MVP リリース時(同上)        |
+| **第 3 層(Reconciliation)** | 日次バッチで Stripe Quantity と TenantMember.count を突合、ズレ検出 → Slack 通知 + 自動補正可能なら補正、無理なら運用判断                    | v1.x                        |
 
 #### 具体的な作業内容(MVP リリース時)
 
