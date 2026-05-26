@@ -69,6 +69,7 @@ RAG_QA RAG_QA
 CHECKLIST_GEN CHECKLIST_GEN
 REFINE_DOC REFINE_DOC
 PRODUCT_DIAGNOSIS PRODUCT_DIAGNOSIS
+IDEA_VALIDATION IDEA_VALIDATION
 OTHER OTHER
         }
     
@@ -126,6 +127,10 @@ RETRYING RETRYING
     String id "🗝️"
     String name 
     String description "❓"
+    String targetUsers "❓"
+    String problemStatement "❓"
+    String proposedFeatures "❓"
+    String pricingModel "❓"
     ProjectStatus status 
     DateTime launchDate "❓"
     String createdById 
@@ -171,6 +176,19 @@ RETRYING RETRYING
   "ServiceScore" {
     String id "🗝️"
     Int totalScore 
+    Json breakdown 
+    Json suggestions 
+    Json competitorRefs 
+    Boolean webSearchUsed 
+    String modelUsed 
+    DateTime createdAt 
+    }
+  
+
+  "IdeaValidation" {
+    String id "🗝️"
+    Int totalScore 
+    String recommendation 
     Json breakdown 
     Json suggestions 
     Json competitorRefs 
@@ -263,6 +281,9 @@ RETRYING RETRYING
     "ServiceScore" }o--|| "Tenant" : "tenant"
     "ServiceScore" }o--|| "Project" : "project"
     "ServiceScore" }o--|| "User" : "createdBy"
+    "IdeaValidation" }o--|| "Tenant" : "tenant"
+    "IdeaValidation" }o--|| "Project" : "project"
+    "IdeaValidation" }o--|| "User" : "createdBy"
     "AIUsage" |o--|| "Feature" : "enum:feature"
     "AIUsage" }o--|| "Tenant" : "tenant"
     "AIUsage" }o--|| "User" : "user"

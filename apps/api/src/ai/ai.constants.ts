@@ -125,3 +125,27 @@ export const PRODUCT_DIAGNOSIS_TEMPERATURE = 0.2;
  * 月次上限の対象外(`assertWithinDiagnosisQuota` で先に弾く)。
  */
 export const PRODUCT_DIAGNOSIS_MAX_PER_MONTH_PRO = 50;
+
+/**
+ * IDEA_VALIDATION(アイデア検証、ADR-013 改訂版)の Anthropic API `max_tokens`。
+ * PRODUCT_DIAGNOSIS と同設計(5 軸 × 各 200 文字 + 改善提案 5 件 × 各 500 文字 + 競合 5 件 × 各 300 文字 + 余裕)。
+ */
+export const IDEA_VALIDATION_MAX_TOKENS = 4096;
+
+/**
+ * IDEA_VALIDATION の Anthropic API `temperature`(ADR-013 改訂版)。
+ * デフォルト 1.0 だとスコアのブレが大きいため、PRODUCT_DIAGNOSIS と同じく 0.2 に固定。
+ */
+export const IDEA_VALIDATION_TEMPERATURE = 0.2;
+
+/**
+ * IDEA_VALIDATION の Pro / Team / トライアル中の月次実行回数上限(ADR-013 改訂版、MVP の暴走防止枠)。
+ *
+ * アイデア検証は「発案 → Pivot 検討 → 再検証」 のループを想定するため、PRODUCT_DIAGNOSIS よりやや
+ * 多めの 30 回/月。1 回 5〜15 円 × 30 ≒ 月 450 円が Pro ARPU(¥1,480、ADR-012)に収まる水準。
+ * v1.0.1 で AI クレジット制(3 cr/回)に移行する際は本定数を削除し、`AIUsage.credits` ベースの
+ * チェックに置き換える(ADR-012 §段階的実装と同期)。
+ *
+ * Free フォールバック状態は本機能の実行自体を 403 で弾くため月次上限の対象外。
+ */
+export const IDEA_VALIDATION_MAX_PER_MONTH_PRO = 30;

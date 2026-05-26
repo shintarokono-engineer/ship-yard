@@ -23,6 +23,8 @@ import { ChecklistController } from './checklist/checklist.controller';
 import { ChecklistService } from './checklist/checklist.service';
 import { DocumentsController } from './documents/documents.controller';
 import { DocumentsService } from './documents/documents.service';
+import { IdeaValidationController } from './idea-validation/idea-validation.controller';
+import { IdeaValidationService } from './idea-validation/idea-validation.service';
 import { InvitationsController } from './invitations/invitations.controller';
 import { InvitationsService } from './invitations/invitations.service';
 import { PublicInvitationsController } from './invitations/public-invitations.controller';
@@ -72,6 +74,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     LandingPageController,
     PublicLandingPageController,
     ProductDiagnosisController,
+    IdeaValidationController,
     InvitationsController,
     PublicInvitationsController,
     MembersController,
@@ -97,6 +100,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     LandingPageService,
     LpGenService,
     ProductDiagnosisService,
+    IdeaValidationService,
   ],
 })
 export class AppModule implements NestModule {
