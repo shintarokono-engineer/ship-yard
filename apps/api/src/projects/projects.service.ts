@@ -14,6 +14,11 @@ const PROJECT_SELECT = {
   description: true,
   status: true,
   launchDate: true,
+  // ADR-013 改訂版「2 モード化」 で追加。アイデア検証 + プロダクト診断の入力源。
+  targetUsers: true,
+  problemStatement: true,
+  proposedFeatures: true,
+  pricingModel: true,
   createdById: true,
   createdAt: true,
   updatedAt: true,
@@ -55,6 +60,10 @@ export class ProjectsService {
         description: dto.description,
         status: dto.status,
         launchDate: this.toLaunchDate(dto.launchDate),
+        targetUsers: dto.targetUsers,
+        problemStatement: dto.problemStatement,
+        proposedFeatures: dto.proposedFeatures,
+        pricingModel: dto.pricingModel,
       },
       select: PROJECT_DETAIL_SELECT,
     });
@@ -97,6 +106,10 @@ export class ProjectsService {
           description: dto.description,
           status: dto.status,
           launchDate: this.toLaunchDate(dto.launchDate),
+          targetUsers: dto.targetUsers,
+          problemStatement: dto.problemStatement,
+          proposedFeatures: dto.proposedFeatures,
+          pricingModel: dto.pricingModel,
         },
         select: PROJECT_DETAIL_SELECT,
       });

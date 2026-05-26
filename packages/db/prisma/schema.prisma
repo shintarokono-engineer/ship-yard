@@ -119,7 +119,8 @@ enum DocType {
 
 /// AI 利用機能の種別(AIUsage の集計軸、ADR-005)
 enum Feature {
-  /// 競合調査(Web Search Tool 併用、Sonnet 4)
+  /// @deprecated ADR-013 で PRODUCT_DIAGNOSIS に統合済(新規実装では PRODUCT_DIAGNOSIS を使う)。
+  /// PostgreSQL の `ALTER TYPE DROP VALUE` 非サポートのため schema から削除はしない。
   COMPETITOR_RESEARCH
   /// ドキュメント自動生成(README / LP / 告知文、Sonnet 4)
   DRAFT_GEN
@@ -131,6 +132,10 @@ enum Feature {
   CHECKLIST_GEN
   /// 既存ドキュメントの文章推敲(append-only で新版作成、Sonnet 4 + Tool Use)
   REFINE_DOC
+  /// プロダクト診断(競合調査 + サービスレベルスコア化、Sonnet 4 + Web Search Tool + Tool Use、ADR-013)
+  PRODUCT_DIAGNOSIS
+  /// アイデア検証(発案段階の Problem-Solution Fit 検証、Sonnet 4 + Web Search Tool + Tool Use、ADR-013 改訂版)
+  IDEA_VALIDATION
   /// その他の AI 機能
   OTHER
 }
@@ -187,12 +192,14 @@ model User {
   /// ユーザー作成日時(Clerk からの初回 Webhook 受信時)
   createdAt   DateTime @default(now())
 
-  memberships    TenantMember[]
-  ownedTenants   Tenant[]          @relation("TenantOwner")
-  documents      ProjectDocument[]
-  usage          AIUsage[]
-  invitations    InvitationToken[]
-  ragQaSessions  RagQaSession[]
+  memberships     TenantMember[]
+  ownedTenants    Tenant[]          @relation("TenantOwner")
+  documents       ProjectDocument[]
+  usage           AIUsage[]
+  invitations     InvitationToken[]
+  ragQaSessions   RagQaSession[]
+  serviceScores   ServiceScore[]
+  ideaValidations IdeaValidation[]
 }
 
 /// ワークスペース(テナント)。マルチテナント分離の基本単位(ADR-002)。
@@ -211,14 +218,16 @@ model Tenant {
   /// ワークスペース作成日時
   createdAt DateTime @default(now())
 
-  owner         User              @relation("TenantOwner", fields: [ownerId], references: [id])
-  members       TenantMember[]
-  projects      Project[]
-  subscription  Subscription?
-  usage         AIUsage[]
-  invitations   InvitationToken[]
-  ragQaSessions RagQaSession[]
-  landingPages  LandingPage[]
+  owner           User              @relation("TenantOwner", fields: [ownerId], references: [id])
+  members         TenantMember[]
+  projects        Project[]
+  subscription    Subscription?
+  usage           AIUsage[]
+  invitations     InvitationToken[]
+  ragQaSessions   RagQaSession[]
+  landingPages    LandingPage[]
+  serviceScores   ServiceScore[]
+  ideaValidations IdeaValidation[]
 
   @@index([slug])
 }
@@ -253,6 +262,14 @@ model Project {
   name        String
   /// 概要(Markdown 可、任意)
   description String?       @db.Text
+  /// 想定ユーザー(誰の課題か、ADR-013 改訂版「2 モード化」 で追加)。アイデア検証で必須、プロダクト診断でも参照。
+  targetUsers      String?       @db.Text
+  /// 解きたい課題(ADR-013 改訂版で追加)。Lean Startup の Problem-Solution Fit 検証の中核。
+  problemStatement String?       @db.Text
+  /// 想定機能リスト(Markdown 可、ADR-013 改訂版で追加)。アイデア段階で書き出し、実装で更新する想定。
+  proposedFeatures String?       @db.Text
+  /// 想定価格モデル(例「Free + Pro ¥980/月」、ADR-013 改訂版で追加)。差別化軸の評価精度向上。
+  pricingModel     String?
   /// ライフサイクル状態(IDEA / IN_DEV / BETA / LAUNCHED / ARCHIVED)
   status      ProjectStatus @default(IDEA)
   /// リリース予定日 or 実績日(任意)
@@ -264,11 +281,13 @@ model Project {
   /// 最終更新日時(Prisma 自動更新)
   updatedAt   DateTime      @updatedAt
 
-  tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  checklist     ChecklistItem[]
-  documents     ProjectDocument[]
-  ragQaSessions RagQaSession[]
-  landingPage   LandingPage?
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  checklist        ChecklistItem[]
+  documents        ProjectDocument[]
+  ragQaSessions    RagQaSession[]
+  landingPage      LandingPage?
+  serviceScores    ServiceScore[]
+  ideaValidations  IdeaValidation[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -374,6 +393,88 @@ model LandingPage {
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
+}
+
+/// プロダクト診断(PRODUCT_DIAGNOSIS)の結果(ADR-013)。
+/// 1 プロジェクトに複数件の診断履歴を持ち、`createdAt` で時系列比較できる。
+/// 競合データと AI 採点の理由は Json で snapshot 保存(参照先 URL が後で変わっても履歴的事実を保つ、
+/// RagQaMessage.references パターンの踏襲)。
+model ServiceScore {
+  /// 内部 ID(cuid)
+  id             String   @id @default(cuid())
+  /// 所属テナント ID(マルチテナント分離キー、必須)
+  tenantId       String
+  /// 所属プロジェクト ID
+  projectId      String
+  /// 総合スコア(0-100、breakdown の 5 軸合計 = totalScore で整合性を保つ)。
+  /// アプリ層で Tool Use 応答パース直後に整合性アサート、不一致は AIBadResponseError(502)で保存しない。
+  totalScore     Int
+  /// 5 軸ブレークダウン(differentiation / targetClarity / featureCompleteness /
+  /// releaseReadiness / competitiveAdvantage、各 0-20 + コメント)
+  breakdown      Json
+  /// 改善提案 3〜5 件(priority / title / body / axis)
+  suggestions    Json
+  /// 競合プロダクトのスナップショット(name / url / summary / similarityNote)。
+  /// Web Search 失敗時 / Free フォールバック時は空配列を保存。
+  competitorRefs Json
+  /// Web Search Tool を使ったか(Web Search 無効 / 失敗時は false)。
+  webSearchUsed  Boolean
+  /// 使用したモデル ID(AIUsage.model と一致、ai.constants.ts の AI_MODEL_SONNET の値)
+  modelUsed      String
+  /// 診断実行者 User ID
+  createdById    String
+  /// 診断実行日時(履歴順、最新が表示の主軸)
+  createdAt      DateTime @default(now())
+
+  tenant    Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User    @relation(fields: [createdById], references: [id])
+
+  @@index([tenantId])
+  /// 履歴比較画面で「最新 N 件を新しい順」 を高速取得するため
+  @@index([projectId, createdAt])
+}
+
+/// アイデア検証(IDEA_VALIDATION)の結果(ADR-013 改訂版「2 モード化」)。
+/// `Project.status = IDEA` のときに実行する Lean Startup の Problem-Solution Fit 検証機能。
+/// `ServiceScore` と並ぶ独立機能で、評価軸も異なる(機能完成度・リリース準備度の代わりに
+/// 問題明確性・市場性を評価)。`recommendation` で GO / PIVOT / NO_GO の意思決定支援を返す。
+model IdeaValidation {
+  /// 内部 ID(cuid)
+  id             String   @id @default(cuid())
+  /// 所属テナント ID(マルチテナント分離キー、必須)
+  tenantId       String
+  /// 所属プロジェクト ID
+  projectId      String
+  /// 総合スコア(0-100、breakdown の 5 軸合計 = totalScore で整合性アサート)
+  totalScore     Int
+  /// 意思決定支援('GO' | 'PIVOT' | 'NO_GO')。Lean Startup の Problem-Solution Fit 判定。
+  /// LLM が rubric + 競合データに基づいて文字列で返す(enum 化は将来検討、現状は柔軟性重視)
+  recommendation String
+  /// 5 軸ブレークダウン(problemClarity / targetClarity / differentiation /
+  /// competitiveAdvantage / marketPotential、各 0-20 + コメント)
+  breakdown      Json
+  /// 改善提案 3〜5 件(priority / title / body / axis)、ServiceScore.suggestions と同型
+  suggestions    Json
+  /// 競合プロダクトのスナップショット(name / url / summary / similarityNote)、
+  /// Web Search で取得した実競合の参照、ServiceScore.competitorRefs と同型
+  competitorRefs Json
+  /// Web Search Tool を使ったか(Free フォールバック / 失敗時は false)
+  webSearchUsed  Boolean
+  /// 使用したモデル ID(AIUsage.model と一致、ai.constants.ts の AI_MODEL_SONNET の値)
+  modelUsed      String
+  /// 検証実行者 User ID
+  createdById    String
+  /// 検証実行日時(履歴順、最新が表示の主軸)
+  createdAt      DateTime @default(now())
+
+  tenant    Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User    @relation(fields: [createdById], references: [id])
+
+  @@index([tenantId])
+  /// 履歴比較画面で「最新 N 件を新しい順」 を高速取得するため
+  @@index([projectId, createdAt])
 }
 
 /// AI API 呼び出しのテナント単位ログ。

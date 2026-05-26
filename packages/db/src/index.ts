@@ -30,7 +30,13 @@ export {
 } from '@prisma/client';
 
 // model 由来の型(値ではない)。Service / Controller の戻り値型として使う。
-export type { RagQaSession, RagQaMessage, LandingPage } from '@prisma/client';
+export type {
+  RagQaSession,
+  RagQaMessage,
+  LandingPage,
+  ServiceScore,
+  IdeaValidation,
+} from '@prisma/client';
 
 // マルチテナントのリクエストコンテキスト(ADR-002)
 export { runWithTenant, getTenantId, getTenantIdOrThrow } from './tenant-context';

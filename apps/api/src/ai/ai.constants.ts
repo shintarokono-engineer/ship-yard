@@ -101,3 +101,51 @@ export const RAG_CONTENT_TRUNCATE_CHARS = 800;
  * `ConfigService` 経由に切り替える(現状は本番 / 開発で同じ値で運用)。
  */
 export const SEED_PUBLIC_TENANT_ID = 'SEED_PUBLIC';
+
+/**
+ * PRODUCT_DIAGNOSIS(プロダクト診断、ADR-013)の Anthropic API `max_tokens`。
+ * 競合 5 件 × 約 300 文字 + 5 軸 × 約 200 文字 + 改善提案 5 件 × 約 500 文字 ≒ 3000 文字 + 余裕。
+ */
+export const PRODUCT_DIAGNOSIS_MAX_TOKENS = 4096;
+
+/**
+ * PRODUCT_DIAGNOSIS の Anthropic API `temperature`(ADR-013)。
+ * デフォルト 1.0 だとスコアのブレが ±10 点になるため、0.2 で ±3 程度に収束させる(再現性確保)。
+ */
+export const PRODUCT_DIAGNOSIS_TEMPERATURE = 0.2;
+
+/**
+ * PRODUCT_DIAGNOSIS の Pro / Team / トライアル中の月次実行回数上限(ADR-013、MVP の暴走防止枠)。
+ *
+ * 1 回 5〜15 円(Sonnet 4 + Web Search Tool)× 50 ≒ 月 750 円が Pro ARPU(¥1,480、ADR-012)の
+ * 現実的天井。v1.0.1 で AI クレジット制(3 cr/回)に移行する際は本定数を削除し、`AIUsage.credits`
+ * ベースのチェックに置き換える(ADR-012 §段階的実装と同期)。
+ *
+ * Free フォールバック状態(ADR-012、AI 機能停止)は本機能の実行自体を 403 で弾くため
+ * 月次上限の対象外(`assertWithinDiagnosisQuota` で先に弾く)。
+ */
+export const PRODUCT_DIAGNOSIS_MAX_PER_MONTH_PRO = 50;
+
+/**
+ * IDEA_VALIDATION(アイデア検証、ADR-013 改訂版)の Anthropic API `max_tokens`。
+ * PRODUCT_DIAGNOSIS と同設計(5 軸 × 各 200 文字 + 改善提案 5 件 × 各 500 文字 + 競合 5 件 × 各 300 文字 + 余裕)。
+ */
+export const IDEA_VALIDATION_MAX_TOKENS = 4096;
+
+/**
+ * IDEA_VALIDATION の Anthropic API `temperature`(ADR-013 改訂版)。
+ * デフォルト 1.0 だとスコアのブレが大きいため、PRODUCT_DIAGNOSIS と同じく 0.2 に固定。
+ */
+export const IDEA_VALIDATION_TEMPERATURE = 0.2;
+
+/**
+ * IDEA_VALIDATION の Pro / Team / トライアル中の月次実行回数上限(ADR-013 改訂版、MVP の暴走防止枠)。
+ *
+ * アイデア検証は「発案 → Pivot 検討 → 再検証」 のループを想定するため、PRODUCT_DIAGNOSIS よりやや
+ * 多めの 30 回/月。1 回 5〜15 円 × 30 ≒ 月 450 円が Pro ARPU(¥1,480、ADR-012)に収まる水準。
+ * v1.0.1 で AI クレジット制(3 cr/回)に移行する際は本定数を削除し、`AIUsage.credits` ベースの
+ * チェックに置き換える(ADR-012 §段階的実装と同期)。
+ *
+ * Free フォールバック状態は本機能の実行自体を 403 で弾くため月次上限の対象外。
+ */
+export const IDEA_VALIDATION_MAX_PER_MONTH_PRO = 30;

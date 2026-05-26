@@ -25,4 +25,28 @@ export class CreateProjectDto {
   @IsOptional()
   @IsISO8601()
   launchDate?: string;
+
+  /** 想定ユーザー(ADR-013 改訂版「2 モード化」、アイデア検証 + プロダクト診断で参照)。 */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2_000)
+  targetUsers?: string;
+
+  /** 解きたい課題(ADR-013 改訂版、アイデア検証で必須相当)。 */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2_000)
+  problemStatement?: string;
+
+  /** 想定機能リスト(Markdown 可、ADR-013 改訂版)。 */
+  @IsOptional()
+  @IsString()
+  @MaxLength(5_000)
+  proposedFeatures?: string;
+
+  /** 想定価格モデル(例「Free + Pro ¥980/月」、ADR-013 改訂版)。 */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  pricingModel?: string;
 }

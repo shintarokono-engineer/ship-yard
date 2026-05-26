@@ -35,4 +35,28 @@ export class UpdateProjectDto {
   @IsOptional()
   @IsISO8601()
   launchDate?: string | null;
+
+  /** 想定ユーザー(ADR-013 改訂版「2 モード化」)。`null` を送ると null にクリアできる。 */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2_000)
+  targetUsers?: string | null;
+
+  /** 解きたい課題(ADR-013 改訂版)。`null` を送ると null にクリアできる。 */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2_000)
+  problemStatement?: string | null;
+
+  /** 想定機能リスト(Markdown 可、ADR-013 改訂版)。`null` を送ると null にクリアできる。 */
+  @IsOptional()
+  @IsString()
+  @MaxLength(5_000)
+  proposedFeatures?: string | null;
+
+  /** 想定価格モデル(ADR-013 改訂版)。`null` を送ると null にクリアできる。 */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  pricingModel?: string | null;
 }
