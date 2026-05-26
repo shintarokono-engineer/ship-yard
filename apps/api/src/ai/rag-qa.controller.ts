@@ -97,7 +97,7 @@ export class RagQaController {
     await this.ragQa.assertSessionInProject(ws.tenantId, sessionId, projectId);
 
     // Free プラン月次 AI 上限チェック(質問は明示的な機能呼び出しなのでカウント対象、ADR-005)
-    await this.aiUsage.assertWithinFreeQuota({ id: ws.tenantId, plan: ws.plan });
+    await this.aiUsage.assertWithinPlanCredits({ id: ws.tenantId, plan: ws.plan });
 
     // RAG 検索(直近質問 + プロジェクト名 + 概要をクエリに、ADR-008 で seed テナントも対象)
     const searchQuery = [dto.question, project.name, project.description ?? '']

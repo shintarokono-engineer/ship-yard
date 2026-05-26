@@ -66,7 +66,7 @@ export class TaskSplitController {
     const parent = await this.checklist.getOwnedOrThrow(ws.tenantId, projectId, itemId);
 
     // Free プランの月次 AI 上限チェック(超過なら 403)。AI を呼ぶ前に。
-    await this.aiUsage.assertWithinFreeQuota({ id: ws.tenantId, plan: ws.plan });
+    await this.aiUsage.assertWithinPlanCredits({ id: ws.tenantId, plan: ws.plan });
 
     const instructions = dto.instructions?.trim() || undefined;
 
@@ -105,7 +105,7 @@ export class TaskSplitController {
 
     // AI 利用記録(課金・Free 上限判定の根拠なので取りこぼし禁止、ADR-005)。
     // 検索クエリの embedding と本生成は別 record(model が異なるため、単価計算が分岐する)。
-    // OTHER は assertWithinFreeQuota の上限カウントから除外される(ai-usage.service.ts 参照)。
+    // OTHER は assertWithinPlanCredits の上限カウントから除外される(ai-usage.service.ts 参照)。
     if (rag.tokensIn > 0) {
       await this.aiUsage.record({
         tenantId: ws.tenantId,

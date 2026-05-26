@@ -3,7 +3,7 @@
  * 料金改定・モデル更新・上限変更・対応ドキュメント種別の追加が必要になったらこのファイルだけ直す。
  */
 
-import { DocType } from '@shipyard/db';
+import { DocType, Plan } from '@shipyard/db';
 
 /** 品質要件が高い場面(競合調査 / ドキュメント生成 / RAG QA)で使う Claude モデル(ADR-005)。 */
 export const AI_MODEL_SONNET = 'claude-sonnet-4-6';
@@ -14,8 +14,34 @@ export const AI_MODEL_HAIKU = 'claude-haiku-4-5-20251001';
 /** RAG 用の埋め込みモデル(text-embedding-3-small、1536 次元、ADR-005)。 */
 export const EMBEDDING_MODEL = 'text-embedding-3-small';
 
-/** Free プランの 1 ヶ月あたり AI 呼び出し上限(ADR-004 / ADR-005)。 */
-export const FREE_MONTHLY_AI_LIMIT = 20;
+/**
+ * モデル別の AI クレジット重み付け(ADR-012)。
+ * 実コスト比(Sonnet 4 ≒ 3 × Haiku 4.5)に対応。
+ * `Feature.OTHER`(embedding 等の裏方)は呼び出し側で 0 にする(下記 `creditsForUsage` 参照)。
+ */
+export const MODEL_CREDITS: Record<string, number> = {
+  [AI_MODEL_HAIKU]: 1,
+  [AI_MODEL_SONNET]: 3,
+  [EMBEDDING_MODEL]: 0,
+};
+
+/** 未知モデルのフォールバック cr(Sonnet 相当)。新モデル追加忘れの安全網。 */
+export const FALLBACK_MODEL_CREDITS = 3;
+
+/** Team プランの 1 seat(メンバー)あたり月次クレジット上限(ADR-012)。共有プールで `seats × 800 cr` が上限。 */
+export const TEAM_CREDITS_PER_SEAT = 800;
+
+/**
+ * プラン別の月次クレジット上限(ADR-012)。
+ * - FREE: 0(トライアル終了後の AI 停止状態、常に AI 機能を拒否する)
+ * - PRO:  300 cr/月(Sonnet 4 ≒ 100 回 / Haiku 4.5 ≒ 300 回 相当)
+ * - TEAM: 動的(seats × `TEAM_CREDITS_PER_SEAT`)— Service 側で seat 数を引いて計算する
+ */
+export const PLAN_CREDIT_LIMITS: Record<Plan, number | null> = {
+  [Plan.FREE]: 0,
+  [Plan.PRO]: 300,
+  [Plan.TEAM]: null,
+};
 
 /** AI コスト見積用の為替レート(円/USD)。MVP 用の固定値。将来は日次更新 or 設定値にする(TODO)。 */
 export const USD_PER_JPY = 150;
