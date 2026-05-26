@@ -144,7 +144,7 @@ export class LandingPageController {
     const project = await this.projects.getOwnedOrThrow(ws.tenantId, projectId);
 
     // Free プランの月次 AI 上限チェック(超過なら 403)。AI を呼ぶ前に。
-    await this.aiUsage.assertWithinFreeQuota({ id: ws.tenantId, plan: ws.plan });
+    await this.aiUsage.assertWithinPlanCredits({ id: ws.tenantId, plan: ws.plan });
 
     const instructions = dto.instructions?.trim() || undefined;
 

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -9,6 +10,8 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+
+import { Plan } from '@shipyard/db';
 
 import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -19,6 +22,16 @@ import { WorkspaceGuard } from '../auth/workspace.guard';
 import type { WorkspaceAccess } from '../workspaces/membership.service';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
 import { InvitationsService } from './invitations.service';
+
+/** ADR-012: 招待機能(メンバー追加・6 ロール・共同編集の入口)は Team プラン限定。
+ * Pro / Free のテナントが呼んだら 403 を返してアップグレードを促す。 */
+function assertTeamPlan(ws: WorkspaceAccess): void {
+  if (ws.plan !== Plan.TEAM) {
+    throw new ForbiddenException(
+      'メンバー招待は Team プラン限定の機能です。Team へアップグレードしてください(ADR-012)。',
+    );
+  }
+}
 
 /**
  * メンバー招待(ADR-007、認証必須ルート)。
@@ -45,6 +58,7 @@ export class InvitationsController {
   @UseGuards(WorkspaceGuard)
   @Roles(...ADMIN_ROLES)
   create(@CurrentWorkspace() ws: WorkspaceAccess, @Body() dto: CreateInvitationDto) {
+    assertTeamPlan(ws);
     return this.invitations.create(ws.tenantId, ws.name, ws.userId, dto);
   }
 
@@ -56,6 +70,7 @@ export class InvitationsController {
   @UseGuards(WorkspaceGuard)
   @Roles(...ADMIN_ROLES)
   list(@CurrentWorkspace() ws: WorkspaceAccess) {
+    assertTeamPlan(ws);
     return this.invitations.list(ws.tenantId);
   }
 
@@ -72,6 +87,7 @@ export class InvitationsController {
     @CurrentWorkspace() ws: WorkspaceAccess,
     @Param('id') invitationId: string,
   ): Promise<void> {
+    assertTeamPlan(ws);
     await this.invitations.revoke(ws.tenantId, invitationId);
   }
 
@@ -85,6 +101,7 @@ export class InvitationsController {
   @UseGuards(WorkspaceGuard)
   @Roles(...ADMIN_ROLES)
   resend(@CurrentWorkspace() ws: WorkspaceAccess, @Param('id') invitationId: string) {
+    assertTeamPlan(ws);
     return this.invitations.resend(ws.tenantId, invitationId, ws.name, ws.userId);
   }
 

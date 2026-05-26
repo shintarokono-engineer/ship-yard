@@ -377,7 +377,7 @@ model LandingPage {
 }
 
 /// AI API 呼び出しのテナント単位ログ。
-/// Free プランの月 20 回上限判定 / Pro プランの内部上限(月 1000 回)監視 / コスト集計に使用(ADR-005)。
+/// AI クレジット制(ADR-012)の月次上限判定とコスト集計に使用(ADR-005)。
 model AIUsage {
   /// 内部 ID(cuid)
   id        String   @id @default(cuid())
@@ -395,6 +395,9 @@ model AIUsage {
   tokensOut Int
   /// 推定コスト(円、為替換算済み、小数 4 桁精度)
   costJpy   Decimal  @db.Decimal(10, 4)
+  /// AI クレジット消費数(Haiku 4.5=1cr、Sonnet 4=3cr、embedding 等の Feature.OTHER=0cr)。
+  /// ADR-012 のプラン別月次上限判定に使う(Pro 300/月、Team 800/seat/月)。
+  credits   Int      @default(0)
   /// 利用日時
   createdAt DateTime @default(now())
 

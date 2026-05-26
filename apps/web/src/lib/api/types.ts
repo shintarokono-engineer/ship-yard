@@ -473,17 +473,19 @@ export const FEATURE_META: Record<Feature, { label: string }> = {
   OTHER: { label: 'その他' },
 };
 
-/** `GET /workspaces/:slug/usage` のレスポンス(当月のテナント AI 利用状況サマリ)。 */
+/** `GET /workspaces/:slug/usage` のレスポンス(当月のテナント AI 利用状況サマリ、ADR-012)。 */
 export interface MonthlyUsageSummary {
   plan: Plan;
   /** 集計対象期間の起点(当月 1 日 00:00 UTC、ISO8601 文字列)。 */
   periodStart: string;
-  /** 当月のユーザー視点の AI 利用回数(`Feature.OTHER` 除外、FREE 上限カウントと一致)。 */
+  /** 当月のユーザー視点の AI 利用回数(`Feature.OTHER` 除外、参考値)。 */
   used: number;
-  /** FREE プランの月次上限。PRO / TEAM は無制限のため null。 */
-  limit: number | null;
-  /** feature 別の内訳(`OTHER` を含む全件、count 降順)。 */
-  byFeature: { feature: Feature; count: number }[];
+  /** 当月の AI クレジット消費量(ADR-012 のプラン上限判定の主軸)。 */
+  usedCredits: number;
+  /** プラン別の月次クレジット上限。FREE=0(AI 停止)、PRO=300、TEAM=seats×800。 */
+  limitCredits: number;
+  /** feature 別の内訳(`OTHER` を含む全件、count 降順、各 feature の credits 合計も付与)。 */
+  byFeature: { feature: Feature; count: number; credits: number }[];
 }
 
 // ----- LandingPage(ADR-009)-----

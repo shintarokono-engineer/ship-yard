@@ -5,9 +5,12 @@ import { Feature, Plan } from '@shipyard/db';
 import { dayjs } from '../common/time';
 import { PrismaService } from '../prisma/prisma.service';
 import {
+  FALLBACK_MODEL_CREDITS,
   FALLBACK_PRICING_USD_PER_MTOK,
-  FREE_MONTHLY_AI_LIMIT,
+  MODEL_CREDITS,
   MODEL_PRICING_USD_PER_MTOK,
+  PLAN_CREDIT_LIMITS,
+  TEAM_CREDITS_PER_SEAT,
   USD_PER_JPY,
 } from './ai.constants';
 
@@ -16,6 +19,13 @@ function estimateCostJpy(model: string, tokensIn: number, tokensOut: number): st
   const p = MODEL_PRICING_USD_PER_MTOK[model] ?? FALLBACK_PRICING_USD_PER_MTOK;
   const usd = (tokensIn / 1_000_000) * p.in + (tokensOut / 1_000_000) * p.out;
   return (usd * USD_PER_JPY).toFixed(4);
+}
+
+/** ある AI 呼び出しが消費する AI クレジット数(ADR-012)。
+ * `Feature.OTHER`(裏方 embedding / RAG 検索など、ユーザー明示的でない機能)は cr 消費なし。 */
+function creditsForUsage(model: string, feature: Feature): number {
+  if (feature === Feature.OTHER) return 0;
+  return MODEL_CREDITS[model] ?? FALLBACK_MODEL_CREDITS;
 }
 
 /** 当月の 1 日 00:00(UTC)。`AIUsage` の月次集計の基準。 */
@@ -38,45 +48,52 @@ export interface MonthlyUsageSummary {
   plan: Plan;
   /** 集計対象期間の起点(当月 1 日 00:00 UTC、ISO8601 文字列)。 */
   periodStart: string;
-  /** 当月のユーザー視点の AI 利用回数(`Feature.OTHER` を除外、Free 上限カウントと一致)。 */
+  /** 当月のユーザー視点の AI 利用回数(`Feature.OTHER` を除外、参考値)。 */
   used: number;
-  /** FREE プランの月次上限。PRO / TEAM は無制限のため null。 */
-  limit: number | null;
-  /** feature 別の内訳(`OTHER` を含む全件、count 降順)。 */
-  byFeature: { feature: Feature; count: number }[];
+  /** 当月の AI クレジット消費量(ADR-012 のプラン上限判定の主軸)。 */
+  usedCredits: number;
+  /** プラン別の月次クレジット上限。FREE = 0(AI 停止)、PRO = 300、TEAM = seats × 800。 */
+  limitCredits: number;
+  /** feature 別の内訳(`OTHER` を含む全件、count 降順、各 feature の credits 合計も付与)。 */
+  byFeature: { feature: Feature; count: number; credits: number }[];
 }
 
 /**
- * AI 呼び出しのテナント単位ログ(`AIUsage`)の記録と、Free プランの月次上限チェック(ADR-005)。
+ * AI 呼び出しのテナント単位ログ(`AIUsage`)の記録と、プラン別月次クレジット上限の検証(ADR-005 / ADR-012)。
  *
  * - すべての AI 呼び出しは成功後に `record(...)` する(課金・上限判定の根拠なので取りこぼし禁止)
- * - 呼び出す前に `assertWithinFreeQuota(...)` で当月の上限を確認する(超過なら 403)
+ * - 呼び出す前に `assertWithinPlanCredits(...)` で当月のクレジット上限を確認する(超過なら 403)
  *
  * tenantId は明示的に受け取る(Checkout 同様、ALS のテナントコンテキストには依存しない)。
+ *
+ * ADR-012 v1.0.1 で「Free 月 20 回」から「プラン別 AI クレジット制(Haiku=1 / Sonnet=3、
+ * Pro 月 300 cr、Team 月 seats × 800 cr、Free は AI 停止)」に変更。
  */
 @Injectable()
 export class AIUsageService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * FREE プランのテナントが当月 `FREE_MONTHLY_AI_LIMIT` 回未満かを検証。FREE 以外は無制限。超過なら 403。
+   * テナントの当月クレジット消費がプラン上限未満かを検証(ADR-012)。
    *
-   * カウントは `Feature.OTHER`(embedding / RAG 検索など、ユーザーが明示的に呼んだ AI 機能ではないもの)を除外。
-   * これがないと 1 回の generate につき検索 embedding と本生成で 2 件積まれ、Free 上限が実質半分になる。
-   * 「20 回 = ユーザー視点の AI 機能を 20 回呼べる」というユーザー体験と一致させる。
+   * - FREE: 常に 403(トライアル終了後の AI 停止状態)
+   * - PRO:  月 300 cr 未満なら通す
+   * - TEAM: 月 seats × 800 cr 未満なら通す(seats は `TenantMember` 数)
+   *
+   * クレジットは `Feature.OTHER`(embedding / RAG 検索)を 0 cr とし、ユーザー視点で意味のある
+   * 機能呼び出しのみを消費対象にする(ユーザーが見る「残り cr」と一致)。
    */
-  async assertWithinFreeQuota(tenant: { id: string; plan: Plan }): Promise<void> {
-    if (tenant.plan !== Plan.FREE) return;
-    const used = await this.prisma.aIUsage.count({
-      where: {
-        tenantId: tenant.id,
-        createdAt: { gte: startOfMonthUtc() },
-        feature: { not: Feature.OTHER },
-      },
-    });
-    if (used >= FREE_MONTHLY_AI_LIMIT) {
+  async assertWithinPlanCredits(tenant: { id: string; plan: Plan }): Promise<void> {
+    if (tenant.plan === Plan.FREE) {
       throw new ForbiddenException(
-        `Free プランの AI 利用上限(月 ${FREE_MONTHLY_AI_LIMIT} 回)に達しました。Pro へのアップグレードが必要です。`,
+        'このワークスペースの AI 機能は停止中です。Pro / Team プランへアップグレードしてください。',
+      );
+    }
+    const limit = await this.getPlanCreditLimit(tenant);
+    const used = await this.getMonthlyCreditsUsed(tenant.id);
+    if (used >= limit) {
+      throw new ForbiddenException(
+        `月次 AI クレジット上限(${limit})に達しました。来月の更新をお待ちください。`,
       );
     }
   }
@@ -84,8 +101,8 @@ export class AIUsageService {
   /**
    * 当月のテナント単位 AI 利用状況を集計する(設定画面の「利用状況」タブ用)。
    *
-   * `used` は `assertWithinFreeQuota` と同じく `Feature.OTHER`(裏方 embedding / RAG 検索)を
-   * 除外し、ユーザー視点の「月 N 回」と一致させる。`byFeature` は内訳表示用に `OTHER` も含める。
+   * `used`(回数)は参考値、`usedCredits` / `limitCredits` がプラン上限判定の主軸(ADR-012)。
+   * `byFeature` は内訳表示用に `OTHER` も含める(各 feature の credits 合計も付与)。
    */
   async getMonthlySummary(tenant: { id: string; plan: Plan }): Promise<MonthlyUsageSummary> {
     const periodStart = startOfMonthUtc();
@@ -93,23 +110,31 @@ export class AIUsageService {
       by: ['feature'],
       where: { tenantId: tenant.id, createdAt: { gte: periodStart } },
       _count: { _all: true },
+      _sum: { credits: true },
     });
     const byFeature = grouped
-      .map((g) => ({ feature: g.feature, count: g._count._all }))
+      .map((g) => ({
+        feature: g.feature,
+        count: g._count._all,
+        credits: g._sum.credits ?? 0,
+      }))
       .sort((a, b) => b.count - a.count);
     const used = byFeature
       .filter((f) => f.feature !== Feature.OTHER)
       .reduce((sum, f) => sum + f.count, 0);
+    const usedCredits = byFeature.reduce((sum, f) => sum + f.credits, 0);
+    const limitCredits = await this.getPlanCreditLimit(tenant);
     return {
       plan: tenant.plan,
       periodStart: periodStart.toISOString(),
       used,
-      limit: tenant.plan === Plan.FREE ? FREE_MONTHLY_AI_LIMIT : null,
+      usedCredits,
+      limitCredits,
       byFeature,
     };
   }
 
-  /** AI 呼び出し 1 回分をテナント単位で記録する。 */
+  /** AI 呼び出し 1 回分をテナント単位で記録する。credits はモデル × Feature から自動計算。 */
   async record(usage: RecordAIUsageInput): Promise<void> {
     await this.prisma.aIUsage.create({
       data: {
@@ -120,7 +145,28 @@ export class AIUsageService {
         tokensIn: usage.tokensIn,
         tokensOut: usage.tokensOut,
         costJpy: estimateCostJpy(usage.model, usage.tokensIn, usage.tokensOut),
+        credits: creditsForUsage(usage.model, usage.feature),
       },
     });
+  }
+
+  /** プラン別の当月クレジット上限。TEAM はテナントのメンバー数から動的に算出。 */
+  private async getPlanCreditLimit(tenant: { id: string; plan: Plan }): Promise<number> {
+    if (tenant.plan === Plan.TEAM) {
+      const seats = await this.prisma.tenantMember.count({
+        where: { tenantId: tenant.id },
+      });
+      return seats * TEAM_CREDITS_PER_SEAT;
+    }
+    return PLAN_CREDIT_LIMITS[tenant.plan] ?? 0;
+  }
+
+  /** 当月のクレジット消費合計。OTHER は 0 cr で記録されるため自然に除外される。 */
+  private async getMonthlyCreditsUsed(tenantId: string): Promise<number> {
+    const result = await this.prisma.aIUsage.aggregate({
+      where: { tenantId, createdAt: { gte: startOfMonthUtc() } },
+      _sum: { credits: true },
+    });
+    return result._sum.credits ?? 0;
   }
 }
