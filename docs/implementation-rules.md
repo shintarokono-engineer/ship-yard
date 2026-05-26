@@ -38,8 +38,8 @@
 - Haiku 4.5: タスク分解 / チェックリスト生成 / 文章推敲(構造化中心)
 - Tool Use は構造化出力が必要な場面のみ。利用箇所はコードコメントで理由を残す
 - pgvector + text-embedding-3-small(1536 次元)、HNSW インデックスで RAG
-- 全 AI 呼び出しは `AIUsage` テーブルにテナント単位で記録(Free プラン月 20 回上限の判定にも使う)
-- 上限カウントは `Feature.OTHER`(裏方 embedding)を除外(`assertWithinFreeQuota` の where に `feature: { not: OTHER }`)、ユーザー視点の「月 20 回」と一致させる
+- 全 AI 呼び出しは `AIUsage` テーブルにテナント単位で記録(プラン別 AI クレジット上限の判定にも使う、ADR-012)
+- 上限は AI クレジット制(Haiku 4.5=1cr、Sonnet 4=3cr、`Feature.OTHER`=0cr)。`AIUsage.credits` 列の月次合計が Free=0(停止)/ Pro=300 / Team=seats×800 を超えたら 403(`assertWithinPlanCredits`)。`OTHER` は 0cr で記録されるため自然に上限から除外され、ユーザー視点の「残りクレジット」と一致する
 
 ## フロントエンド(Next.js App Router / React)
 

@@ -419,7 +419,8 @@ model ProjectDocument {
 }
 
 /// AI API 呼び出しのテナント単位ログ。
-/// Free プランの月 20 回上限判定 / Pro プランの内部上限(月 1000 回)監視 / コスト集計に使用(ADR-005)。
+/// プラン別 AI クレジット月次上限判定(Free=0 / Pro=300 / Team=seats×800、ADR-012)と
+/// コスト集計に使用(ADR-005)。クレジットはモデル別(Haiku=1 / Sonnet=3 / OTHER=0)。
 model AIUsage {
   /// 内部 ID(cuid)
   id         String   @id @default(cuid())
