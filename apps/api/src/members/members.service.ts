@@ -1,7 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 
 import { Role } from '@shipyard/db';
 
+import { BillingService } from '../billing/billing.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 /** `MembersService.list` の戻り値要素。フロントの「メンバー一覧」表示に必要な User 情報込み。 */
@@ -51,7 +52,12 @@ const ROLE_DISPLAY_ORDER: Record<Role, number> = {
  */
 @Injectable()
 export class MembersService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(MembersService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly billing: BillingService,
+  ) {}
 
   /** GET /workspaces/:slug/members(TenantMember 全員が閲覧可)。 */
   async list(tenantId: string): Promise<MemberListItem[]> {
@@ -169,5 +175,16 @@ export class MembersService {
     await this.prisma.tenantMember.delete({
       where: { tenantId_userId: { tenantId, userId: targetUserId } },
     });
+
+    // ADR-012 第 1 層 Saga:DB commit 後に Stripe Subscription Quantity を新 seat 数に同期。
+    // 失敗してもユーザー操作は成功扱い(第 3 層 reconciliation バッチが翌日に補正、v1.x)。
+    try {
+      await this.billing.syncSubscriptionQuantity(tenantId);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      this.logger.error(
+        `Stripe seat sync failed after member remove (tenant=${tenantId}): ${msg}`,
+      );
+    }
   }
 }

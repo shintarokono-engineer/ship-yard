@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 
 import { Feature, Plan } from '@shipyard/db';
 
@@ -71,6 +71,8 @@ export interface MonthlyUsageSummary {
  */
 @Injectable()
 export class AIUsageService {
+  private readonly logger = new Logger(AIUsageService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   /**
@@ -78,7 +80,7 @@ export class AIUsageService {
    *
    * - FREE: 常に 403(トライアル終了後の AI 停止状態)
    * - PRO:  月 300 cr 未満なら通す
-   * - TEAM: 月 seats × 800 cr 未満なら通す(seats は `TenantMember` 数)
+   * - TEAM: 月 quantity × 800 cr 未満なら通す(quantity は `Subscription.quantity` = Stripe ミラー)
    *
    * クレジットは `Feature.OTHER`(embedding / RAG 検索)を 0 cr とし、ユーザー視点で意味のある
    * 機能呼び出しのみを消費対象にする(ユーザーが見る「残り cr」と一致)。
@@ -150,12 +152,32 @@ export class AIUsageService {
     });
   }
 
-  /** プラン別の当月クレジット上限。TEAM はテナントのメンバー数から動的に算出。 */
+  /**
+   * プラン別の当月クレジット上限。TEAM は `Subscription.quantity`(Stripe ミラー)を真実の源として算出する(ADR-012 第 2 層)。
+   *
+   * 取得経路:
+   * - 通常: `Subscription.quantity`(Webhook + Saga 同期で最新)を seat 数として使用
+   * - フォールバック: Subscription 行が無い旧テナント等は `TenantMember.count` を使用(警告ログ付き)
+   *
+   * Stripe Webhook 遅延・Saga 失敗で短時間ズレるが、第 3 層 reconciliation バッチ(v1.x、日次)で
+   * 翌日には収束する。MVP では「請求額の真実 = Stripe Quantity」と「内部 read = Subscription.quantity」を一致させる方を優先。
+   */
   private async getPlanCreditLimit(tenant: { id: string; plan: Plan }): Promise<number> {
     if (tenant.plan === Plan.TEAM) {
+      const sub = await this.prisma.subscription.findUnique({
+        where: { tenantId: tenant.id },
+        select: { quantity: true },
+      });
+      if (sub) {
+        return sub.quantity * TEAM_CREDITS_PER_SEAT;
+      }
+      // Subscription 未作成の旧テナント(Day 19 以前 / Stripe 障害復旧待ち)用フォールバック
       const seats = await this.prisma.tenantMember.count({
         where: { tenantId: tenant.id },
       });
+      this.logger.warn(
+        `TEAM plan tenant ${tenant.id} has no Subscription row; falling back to TenantMember.count=${seats}`,
+      );
       return seats * TEAM_CREDITS_PER_SEAT;
     }
     return PLAN_CREDIT_LIMITS[tenant.plan] ?? 0;

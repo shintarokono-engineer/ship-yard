@@ -12,6 +12,7 @@ import {
 
 import { Role } from '@shipyard/db';
 
+import { BillingService } from '../billing/billing.service';
 import { dayjs } from '../common/time';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -134,6 +135,7 @@ export class InvitationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mail: MailService,
+    private readonly billing: BillingService,
   ) {}
 
   async create(
@@ -217,6 +219,17 @@ export class InvitationsService {
         data: { acceptedAt: new Date() },
       }),
     ]);
+
+    // ADR-012 第 1 層 Saga:DB commit 後に Stripe Subscription Quantity を新 seat 数に同期。
+    // 失敗してもユーザー操作は成功扱い(第 3 層 reconciliation バッチが翌日に補正、v1.x)。
+    try {
+      await this.billing.syncSubscriptionQuantity(invitation.tenantId);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      this.logger.error(
+        `Stripe seat sync failed after invitation accept (tenant=${invitation.tenantId}): ${msg}`,
+      );
+    }
 
     return {
       tenantId: invitation.tenantId,
