@@ -1,7 +1,9 @@
 import { currentUser } from '@clerk/nextjs/server';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { listInvitations } from '@/lib/api/invitations';
 import { listMembers } from '@/lib/api/members';
 import { formatDateTime } from '@/lib/format';
@@ -57,14 +59,17 @@ export default async function MembersPage({ params }: { params: Promise<{ slug: 
   }
 
   const isAdmin = isAdminRole(workspace.role);
+  // ADR-012: 招待機能(メンバー追加)は Team プラン限定。
+  // Pro / Free では BE 側で 403 を返すため、UI も同じ条件でガードして無用な API 呼び出しを避ける。
+  const isTeamPlan = workspace.plan === 'TEAM';
   const me = await currentUser();
   const myEmail = me?.primaryEmailAddress?.emailAddress?.toLowerCase() ?? null;
 
-  // 招待一覧は ADMIN のみ取得(非 ADMIN は 403)。並列実行のため Promise.all で投機的に走らせず、
-  // 条件付きで取得することでエラー混入を防ぐ。
+  // 招待一覧は ADMIN かつ Team プランのみ取得(非 ADMIN・非 Team は 403)。並列実行のため
+  // Promise.all で投機的に走らせず、条件付きで取得することでエラー混入を防ぐ。
   const [members, invitations] = await Promise.all([
     listMembers(slug),
-    isAdmin ? listInvitations(slug) : Promise.resolve<InvitationListItem[]>([]),
+    isAdmin && isTeamPlan ? listInvitations(slug) : Promise.resolve<InvitationListItem[]>([]),
   ]);
 
   const currentMember = myEmail
@@ -82,7 +87,21 @@ export default async function MembersPage({ params }: { params: Promise<{ slug: 
               現在このワークスペースに所属するメンバーです。
             </p>
           </div>
-          {isAdmin && <InviteMemberDialog slug={slug} />}
+          {isAdmin &&
+            (isTeamPlan ? (
+              <InviteMemberDialog slug={slug} />
+            ) : (
+              <div className="flex flex-col items-end gap-2">
+                <p className="text-muted-foreground text-xs">
+                  メンバー招待は Team プラン限定の機能です。
+                </p>
+                <Link href={`/w/${slug}/settings/billing`}>
+                  <Button variant="outline" size="sm">
+                    Team へアップグレード
+                  </Button>
+                </Link>
+              </div>
+            ))}
         </div>
         <MemberTable
           members={members}
@@ -93,7 +112,7 @@ export default async function MembersPage({ params }: { params: Promise<{ slug: 
         />
       </section>
 
-      {isAdmin && (
+      {isAdmin && isTeamPlan && (
         <section>
           <div className="mb-3">
             <h2 className="text-lg font-semibold">招待</h2>

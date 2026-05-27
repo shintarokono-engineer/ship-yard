@@ -351,7 +351,7 @@ export async function deleteDocument(
  *
  * Sonnet 4 + Tool Use で README / LP の本文を生成し、新規 ProjectDocument(v1 または新 version)
  * として保存して返す。**append-only**:同 type が既存でも version+1 として並列に積まれる。
- * Free プランは月 20 回上限(達成時 403 + メッセージに「AI 利用上限」)。
+ * プラン別の月次 AI クレジット上限(Free=0 / Pro=300 / Team=seats×800)を消費(ADR-012)。
  */
 export async function generateDocument(
   slug: string,
@@ -393,7 +393,7 @@ export async function generateChecklist(
  *
  * Haiku 4.5 + Tool Use で親 ChecklistItem を最大 10 件のサブタスクに分解(TASK_SPLIT、Day 15)。
  * 生成された子タスクは親 Category を継承し、`parentId` 紐付けで既存項目の末尾に追加される
- * (append-only、元タスクは変更しない)。Free プランは月 20 回上限。
+ * (append-only、元タスクは変更しない)。プラン別 AI クレジット上限を消費(ADR-012、Haiku=1cr)。
  */
 export async function splitChecklistItem(
   slug: string,
@@ -416,7 +416,7 @@ export async function splitChecklistItem(
  * Sonnet 4 + Tool Use で既存 ProjectDocument の title/content を推敲し、`DocumentsService.edit`
  * 経由で **append-only に新版**(`MAX(version)+1`)を作成して返す(REFINE_DOC、Day 14)。
  * 既存版の id とは別の id が返るので、呼び出し側は新版の URL に redirect する想定。
- * Free プランは月 20 回上限。
+ * プラン別 AI クレジット上限を消費(ADR-012、Sonnet=3cr)。
  */
 export async function refineDocument(
   slug: string,
@@ -492,7 +492,7 @@ export const fetchRagQaSession = cache(
  * `POST /workspaces/:slug/projects/:projectId/qa/sessions/:sessionId/messages`
  *
  * 質問を送信し Sonnet 4 で回答を生成。user / assistant メッセージと参照ドキュメント(RAG ヒット)を返す。
- * WRITER_ROLES のみ。Free プランは月 20 回上限(超過時 403 + 「AI 利用上限」)。
+ * WRITER_ROLES のみ。プラン別 AI クレジット上限を消費(ADR-012、Sonnet=3cr)。
  */
 export async function askRagQaMessage(
   slug: string,
@@ -536,7 +536,7 @@ export const fetchLandingPage = cache(
  *
  * Sonnet 4 + Tool Use(`submit_landing_page`)で LP をブロック構造として生成し、`LandingPage`
  * に upsert して返す。1 プロジェクト = 1 LP のため、既存 LP があれば上書き(再生成)。
- * Free プランは月 20 回上限(達成時 403 + メッセージに「AI 利用上限」)。
+ * プラン別 AI クレジット上限を消費(ADR-012、Sonnet=3cr)。
  */
 export async function generateLandingPage(
   slug: string,

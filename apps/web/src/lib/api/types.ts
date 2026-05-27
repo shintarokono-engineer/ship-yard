@@ -132,8 +132,11 @@ export const SUB_STATUS_META: Record<
 };
 
 /**
- * プランごとの表示メタ(ADR-004 と同期)。Billing 画面の現状表示とプラン比較カードで共用する。
- * 価格 / 制限の文言は ADR-004 §4.5 から転記。文言が変わったら ADR と本定義を両方更新する。
+ * プランごとの表示メタ(ADR-012 と同期)。Billing 画面の現状表示とプラン比較カードで共用する。
+ * 価格 / 制限の文言は ADR-012「決定」節から転記。文言が変わったら ADR と本定義を両方更新する。
+ *
+ * FREE は「ずっと無料」ではなくトライアル終了後 / 解約後のフォールバック状態(AI 機能停止)。
+ * 新規登録時は自動で 7 日 Pro トライアルが付与される。
  */
 export const PLAN_META: Record<
   Plan,
@@ -142,20 +145,36 @@ export const PLAN_META: Record<
   FREE: {
     label: 'Free',
     priceLabel: '¥0',
-    tagline: '個人開発のスタート向け',
-    limits: ['ワークスペース 1 個', 'メンバー 3 人まで', 'AI 機能 月 20 回まで'],
+    tagline: 'トライアル終了後 / 解約後の状態',
+    limits: [
+      'AI 機能は停止',
+      'プロジェクト・ドキュメントの閲覧のみ可能',
+      'Pro / Team へアップグレードで再開',
+    ],
   },
   PRO: {
     label: 'Pro',
-    priceLabel: '¥980 / 月',
-    tagline: '本気の個人開発者向け',
-    limits: ['ワークスペース無制限', 'メンバー無制限', 'AI 機能無制限'],
+    priceLabel: '¥1,480 / 月',
+    tagline: '本気の個人開発者向け(7 日無料トライアル)',
+    limits: [
+      '1 ユーザー',
+      'AI クレジット 300 / 月(Haiku 1 cr / Sonnet 3 cr)',
+      'Sonnet 4 / Haiku 4.5 自由切替',
+      '複数プロジェクト無制限',
+      '優先サポート',
+    ],
   },
   TEAM: {
     label: 'Team',
     priceLabel: '¥2,800 / 人・月',
-    tagline: '小規模開発チーム(2〜10 人)向け',
-    limits: ['Pro のすべて', '共同編集 / レビュー', '監査ログ', '人数課金(メンバー数で自動調整)'],
+    tagline: '2 人以上のチーム向け(7 日無料トライアル)',
+    limits: [
+      '2 人以上',
+      'AI クレジット 800 / 人・月(共有プール)',
+      'メンバー招待 + 6 ロール権限',
+      '共同編集 / レビュー / 監査ログ',
+      '人数課金(メンバー数で自動調整)',
+    ],
   },
 };
 
@@ -552,17 +571,19 @@ export const FEATURE_META: Record<Feature, { label: string }> = {
   OTHER: { label: 'その他' },
 };
 
-/** `GET /workspaces/:slug/usage` のレスポンス(当月のテナント AI 利用状況サマリ)。 */
+/** `GET /workspaces/:slug/usage` のレスポンス(当月のテナント AI 利用状況サマリ、ADR-012)。 */
 export interface MonthlyUsageSummary {
   plan: Plan;
   /** 集計対象期間の起点(当月 1 日 00:00 UTC、ISO8601 文字列)。 */
   periodStart: string;
-  /** 当月のユーザー視点の AI 利用回数(`Feature.OTHER` 除外、FREE 上限カウントと一致)。 */
+  /** 当月のユーザー視点の AI 利用回数(`Feature.OTHER` 除外、参考値)。 */
   used: number;
-  /** FREE プランの月次上限。PRO / TEAM は無制限のため null。 */
-  limit: number | null;
-  /** feature 別の内訳(`OTHER` を含む全件、count 降順)。 */
-  byFeature: { feature: Feature; count: number }[];
+  /** 当月の AI クレジット消費量(ADR-012 のプラン上限判定の主軸)。 */
+  usedCredits: number;
+  /** プラン別の月次クレジット上限。FREE=0(AI 停止)、PRO=300、TEAM=seats×800。 */
+  limitCredits: number;
+  /** feature 別の内訳(`OTHER` を含む全件、count 降順、各 feature の credits 合計も付与)。 */
+  byFeature: { feature: Feature; count: number; credits: number }[];
 }
 
 // ----- LandingPage(ADR-009)-----

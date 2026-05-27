@@ -47,8 +47,10 @@ export interface MyWorkspaceListItem {
  * 1. Clerk ユーザー ID から DB の User を解決(未登録 = 403、Clerk Webhook 未受信ケース)
  * 2. slug を決定(DTO 指定 or `name` から自動生成、衝突時はサフィックスで一意化)
  * 3. `$transaction` で `Tenant` + `TenantMember(role=OWNER)` を原子的に INSERT(両方 DB クエリのみ)
- * 4. トランザクション外で `BillingService.initializeFreeSubscription` を呼んで Stripe Customer + Subscription 行を作成
- *    - 失敗してもベストエフォート(Stripe ダウン時もテナント作成は成立、次回 Checkout で lazy 作成、ADR-007 と同じ思想)
+ * 4. トランザクション外で `BillingService.initializeProTrialSubscription` を呼んで Stripe Customer +
+ *    7 日 Pro トライアル Subscription を作成(ADR-012)。
+ *    - 成功時:`Tenant.plan = PRO` に更新され、レスポンスもそれを反映
+ *    - 失敗時:ベストエフォート(`Tenant.plan = FREE` のまま、次回 Checkout で lazy 作成)
  *
  * 認可:
  * - 認証済み Clerk ユーザーなら誰でも作成可能(1 ユーザー = 何個でも所有可)
@@ -98,19 +100,23 @@ export class WorkspacesService {
       return created;
     });
 
-    // Stripe Customer + Subscription(FREE)を初期化。失敗してもベストエフォート(ADR-007 と同じ思想)。
-    const subscriptionInitialized = await this.billing.initializeFreeSubscription({
+    // Stripe Customer + 7 日 Pro トライアル Subscription を初期化(ADR-012)。
+    // 失敗してもベストエフォート(Tenant.plan は FREE のまま、UI から手動アップグレードで復旧可能)。
+    const subscriptionInitialized = await this.billing.initializeProTrialSubscription({
       id: tenant.id,
       name: tenant.name,
       owner: { email: user.email, name: user.name },
     });
+
+    // トライアル付与に成功している場合は Tenant.plan が PRO に更新されているため、レスポンスでも最新値を返す。
+    const finalPlan = subscriptionInitialized ? Plan.PRO : tenant.plan;
 
     return {
       tenant: {
         id: tenant.id,
         slug: tenant.slug,
         name: tenant.name,
-        plan: tenant.plan,
+        plan: finalPlan,
         role: Role.OWNER,
       },
       subscriptionInitialized,

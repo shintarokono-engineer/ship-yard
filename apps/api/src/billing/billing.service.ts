@@ -11,6 +11,9 @@ import type { Stripe } from '../stripe/stripe.types';
 /** Checkout / Subscription の metadata に載せるテナント識別キー(Webhook 側で読み取る) */
 const META_TENANT_ID = 'tenantId';
 
+/** ADR-012 で確定した Pro トライアル期間。Stripe `trial_period_days` に渡す。 */
+const TRIAL_PERIOD_DAYS = 7;
+
 /**
  * Stripe ↔ DB(Subscription / Tenant.plan)の同期ロジック(ADR-004)。
  *
@@ -35,23 +38,117 @@ export class BillingService {
   // ---------------------------------------------------------------------------
 
   /**
-   * 新規テナント作成時に Stripe Customer と FREE 状態の Subscription 行を初期化する。
-   * - 失敗してもベストエフォート(Stripe ダウンでもテナント作成自体は成立させたい)
-   * - 失敗時は `false` を返し、呼び出し側でレスポンスに反映。次回の Checkout 時に `ensureStripeCustomer` で lazy 作成される
+   * 新規テナント作成時に Stripe Customer と **7 日 Pro トライアル** Subscription を初期化する(ADR-012)。
+   *
+   * Stripe `trial_settings.end_behavior.missing_payment_method: 'cancel'` で「クレカ登録不要」を実現:
+   * - 作成時:Subscription を `trialing` 状態で作成、Tenant.plan = PRO に
+   * - 7 日後:PM 登録なしなら Stripe が自動キャンセル → Webhook `customer.subscription.deleted` →
+   *   `cancelStripeSubscription` で Tenant.plan = FREE(= AI 停止フォールバック)
+   * - 7 日後:PM 登録ありなら `active` に遷移 → Webhook `customer.subscription.updated` で同期
+   *
+   * 失敗してもベストエフォート(Stripe ダウン・Price 未設定でもテナント作成自体は成立):
+   * - 失敗時は `false` を返し、Tenant.plan は FREE のまま(= 即 AI 停止状態でユーザーは Billing から手動アップグレード可)
+   * - 次回 Checkout で `ensureStripeCustomer` が lazy 作成にフォールバック
    */
-  async initializeFreeSubscription(tenant: {
+  async initializeProTrialSubscription(tenant: {
     id: string;
     name: string;
     owner: { email: string; name: string | null };
   }): Promise<boolean> {
     try {
-      await this.ensureStripeCustomer(tenant);
+      const customerId = await this.ensureStripeCustomer(tenant);
+
+      // 【Stripe API 呼び出し】Pro 価格 + 7 日トライアルで Subscription を作成。
+      // クレカ未登録でも作成可能(trial_settings で「期限切れ + PM なし → cancel」を指定)。
+      const priceId = this.stripe.priceIdForPlan(Plan.PRO);
+      const stripeSub = await this.stripe.client.subscriptions.create({
+        customer: customerId,
+        items: [{ price: priceId, quantity: 1 }],
+        trial_period_days: TRIAL_PERIOD_DAYS,
+        trial_settings: {
+          end_behavior: { missing_payment_method: 'cancel' },
+        },
+        payment_settings: {
+          save_default_payment_method: 'on_subscription',
+        },
+        metadata: { [META_TENANT_ID]: tenant.id },
+      });
+
+      const trialEnd = stripeSub.trial_end ? dayjs.unix(stripeSub.trial_end).toDate() : null;
+
+      // DB をトライアル状態に更新(applyStripeSubscription と同等の write を即時実施し、Webhook 到達前の race を回避)
+      await this.prisma.subscription.update({
+        where: { tenantId: tenant.id },
+        data: {
+          stripeSubId: stripeSub.id,
+          plan: Plan.PRO,
+          status: SubStatus.TRIALING,
+          quantity: 1,
+          currentPeriodEnd: trialEnd,
+        },
+      });
+      await this.prisma.tenant.update({
+        where: { id: tenant.id },
+        data: { plan: Plan.PRO },
+      });
       return true;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      this.logger.error(`Failed to initialize Stripe customer for tenant ${tenant.id}: ${msg}`);
+      this.logger.error(`Failed to initialize Pro trial for tenant ${tenant.id}: ${msg}`);
       return false;
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Team seat 同期(ADR-012 第 1 層 Saga)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Team プランの Stripe Subscription Quantity を内部の `TenantMember.count` に合わせて同期する(ADR-012 第 1 層)。
+   *
+   * 招待承諾・退会のフローから、**DB トランザクション commit 後** に呼ばれる Saga forward step:
+   * - 失敗してもユーザー操作は成功扱い(本メソッドは呼び出し側で try/catch する)
+   * - 第 3 層 reconciliation バッチ(v1.x)が翌日に再同期するため、短時間のズレは許容
+   *
+   * Team プラン以外(FREE / PRO / Subscription 未作成)は no-op。Stripe 側 API は同じ quantity を
+   * 何回呼んでも結果が変わらない(冪等)ので、race による多重呼び出しも安全。
+   */
+  async syncSubscriptionQuantity(tenantId: string): Promise<void> {
+    const sub = await this.prisma.subscription.findUnique({
+      where: { tenantId },
+      select: { plan: true, stripeSubId: true },
+    });
+    if (!sub || sub.plan !== Plan.TEAM || !sub.stripeSubId) {
+      // FREE / PRO は seat 概念なし、stripeSubId 未確保のテナントは Checkout 完了前なのでスキップ
+      return;
+    }
+
+    const seats = await this.prisma.tenantMember.count({ where: { tenantId } });
+    if (seats < 1) {
+      // 念のためのガード(Team プランで member 0 は通常ありえない)
+      this.logger.warn(`Skipping Stripe quantity sync for tenant ${tenantId}: member count is 0`);
+      return;
+    }
+
+    // 【Stripe API 呼び出し】Subscription Quantity を実 seat 数に揃える。冪等。
+    // Stripe では quantity は subscription item ごとに持つため、まず最新の Subscription を取得して
+    // item ID を解決し、items[0].quantity を更新する。受領 Webhook(applyStripeSubscription)が
+    // 自前 DB の quantity も上書きするが、即時反映のため先回りで DB も更新する。
+    const stripeSub = await this.stripe.client.subscriptions.retrieve(sub.stripeSubId);
+    const itemId = stripeSub.items.data[0]?.id;
+    if (!itemId) {
+      this.logger.warn(
+        `Skipping Stripe quantity sync for tenant ${tenantId}: Subscription ${sub.stripeSubId} has no items`,
+      );
+      return;
+    }
+    await this.stripe.client.subscriptions.update(sub.stripeSubId, {
+      items: [{ id: itemId, quantity: seats }],
+    });
+    await this.prisma.subscription.update({
+      where: { tenantId },
+      data: { quantity: seats },
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -245,6 +342,8 @@ export class BillingService {
     const currentPeriodEnd = item ? dayjs.unix(item.current_period_end).toDate() : null;
     const canceledAt = sub.canceled_at ? dayjs.unix(sub.canceled_at).toDate() : null;
     const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
+    // ADR-012 第 2 層:Stripe の Subscription Quantity を内部 DB にミラーする(AI クレジット計算の真実の源)
+    const quantity = item?.quantity ?? 1;
 
     await this.prisma.subscription.upsert({
       where: { tenantId },
@@ -254,6 +353,7 @@ export class BillingService {
         stripeSubId: sub.id,
         plan,
         status,
+        quantity,
         currentPeriodEnd,
         canceledAt,
       },
@@ -262,6 +362,7 @@ export class BillingService {
         stripeSubId: sub.id,
         plan,
         status,
+        quantity,
         currentPeriodEnd,
         canceledAt,
       },

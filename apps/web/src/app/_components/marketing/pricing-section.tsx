@@ -4,29 +4,34 @@ import { SignUpButton } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-// プラン細目(メンバー数上限・AI 回数など)は PROJECT_STATUS §9.8 / ADR-012 で確定予定のため、
-// LP では流動的な数値を避け「個人 = Free/Pro、チーム = Team」の高レベル訴求に留める。
+// プラン構造は ADR-012(F 案)で確定:Free は廃止 → 新規登録は 7 日 Pro 全機能トライアル、
+// 個人 = Pro ¥1,480、チーム = Team ¥2,800/人。AI は月次クレジット制(Haiku=1 / Sonnet=3)。
 const PLANS = [
   {
-    name: 'Free',
+    name: 'Trial',
     price: '¥0',
-    unit: '',
-    tagline: '個人開発者向け',
+    unit: '/ 7 日間',
+    tagline: 'まず無料で試したい方向け(クレカ不要)',
     features: [
-      'プロジェクト管理',
-      'AI ドキュメント・LP・チェックリスト生成(月 20 回まで)',
-      'ランディングページの作成と公開',
-      'AI 壁打ち(RAG)',
+      'Pro 全機能を 7 日間お試し',
+      'AI クレジット 300(Pro と同等)',
+      'クレジットカード登録不要',
+      'トライアル終了後は AI 停止(プロジェクトは閲覧可能)',
     ],
-    cta: '無料で始める',
+    cta: '無料トライアルを始める',
     highlighted: false,
   },
   {
     name: 'Pro',
-    price: '¥980',
+    price: '¥1,480',
     unit: '/ 月',
     tagline: '本格的に作る個人開発者向け',
-    features: ['Free のすべての機能', 'AI 生成・AI 壁打ちが無制限', '個人開発をフルに支える機能'],
+    features: [
+      'AI クレジット 300 / 月(Haiku 1cr / Sonnet 3cr)',
+      'Sonnet 4 / Haiku 4.5 自由切替',
+      '複数プロジェクト無制限',
+      '優先サポート',
+    ],
     cta: 'Pro を始める',
     highlighted: true,
   },
@@ -34,11 +39,11 @@ const PLANS = [
     name: 'Team',
     price: '¥2,800',
     unit: '/ 人・月',
-    tagline: '2 人以上のチーム向け',
+    tagline: '2 人以上のチーム向け(7 日無料トライアル)',
     features: [
       'Pro のすべての機能',
-      'チームメンバーの招待',
-      '6 段階のロール権限管理',
+      'AI クレジット 800 / 人・月(共有プール)',
+      'メンバー招待 + 6 段階のロール権限',
       '共同編集・レビュー',
       '監査ログ',
     ],
@@ -58,7 +63,7 @@ export function PricingSection() {
             あなたの規模に合うプラン
           </h2>
           <p className="text-muted-foreground mt-4 text-pretty">
-            まずは無料で。個人開発の本番運用は Pro、チームでの協働は Team へ。
+            まずは 7 日無料トライアルで。個人開発の本番運用は Pro、チームでの協働は Team へ。
           </p>
         </div>
         <div className="mt-14 grid gap-6 md:grid-cols-3">

@@ -207,6 +207,7 @@ RETRYING RETRYING
     Int tokensIn 
     Int tokensOut 
     Decimal costJpy 
+    Int credits 
     DateTime createdAt 
     }
   
@@ -217,6 +218,7 @@ RETRYING RETRYING
     String stripeSubId "❓"
     Plan plan 
     SubStatus status 
+    Int quantity 
     DateTime currentPeriodEnd "❓"
     DateTime canceledAt "❓"
     DateTime createdAt 

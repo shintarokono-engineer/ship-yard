@@ -14,9 +14,13 @@ export const INSTRUCTIONS_MAX_LENGTH = 2000;
 /** REFINE_DOC の推敲方針(goal)最大長(apps/api `RefineDocumentDto` の `@MaxLength(1000)` と同期)。 */
 export const GOAL_MAX_LENGTH = 1000;
 
-/** Free プラン上限到達時の UI 文言。Pro 課金導線は Day 24 で `/billing` に差し替え予定。 */
-export const AI_QUOTA_EXCEEDED_MESSAGE =
-  '月の AI 利用上限(20 回)に達しました。Pro にアップグレードすると無制限に使えます。';
+/** Free フォールバック状態(トライアル後、AI 停止)時の UI 文言(ADR-012)。 */
+export const AI_QUOTA_FREE_FALLBACK_MESSAGE =
+  'このワークスペースの AI 機能は停止中です。Pro / Team プランへアップグレードすると AI 機能を再開できます。';
+
+/** Pro / Team で月次 AI クレジット上限に達したときの UI 文言(ADR-012)。 */
+export const AI_QUOTA_CREDITS_EXCEEDED_MESSAGE =
+  '今月の AI クレジットを使い切りました。来月の更新までお待ちください(将来は追加クレジット購入も予定)。';
 
 /** AI 機能で扱うエラーの種類。 */
 export type AiErrorKind =
@@ -30,9 +34,10 @@ export type AiErrorKind =
 /**
  * `ApiError` を AI 機能向けに分類する。
  *
- * 上限超過は API 側で 403 + メッセージに固定文字列「AI 利用上限」を含む
- * (`apps/api/src/ai/ai-usage.service.ts:assertWithinFreeQuota`)。
- * `code` フィールドが入ったら厳密化する(Day 24 課金実装と合わせて検討、本実装ではスコープ外)。
+ * 上限関連は API 側で 403 を返し、本文に判別用キーワードを含める
+ * (`apps/api/src/ai/ai-usage.service.ts:assertWithinPlanCredits`):
+ * - Free フォールバック → 「AI 機能は停止」
+ * - Pro / Team クレジット超過 → 「AI クレジット」
  */
 export function classifyAiApiError(e: ApiError): { kind: AiErrorKind; messages: string[] } {
   const validation = extractValidationMessages(e.body);
@@ -43,8 +48,11 @@ export function classifyAiApiError(e: ApiError): { kind: AiErrorKind; messages: 
 
   if (e.status === 403) {
     const text = validation[0] ?? fallback;
-    if (text.includes('AI 利用上限')) {
-      return { kind: 'quota_exceeded', messages: [AI_QUOTA_EXCEEDED_MESSAGE] };
+    if (text.includes('AI 機能は停止')) {
+      return { kind: 'quota_exceeded', messages: [AI_QUOTA_FREE_FALLBACK_MESSAGE] };
+    }
+    if (text.includes('AI クレジット')) {
+      return { kind: 'quota_exceeded', messages: [AI_QUOTA_CREDITS_EXCEEDED_MESSAGE] };
     }
     return { kind: 'forbidden', messages: [text || 'この操作は許可されていません。'] };
   }
