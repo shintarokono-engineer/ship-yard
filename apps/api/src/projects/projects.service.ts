@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
-import { isPrismaError, type Prisma, PrismaErrorCode, type ProjectStatus } from '@shipyard/db';
+import { isPrismaError, PrismaErrorCode, type Prisma, type ProjectStatus } from '@shipyard/db';
 
 import { dayjs } from '../common/time';
 import { PrismaService } from '../prisma/prisma.service';
@@ -14,11 +14,14 @@ const PROJECT_SELECT = {
   description: true,
   status: true,
   launchDate: true,
-  // ADR-013 改訂版「2 モード化」 で追加。アイデア検証 + プロダクト診断の入力源。
+  // ADR-013 改訂版「2 モード化」 で追加(自由補足、Day 44)。
   targetUsers: true,
   problemStatement: true,
   proposedFeatures: true,
   pricingModel: true,
+  // ADR-013 改訂版「構造化入力 v2」 で追加(構造化セレクト 2 軸、Day 46.5 案 A)。
+  categoryDomain: true,
+  pricingTier: true,
   createdById: true,
   createdAt: true,
   updatedAt: true,
@@ -60,10 +63,14 @@ export class ProjectsService {
         description: dto.description,
         status: dto.status,
         launchDate: this.toLaunchDate(dto.launchDate),
+        // 自由補足 4 フィールド(Day 44)
         targetUsers: dto.targetUsers,
         problemStatement: dto.problemStatement,
         proposedFeatures: dto.proposedFeatures,
         pricingModel: dto.pricingModel,
+        // 構造化セレクト 2 フィールド(Day 46.5 案 A)
+        categoryDomain: dto.categoryDomain,
+        pricingTier: dto.pricingTier,
       },
       select: PROJECT_DETAIL_SELECT,
     });
@@ -106,10 +113,15 @@ export class ProjectsService {
           description: dto.description,
           status: dto.status,
           launchDate: this.toLaunchDate(dto.launchDate),
+          // 自由補足 4 フィールド(Day 44)
           targetUsers: dto.targetUsers,
           problemStatement: dto.problemStatement,
           proposedFeatures: dto.proposedFeatures,
           pricingModel: dto.pricingModel,
+          // 構造化セレクト 2 フィールド(Day 46.5 案 A)。`null` で列クリア、`undefined` でスキップ。
+          // `String?` 列なので Prisma.JsonNull は不要(`null` をそのまま渡せば列クリア)。
+          categoryDomain: dto.categoryDomain,
+          pricingTier: dto.pricingTier,
         },
         select: PROJECT_DETAIL_SELECT,
       });

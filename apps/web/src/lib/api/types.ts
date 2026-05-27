@@ -266,19 +266,86 @@ export interface Project {
   description: string | null;
   status: ProjectStatus;
   launchDate: string | null;
-  /** 想定ユーザー(ADR-013 改訂版「2 モード化」、アイデア検証 + プロダクト診断で参照)。 */
+  /** 想定ユーザー(自由補足、ADR-013 改訂版「2 モード化」、Day 44)。 */
   targetUsers: string | null;
-  /** 解きたい課題(ADR-013 改訂版)。 */
+  /** 解きたい課題(自由補足、ADR-013 改訂版)。 */
   problemStatement: string | null;
-  /** 想定機能リスト(Markdown 可、ADR-013 改訂版)。 */
+  /** 想定機能リスト(自由補足 Markdown、ADR-013 改訂版)。 */
   proposedFeatures: string | null;
-  /** 想定価格モデル(ADR-013 改訂版)。 */
+  /** 想定価格モデル(自由補足、ADR-013 改訂版)。 */
   pricingModel: string | null;
+  /** プロダクトのドメイン分類(ADR-013 改訂版「構造化入力 v2」、Day 46.5 案 A)。 */
+  categoryDomain: CategoryDomain | null;
+  /** 課金モデル + 月額レンジを統合した 1 軸(ADR-013 改訂版 v2)。 */
+  pricingTier: PricingTier | null;
   createdById: string;
   createdAt: string;
   updatedAt: string;
   _count: { checklist: number; documents: number };
 }
+
+// ============================================================================
+// Project 構造化セレクト 2 フィールド(ADR-013 改訂版「構造化入力 v2」、Day 46.5 案 A)
+//
+// **SSoT 注意**: BE 側 SSoT は `apps/api/src/projects/project-brief.constants.ts`。
+// 本セクションは FE 表示用ラベル(`*_LABEL`)を持つ FE 側ミラー定義。
+// 値を変更する場合は **BE 側ファイル冒頭コメントに従って 4 箇所を同時更新**すること
+// (`packages/shared` への切り出しは v1.x フォローアップ)。
+// ============================================================================
+
+/** プロダクトのドメイン分類(B2C / B2B 両対応)。 */
+export const CATEGORY_DOMAINS = [
+  'ENTERTAINMENT',
+  'PRODUCTIVITY',
+  'EDUCATION',
+  'FINANCE',
+  'HEALTH',
+  'COMMERCE',
+  'SOCIAL',
+  'DEVELOPER_TOOL',
+  'LIFESTYLE',
+  'OTHER',
+] as const;
+export type CategoryDomain = (typeof CATEGORY_DOMAINS)[number];
+export const CATEGORY_DOMAIN_LABEL: Record<CategoryDomain, string> = {
+  ENTERTAINMENT: 'エンタメ(ゲーム / 動画 / 音楽 / メディア)',
+  PRODUCTIVITY: '生産性(タスク管理 / メモ / コラボ)',
+  EDUCATION: '教育(学習 / トレーニング)',
+  FINANCE: '金融(家計簿 / 投資 / 決済 / 暗号資産)',
+  HEALTH: 'ヘルスケア(フィットネス / 医療 / メンタル)',
+  COMMERCE: 'コマース(EC / マーケットプレイス / 課金基盤)',
+  SOCIAL: 'ソーシャル(SNS / コミュニティ / マッチング)',
+  DEVELOPER_TOOL: '開発者向けツール(CLI / ライブラリ / API)',
+  LIFESTYLE: 'ライフスタイル(家事 / 旅行 / 趣味 / 子育て)',
+  OTHER: 'その他',
+};
+
+/** 課金モデル + 月額レンジを統合した 1 軸。 */
+export const PRICING_TIERS = [
+  'FREE_ONLY',
+  'FREEMIUM_UNDER_1000',
+  'FREEMIUM_1000_3000',
+  'FREEMIUM_OVER_3000',
+  'PAID_UNDER_1000',
+  'PAID_1000_3000',
+  'PAID_OVER_3000',
+  'USAGE_BASED',
+  'AD_SUPPORTED',
+  'DONATION',
+] as const;
+export type PricingTier = (typeof PRICING_TIERS)[number];
+export const PRICING_TIER_LABEL: Record<PricingTier, string> = {
+  FREE_ONLY: '完全無料',
+  FREEMIUM_UNDER_1000: 'フリーミアム(〜¥1,000)',
+  FREEMIUM_1000_3000: 'フリーミアム(¥1,000〜¥3,000)',
+  FREEMIUM_OVER_3000: 'フリーミアム(¥3,000〜)',
+  PAID_UNDER_1000: '有料のみ(〜¥1,000)',
+  PAID_1000_3000: '有料のみ(¥1,000〜¥3,000)',
+  PAID_OVER_3000: '有料のみ(¥3,000〜)',
+  USAGE_BASED: '従量課金',
+  AD_SUPPORTED: '広告型',
+  DONATION: '寄付・スポンサー',
+};
 
 /** ChecklistItem のカテゴリ(`Category` enum、packages/db/prisma/schema.prisma)。 */
 export const CATEGORIES = ['TECH', 'LEGAL', 'MARKETING', 'UX', 'OTHER'] as const;

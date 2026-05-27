@@ -459,3 +459,141 @@ model IdeaValidation {
 
 - なし。Day 43 で実装済の `ServiceScore` model / `ProductDiagnosisController` / `ProductDiagnosisService` は本改訂でも一切変更しない
 - Day 44 で `runDiagnosis()` の本実装を進める際、`Project` 詳細情報フィールド(targetUsers / problemStatement / proposedFeatures / pricingModel)を gatherContext に含めて精度向上を図る(追加情報源として活用)
+
+---
+
+## 改訂(2026-05-26):構造化入力 — セレクト + チェックボックスのハイブリッド
+
+### 改訂の背景
+
+Day 46 で FE 実装(status 出し分け Card + 詳細情報アコーディオン textarea 版)を完了したのち、ユーザーから以下の指摘を受けた:
+
+- 詳細情報が自由入力過ぎて必要な情報が摂りづらい
+- ユーザーがどのように入力したらいいかわからない
+- 入力形式を制限する(セレクトや数値や必要箇所のみ入力ボックスに)
+- UI が見づらい
+
+textarea 4 つだけの構造では「何を書けばいいか分からない」 という発見阻害が発生し、結果として AI 診断/検証の入力が空のままになる可能性が高い。アイデア検証は事業情報がないと評価不能(Day 45 で 400 ガード実装済)のため、ユーザーが詳細を埋めてくれない限り機能が空振る。
+
+### 改訂内容:構造化セレクト 5 フィールドを追加(ハイブリッド構成)
+
+既存の自由補足 4 フィールド(textarea)は残し、その上に**構造化セレクト 5 フィールド**を追加。アコーディオン内で以下 2 セクション構成にする:
+
+1. **構造化入力(セレクト + チェックボックス)** — 「選択肢から選ぶだけで埋まる」 UX を担保
+2. **補足(自由記述、任意)** — 構造化で表現しきれない情報を textarea で補完
+
+| フィールド        | 型        | enum 値の例                                                                                                                                               | UI                       |
+| ----------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `targetUserAttrs` | `Json?`   | `{ scale: 'INDIVIDUAL' \| 'SMALL_TEAM' \| 'MEDIUM_TEAM' \| 'LARGE_ORG' \| 'ENTERPRISE', role: 'ENGINEER' \| 'DESIGNER' \| ... }`                          | Select × 2(scale + role) |
+| `problemCategory` | `String?` | `EFFICIENCY` / `AUTOMATION` / `VISUALIZATION` / `COLLABORATION` / `KNOWLEDGE` / `COMMUNICATION` / `LEARNING` / `OTHER`                                    | Select 1 値              |
+| `coreFeatures`    | `Json?`   | `string[]` → `AI` / `API` / `WEBHOOK` / `BILLING` / `DASHBOARD` / `NOTIFICATION` / `REPORT` / `SEARCH` / `AUTH` / `MOBILE` / `OFFLINE` / `I18N` / `OTHER` | Checkbox 複数選択        |
+| `pricingType`     | `String?` | `FREE_ONLY` / `FREEMIUM` / `PAID_ONLY` / `TRIAL_THEN_PAID` / `USAGE_BASED` / `AD_SUPPORTED` / `DONATION`                                                  | Select 1 値              |
+| `pricingRange`    | `String?` | `FREE_ONLY` / `UNDER_500` / `500_TO_1000` / `1000_TO_3000` / `3000_TO_10000` / `10000_TO_30000` / `OVER_30000`                                            | Select 1 値              |
+
+### スキーマ設計の判断
+
+- **enum を Prisma enum にしない**(`String?` / `Json?` で保存):
+  - 候補が今後増減する想定(特に `coreFeatures` / `problemCategory`)
+  - 値の追加で migration を毎回打ちたくない
+  - 妥当性検証は BE(class-validator)+ FE(parseProjectFormData の enum membership filter)の 2 層で担保
+- **`targetUserAttrs` は Json 1 列**: `scale` と `role` を 2 列に分けると相関のあるフィールドが分散するため、`{ scale, role }` をまとめて 1 列で保持
+- **`coreFeatures` は Json 配列**: PostgreSQL の `String[]` 型もあるが、Prisma の `String[]` は若干癖があるため Json を統一して使う
+- **「未指定」 の表現**: Prisma の `Json?` は `null` クリアに `Prisma.JsonNull` を使う必要がある(`update` 時のみ)。`String?` は通常通り `null` で OK
+
+### AI prompt への統合方式
+
+`apps/api/src/projects/project-brief.constants.ts` に以下を集約:
+
+- `TARGET_USER_SCALES` / `TARGET_USER_ROLES` / `PROBLEM_CATEGORIES` / `CORE_FEATURES` / `PRICING_TYPES` / `PRICING_RANGES` enum const
+- 各 enum の `*_PROMPT_LABEL: Record<EnumValue, string>` 日本語ラベル(AI に enum コードを直接渡さず、人間可読な日本語ラベルに変換する)
+- `formatStructuredBriefForPrompt(brief)` — `{ targetUserAttrs, problemCategory, coreFeatures, pricingType, pricingRange }` から AI 用の日本語ブロック文字列を生成
+
+両 Service(`ProductDiagnosisService.runDiagnosis` / `IdeaValidationService.runValidation`)の user prompt 構築時に呼び出し、構造化情報を `## 補足(自由記述)` の上に注入する。
+
+### 後方互換
+
+- 既存の自由補足 4 フィールド(textarea)は**そのまま残す**(削除しない)。既存 Project の値は引き続き AI prompt に注入される
+- `hasAnyDetail` 判定(IdeaValidationService の事業情報未入力ガード)を構造化セレクトも見るように拡張(構造化セレクトのみ埋まっていても検証可能)
+
+### Day 46.5 として進めた理由(Day 46 と分けず合算しない)
+
+- Day 46 で textarea 版を一度 commit + push(`61f3d36`)してから着手 → 案 2 採用の意思決定経緯を git history に残せる
+- ハイブリッド構成への切替は API + Web 両方を触る大きめの変更(schema migration あり、AI prompt 整形も追加)で、Day 46 の作業を「textarea 版で動くプロダクト」 として一度切れる単位に保つ
+- フォローアップとして公開目標を Day 52 → Day 53 へ 1 日シフト
+
+---
+
+## 改訂(2026-05-27):構造化入力 v2 — 全プロダクト対応(B2B 前提語彙を排除)
+
+### 改訂の背景
+
+直前の改訂(2026-05-26)で導入した 5 構造化セレクト(`targetUserAttrs` / `problemCategory` / `coreFeatures` / `pricingType` / `pricingRange`)を、コミット前のセルフレビューで Shipyard ユーザーから以下の根本的な設計問題が指摘された:
+
+- **ユーザー職種(ENGINEER / DESIGNER / MANAGER ...)が B2B SaaS 前提**: Shipyard 自体が B2B SaaS なので発想がそこに引っ張られたが、Shipyard ユーザーが作るプロダクトは B2C(ゲーム / SNS / 一般消費者向けツール)も含み多様。
+- **「想定ユーザーの規模」 が B2C で意味不明**: 個人向けタイマーアプリの「想定ユーザー数」 は概念として違う(同時利用?総ユーザー?)。そもそも発案段階でユーザー数は分からない。
+- **解きたい課題のカテゴリ(EFFICIENCY / COLLABORATION 等)がビジネス系語彙に偏り**: エンタメ・健康・金融・教育・コマース等の重要分類が抜けていて、全プロダクトに対応できていない。
+- **コア機能(AI / BILLING / DASHBOARD ...)が SaaS 機能要素のリスト**: B2C プロダクトの典型機能(ソーシャル / リアルタイム / グラフィックス 等)が抜けている。網羅困難な性質のフィールドなので構造化セレクトに不向き。
+- **`pricingType` と `pricingRange` が連動していない**: `FREE_ONLY` + `UNDER_500` のような矛盾組合せが入力可能。
+
+根本的な問題は**「構造化セレクトの選択肢が B2B SaaS 前提の語彙で作られている」**こと。Shipyard ユーザーが作るプロダクトは多様で、コア機能・課題カテゴリのような網羅必須項目をセレクトで表現するのは現実的でない。
+
+### 改訂内容:構造化を**最小 2 軸**に絞り、残りは textarea + プレースホルダー強化に逃がす(案 A)
+
+#### 削除する構造化フィールド(5 つ全て drop)
+
+| フィールド        | 削除理由                                                         |
+| ----------------- | ---------------------------------------------------------------- |
+| `targetUserAttrs` | scale / role どちらも B2B 前提語彙。B2C 個人ユーザー像が表現不能 |
+| `problemCategory` | 8 カテゴリでは全プロダクトのドメインをカバーできない             |
+| `coreFeatures`    | 機能リストの網羅は不可能(B2B / B2C / ゲーム / SNS で全く違う)    |
+| `pricingType`     | `pricingRange` と矛盾組合せが起きる                              |
+| `pricingRange`    | 同上                                                             |
+
+migration `20260527120000_replace_structured_brief_with_category_pricing` で `DROP COLUMN` 5 列。Day 46.5 は未公開(staging / prod 未到達)+ ユーザー未利用なので破壊的変更でも安全。
+
+#### 残す構造化フィールド(全プロダクト適用可能な 2 軸のみ)
+
+| フィールド       | 型        | 候補値                                                                                                                                                                                    | 設計上の意義                                                               |
+| ---------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `categoryDomain` | `String?` | `ENTERTAINMENT` / `PRODUCTIVITY` / `EDUCATION` / `FINANCE` / `HEALTH` / `COMMERCE` / `SOCIAL` / `DEVELOPER_TOOL` / `LIFESTYLE` / `OTHER`                                                  | B2C / B2B 両対応の大分類。AI 診断で「同ドメインの競合」 を探すヒントになる |
+| `pricingTier`    | `String?` | `FREE_ONLY` / `FREEMIUM_UNDER_1000` / `FREEMIUM_1000_3000` / `FREEMIUM_OVER_3000` / `PAID_UNDER_1000` / `PAID_1000_3000` / `PAID_OVER_3000` / `USAGE_BASED` / `AD_SUPPORTED` / `DONATION` | 課金モデル + 月額レンジを統合した 1 軸。矛盾組合せが構造的に起きない       |
+
+#### textarea + プレースホルダー強化(Day 44 の自由補足 4 つを維持)
+
+`targetUsers` / `problemStatement` / `proposedFeatures` / `pricingModel` の 4 textarea は維持しつつ、各 placeholder を B2C / B2B 両対応の入力例で強化:
+
+- `targetUsers`: 「例: 20〜30 代の社会人で集中力を高めたい個人 / 中小企業の経理担当者 / 子育て中の親」
+- `problemStatement`: 「例: 集中阻害要因の可視化機能を持つタイマーアプリが少ない / 既存ツールは複雑で使いこなせない」
+- `proposedFeatures`: 「コア機能を箇条書きで 3〜10 個」 の例文付き
+- `pricingModel`: 「上の課金モデルで表現しきれない補足。例: 年払い 20% 割引 / 学生プラン半額」
+
+アコーディオン冒頭にガイド文「以下を具体的に書くほど AI 診断の精度が上がります(全項目任意)。B2C / B2B どちらのプロダクトでも入力できます。」 を配置。
+
+### UI 改善(あわせて対応)
+
+- セレクト未選択時の表示を「(未指定)」 → `placeholder="選択する"`(SelectValue の placeholder プロップ)に変更
+- センチネル `__none__` の選択肢ラベルを「(未指定)」 → 「選択しない(クリア)」 に変更(より行為が明確)
+- coreFeatures チェックボックスグループを削除したため、`<fieldset>` + `<legend>` の a11y バリアントは未使用になるが、汎用部品として `FormField as="fieldset"` バリアントは残置(将来の複数選択 UI 追加に備える)
+
+### 設計判断の根拠
+
+- **網羅必須の分類はセレクトに不向き**: コア機能・課題カテゴリのように「全プロダクトを網羅する候補値を出す」 ことが本質的に困難な分類は textarea で自由記述させ、AI prompt にそのまま注入する方が情報量と表現力が高い。
+- **連動制約が必要な軸は 1 つに統合**: `pricingType` × `pricingRange` のような相関する 2 軸は 1 軸に統合することで矛盾組合せが構造的に発生しない。
+- **「セレクトの存在意義」 は AI 診断のヒント**: `categoryDomain` は AI が「同ドメインの競合」 を Web Search で探す際の検索クエリ強化に効く。`pricingTier` は「同価格帯の競合」 の比較に効く。この 2 軸は **AI 診断の精度向上に直結する**ため構造化する価値が高い。
+- **ユーザーガイドは textarea の placeholder + アコーディオン冒頭のヘルプで担保**: 構造化セレクトに頼らず「何を書くか」 を文章で誘導する設計。
+
+### 後方互換
+
+- Day 46.5 v1(2026-05-26 改訂)は未公開のため、staging / prod に到達していない。破壊的変更で問題なし。
+- Day 44 の自由補足 4 フィールドはそのまま残置(値消失なし)。
+
+### 公開スケジュールへの影響
+
+- Day 46.5 内の再設計として処理(コミット未済の staging を案 A に上書き)。公開目標 Day 53 維持。
+- Day 47 以降の予定(ブラウザ動作確認 + デモ動画 + README 差し替え)は変更なし。
+
+### v1.x 候補(改訂で生まれた新フォローアップ)
+
+- `categoryDomain` × ChecklistItem / LP テンプレートとの連動(例: SOCIAL ドメインを選んだら「コミュニティガイドライン」 タスクを追加提案)
+- `pricingTier` を Stripe Price ID と紐付け(プラン推奨計算)
+- AI 診断結果の集計を `categoryDomain` 別に出す(ドメイン横断ベンチマーク)

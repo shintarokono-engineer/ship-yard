@@ -4,6 +4,7 @@ import { apiFetch } from './client';
 import { ApiError } from './errors';
 import type {
   AskRagQaResult,
+  CategoryDomain,
   Category,
   ChecklistItem,
   CreateWorkspaceResult,
@@ -16,6 +17,7 @@ import type {
   LpTheme,
   MonthlyUsageSummary,
   MyWorkspaceListItem,
+  PricingTier,
   Project,
   ProjectDocument,
   ProjectStatus,
@@ -99,11 +101,14 @@ export async function createProject(
     description?: string;
     status?: ProjectStatus;
     launchDate?: string;
-    /** ADR-013 改訂版「2 モード化」 の詳細情報フィールド(IDEA 新規作成時の入力)。 */
+    /** 自由補足 4 フィールド(ADR-013 改訂版「2 モード化」、Day 44)。 */
     targetUsers?: string;
     problemStatement?: string;
     proposedFeatures?: string;
     pricingModel?: string;
+    /** 構造化セレクト 2 フィールド(ADR-013 改訂版「構造化入力 v2」、Day 46.5 案 A)。 */
+    categoryDomain?: CategoryDomain;
+    pricingTier?: PricingTier;
   },
 ): Promise<Project> {
   return apiFetch<Project>(`/workspaces/${encodeURIComponent(slug)}/projects`, {
@@ -146,11 +151,14 @@ export async function updateProject(
     description?: string | null;
     status?: ProjectStatus;
     launchDate?: string | null;
-    /** ADR-013 改訂版「2 モード化」 の詳細情報フィールド(null で列クリア)。 */
+    /** 自由補足 4 フィールド(null で列クリア、Day 44)。 */
     targetUsers?: string | null;
     problemStatement?: string | null;
     proposedFeatures?: string | null;
     pricingModel?: string | null;
+    /** 構造化セレクト 2 フィールド(null で列クリア、Day 46.5 案 A)。 */
+    categoryDomain?: CategoryDomain | null;
+    pricingTier?: PricingTier | null;
   },
 ): Promise<Project> {
   return apiFetch<Project>(

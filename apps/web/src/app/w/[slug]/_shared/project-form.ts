@@ -10,28 +10,39 @@
  * 呼ばれない前提だが、Client Component が `INITIAL_STATE` 等を参照することもあるため。
  */
 
-import { PROJECT_STATUSES, type ProjectStatus } from '@/lib/api/types';
+import {
+  CATEGORY_DOMAINS,
+  PRICING_TIERS,
+  PROJECT_STATUSES,
+  type CategoryDomain,
+  type PricingTier,
+  type ProjectStatus,
+} from '@/lib/api/types';
 
 /** name の最大長(apps/api `CreateProjectDto` / `UpdateProjectDto` と一致)。 */
 export const NAME_MAX_LENGTH = 100;
 /** description の最大長(apps/api `CreateProjectDto` / `UpdateProjectDto` と一致)。 */
 export const DESCRIPTION_MAX_LENGTH = 20_000;
 
-/** ADR-013 改訂版「2 モード化」 の詳細情報フィールドの最大長(apps/api DTO と一致)。 */
+/** ADR-013 改訂版「2 モード化」 の自由補足フィールドの最大長(apps/api DTO と一致)。 */
 export const TARGET_USERS_MAX_LENGTH = 2_000;
 export const PROBLEM_STATEMENT_MAX_LENGTH = 2_000;
 export const PROPOSED_FEATURES_MAX_LENGTH = 5_000;
 export const PRICING_MODEL_MAX_LENGTH = 500;
 
-/** バリデーション対象フィールド(ADR-013 改訂版で詳細情報フィールド 4 つを追加)。 */
+/** バリデーション対象フィールド(自由補足 4 + 構造化セレクト 2、Day 46.5 案 A)。 */
 export const FORM_FIELDS = [
   'name',
   'description',
   'status',
+  // 自由補足 4 フィールド(Day 44)
   'targetUsers',
   'problemStatement',
   'proposedFeatures',
   'pricingModel',
+  // 構造化セレクト 2 フィールド(Day 46.5 案 A)
+  'categoryDomain',
+  'pricingTier',
 ] as const;
 export type FieldName = (typeof FORM_FIELDS)[number];
 
@@ -55,6 +66,8 @@ export interface ProjectFormState {
     problemStatement?: string;
     proposedFeatures?: string;
     pricingModel?: string;
+    categoryDomain?: string;
+    pricingTier?: string;
   };
 }
 
@@ -62,7 +75,7 @@ export interface ProjectFormState {
 export const INITIAL_PROJECT_FORM_STATE: ProjectFormState = { ok: false };
 
 /**
- * `FormData` から name / description / status を取り出し、最低限のバリデーションを行う。
+ * `FormData` から各フィールドを取り出し、最低限のバリデーションを行う。
  *
  * - 戻り値の `data` が `null` のときはバリデーション失敗(`fieldErrors` を Server Action から返す)
  * - 戻り値の `data` が非 null のときは API に投げて良い形に正規化済み
@@ -77,6 +90,9 @@ export function parseProjectFormData(formData: FormData): {
     problemStatement: string;
     proposedFeatures: string;
     pricingModel: string;
+    /** 構造化セレクト 2 フィールド(Day 46.5 案 A)。未選択は `undefined`。 */
+    categoryDomain: CategoryDomain | undefined;
+    pricingTier: PricingTier | undefined;
   } | null;
   fieldErrors: Partial<Record<FieldName, string[]>>;
   fields: {
@@ -87,6 +103,8 @@ export function parseProjectFormData(formData: FormData): {
     problemStatement: string;
     proposedFeatures: string;
     pricingModel: string;
+    categoryDomain: string;
+    pricingTier: string;
   };
 } {
   const name = String(formData.get('name') ?? '').trim();
@@ -99,6 +117,18 @@ export function parseProjectFormData(formData: FormData): {
   const problemStatement = String(formData.get('problemStatement') ?? '').trim();
   const proposedFeatures = String(formData.get('proposedFeatures') ?? '').trim();
   const pricingModel = String(formData.get('pricingModel') ?? '').trim();
+
+  // 構造化セレクト 2 フィールド(Day 46.5 案 A)。
+  // Radix Select が `value=""` を許さない事情で UI 側はセンチネル(`__none__`)を送るが、
+  // enum membership filter で自動的に undefined に変換される。
+  const categoryDomainRaw = String(formData.get('categoryDomain') ?? '').trim();
+  const pricingTierRaw = String(formData.get('pricingTier') ?? '').trim();
+  const categoryDomain = (CATEGORY_DOMAINS as readonly string[]).includes(categoryDomainRaw)
+    ? (categoryDomainRaw as CategoryDomain)
+    : undefined;
+  const pricingTier = (PRICING_TIERS as readonly string[]).includes(pricingTierRaw)
+    ? (pricingTierRaw as PricingTier)
+    : undefined;
 
   const fieldErrors: Partial<Record<FieldName, string[]>> = {};
   if (name.length === 0) {
@@ -154,6 +184,8 @@ export function parseProjectFormData(formData: FormData): {
     problemStatement,
     proposedFeatures,
     pricingModel,
+    categoryDomain: categoryDomainRaw,
+    pricingTier: pricingTierRaw,
   };
 
   if (Object.keys(fieldErrors).length > 0) {
@@ -168,6 +200,8 @@ export function parseProjectFormData(formData: FormData): {
       problemStatement,
       proposedFeatures,
       pricingModel,
+      categoryDomain,
+      pricingTier,
     },
     fieldErrors,
     fields,

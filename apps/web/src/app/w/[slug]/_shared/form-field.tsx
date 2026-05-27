@@ -10,6 +10,10 @@ import { cn } from '@/lib/utils';
  * ドメイン非依存のフォームフィールド枠。
  *
  * a11y: エラー要素 id を `aria-describedby` で結びつける前提(各 Input 側で指定)。
+ *
+ * `as="fieldset"` を指定するとチェックボックス / ラジオの**グループ**用に外枠を
+ * `<fieldset>` + `<legend>` に切り替える(`<label htmlFor>` は単一フォームコントロール
+ * 用で `<div>` 中の checkbox 群には意味的に効かないため)。
  */
 export function FormField({
   id,
@@ -18,6 +22,7 @@ export function FormField({
   counter,
   errors,
   children,
+  as = 'div',
 }: {
   id: string;
   label: string;
@@ -25,28 +30,51 @@ export function FormField({
   counter?: { current: number; max: number };
   errors?: string[];
   children: ReactNode;
+  as?: 'div' | 'fieldset';
 }) {
+  const requiredMark = required && (
+    <span aria-hidden="true" className="text-destructive ml-0.5">
+      *
+    </span>
+  );
+  const errorList = errors && errors.length > 0 && (
+    <ul id={`${id}-error`} role="alert" className="text-destructive space-y-0.5 text-sm">
+      {errors.map((m) => (
+        <li key={m}>{m}</li>
+      ))}
+    </ul>
+  );
+  const counterEl = counter && <CharCounter current={counter.current} max={counter.max} />;
+
+  if (as === 'fieldset') {
+    // `<fieldset>` + `<legend>` で group label を関連付け(WAI-ARIA で複数選択 UI に推奨)。
+    // `<legend>` の見た目を `<Label>` と揃えるためクラスを直書き(shadcn Label は <label> 専用)。
+    return (
+      <fieldset className="space-y-2">
+        <div className="flex items-baseline justify-between gap-2">
+          <legend className="text-sm font-medium leading-none">
+            {label}
+            {requiredMark}
+          </legend>
+          {counterEl}
+        </div>
+        {children}
+        {errorList}
+      </fieldset>
+    );
+  }
+
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between gap-2">
         <Label htmlFor={id}>
           {label}
-          {required && (
-            <span aria-hidden="true" className="text-destructive ml-0.5">
-              *
-            </span>
-          )}
+          {requiredMark}
         </Label>
-        {counter && <CharCounter current={counter.current} max={counter.max} />}
+        {counterEl}
       </div>
       {children}
-      {errors && errors.length > 0 && (
-        <ul id={`${id}-error`} role="alert" className="text-destructive space-y-0.5 text-sm">
-          {errors.map((m) => (
-            <li key={m}>{m}</li>
-          ))}
-        </ul>
-      )}
+      {errorList}
     </div>
   );
 }

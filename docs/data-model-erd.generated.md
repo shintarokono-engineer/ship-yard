@@ -131,6 +131,8 @@ RETRYING RETRYING
     String problemStatement "❓"
     String proposedFeatures "❓"
     String pricingModel "❓"
+    String categoryDomain "❓"
+    String pricingTier "❓"
     ProjectStatus status 
     DateTime launchDate "❓"
     String createdById 

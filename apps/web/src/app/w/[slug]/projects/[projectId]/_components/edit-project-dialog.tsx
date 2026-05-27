@@ -64,10 +64,14 @@ export function EditProjectDialog({ slug, project }: { slug: string; project: Pr
                 name: project.name,
                 description: project.description ?? '',
                 status: project.status,
+                // 自由補足 4 フィールド(Day 44)
                 targetUsers: project.targetUsers ?? '',
                 problemStatement: project.problemStatement ?? '',
                 proposedFeatures: project.proposedFeatures ?? '',
                 pricingModel: project.pricingModel ?? '',
+                // 構造化セレクト 2 フィールド(Day 46.5 案 A)
+                categoryDomain: project.categoryDomain ?? '',
+                pricingTier: project.pricingTier ?? '',
               }}
             />
           </div>

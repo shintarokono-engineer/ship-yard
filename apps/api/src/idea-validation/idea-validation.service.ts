@@ -15,6 +15,7 @@ import { AnthropicService } from '../ai/anthropic.service';
 import { AI_PERSONA_INTRO } from '../ai/prompts';
 import { extractToolUseBlock } from '../ai/tool-use';
 import { PrismaService } from '../prisma/prisma.service';
+import { formatStructuredBriefForPrompt } from '../projects/project-brief.constants';
 import {
   formatValidationRubricForPrompt,
   VALIDATION_RECOMMENDATION_GUIDANCE,
@@ -84,10 +85,14 @@ export class IdeaValidationService {
         id: true,
         name: true,
         description: true,
+        // 自由補足 4 フィールド(Day 44)
         targetUsers: true,
         problemStatement: true,
         proposedFeatures: true,
         pricingModel: true,
+        // 構造化セレクト 2 フィールド(Day 46.5 案 A、ADR-013 改訂版「構造化入力 v2」)
+        categoryDomain: true,
+        pricingTier: true,
       },
     });
     if (!project) {
@@ -95,18 +100,19 @@ export class IdeaValidationService {
     }
 
     // 3. 詳細情報フィールドが全て空なら 400(アイデア検証は事業情報がないと評価不能)。
-    // description(概要)も含めて何らかの事業情報が入っていれば検証可能とする
-    // (新規プロジェクトで description だけ書いた段階でもアイデア検証を試せる UX を想定、
-    // ADR-013 改訂版「2 モード化」 の詳細フィールドは厳密チェックではなく緩めの判定)。
+    // 自由補足 4 + description + 構造化セレクト 2(categoryDomain / pricingTier)のいずれかに
+    // 値があれば検証可能とする(緩めの判定、ADR-013 改訂版「構造化入力 v2」)。
     const hasAnyDetail =
       project.targetUsers?.trim() ||
       project.problemStatement?.trim() ||
       project.proposedFeatures?.trim() ||
       project.pricingModel?.trim() ||
-      project.description?.trim();
+      project.description?.trim() ||
+      project.categoryDomain ||
+      project.pricingTier;
     if (!hasAnyDetail) {
       throw new BadRequestException(
-        'アイデア検証にはプロジェクトの詳細情報(想定ユーザー / 解きたい課題 / 想定機能 / 想定価格)の入力が必要です。プロジェクト編集画面の「詳細情報」 タブから入力してください。',
+        'アイデア検証にはプロジェクトの詳細情報(想定ユーザー / 解きたい課題 / 想定機能 / 想定価格 / ドメイン分類 / 課金モデル)のいずれかの入力が必要です。プロジェクト編集画面の「詳細情報」 から入力してください。',
       );
     }
 
@@ -138,11 +144,19 @@ export class IdeaValidationService {
       '- Web Search に失敗 / 該当なしの場合は空配列で構いません(評価は継続)。',
     ].join('\n');
 
-    // 5. user prompt 構築
+    // 5. user prompt 構築(構造化セレクト 2 + 自由補足 4 のハイブリッド、ADR-013 改訂版 v2)
+    const structuredBrief = formatStructuredBriefForPrompt({
+      categoryDomain: project.categoryDomain,
+      pricingTier: project.pricingTier,
+    });
+
     const userText = [
       '# プロダクトアイデア情報',
       `- 名前: ${project.name}`,
       `- 概要: ${project.description?.trim() || '(未記入)'}`,
+      structuredBrief || '- (構造化情報なし)',
+      '',
+      '# 補足(自由記述)',
       `- 想定ユーザー: ${project.targetUsers?.trim() || '(未入力)'}`,
       `- 解きたい課題: ${project.problemStatement?.trim() || '(未入力)'}`,
       `- 想定機能: ${project.proposedFeatures?.trim() || '(未入力)'}`,
@@ -158,12 +172,12 @@ export class IdeaValidationService {
       max_tokens: IDEA_VALIDATION_MAX_TOKENS,
       temperature: IDEA_VALIDATION_TEMPERATURE,
       system: systemPrompt,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tools: [
         {
           type: WEB_SEARCH_TOOL_TYPE,
           name: WEB_SEARCH_TOOL_NAME,
           max_uses: WEB_SEARCH_MAX_USES,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any,
         SUBMIT_IDEA_VALIDATION_TOOL,
       ],

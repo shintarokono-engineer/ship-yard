@@ -262,14 +262,28 @@ model Project {
   name        String
   /// 概要(Markdown 可、任意)
   description String?       @db.Text
-  /// 想定ユーザー(誰の課題か、ADR-013 改訂版「2 モード化」 で追加)。アイデア検証で必須、プロダクト診断でも参照。
+  /// 想定ユーザー(自由補足、ADR-013 改訂版「2 モード化」 で追加、Day 46.5 案 A で textarea 中心の運用に)。
+  /// プロダクトのエンドユーザー像を 1〜2 行で記述(B2C 個人 / B2B 組織 どちらにも対応)。
   targetUsers      String?       @db.Text
-  /// 解きたい課題(ADR-013 改訂版で追加)。Lean Startup の Problem-Solution Fit 検証の中核。
+  /// 解きたい課題(自由補足、ADR-013 改訂版)。Lean Startup の Problem-Solution Fit 検証の中核。
   problemStatement String?       @db.Text
-  /// 想定機能リスト(Markdown 可、ADR-013 改訂版で追加)。アイデア段階で書き出し、実装で更新する想定。
+  /// 想定機能リスト(自由補足 Markdown、ADR-013 改訂版)。コア機能を箇条書きで列挙する用途。
   proposedFeatures String?       @db.Text
-  /// 想定価格モデル(例「Free + Pro ¥980/月」、ADR-013 改訂版で追加)。差別化軸の評価精度向上。
+  /// 想定価格モデル(自由補足、ADR-013 改訂版)。`pricingTier` で表現しきれない補足説明。
   pricingModel     String?
+
+  // ----- 構造化セレクト 2 フィールド(Day 46.5 案 A、ADR-013 改訂版「構造化入力 v2」)-----
+  // 案 A では B2B 前提語彙を排し、全プロダクト(B2C / B2B / 個人ツール / ゲーム / SNS 等)で
+  // 適用可能な「ドメイン分類」 + 「課金モデル + 価格帯統合」 の 2 軸のみに絞る。
+  /// プロダクトのドメイン分類(セレクト 1 値)。
+  /// 'ENTERTAINMENT' | 'PRODUCTIVITY' | 'EDUCATION' | 'FINANCE' | 'HEALTH' |
+  /// 'COMMERCE' | 'SOCIAL' | 'DEVELOPER_TOOL' | 'LIFESTYLE' | 'OTHER'
+  categoryDomain   String?
+  /// 課金モデル + 月額レンジを統合した 1 軸(セレクト 1 値)。矛盾組合せを構造的に防ぐ。
+  /// 'FREE_ONLY' | 'FREEMIUM_UNDER_1000' | 'FREEMIUM_1000_3000' | 'FREEMIUM_OVER_3000' |
+  /// 'PAID_UNDER_1000' | 'PAID_1000_3000' | 'PAID_OVER_3000' |
+  /// 'USAGE_BASED' | 'AD_SUPPORTED' | 'DONATION'
+  pricingTier      String?
   /// ライフサイクル状態(IDEA / IN_DEV / BETA / LAUNCHED / ARCHIVED)
   status      ProjectStatus @default(IDEA)
   /// リリース予定日 or 実績日(任意)

@@ -15,6 +15,7 @@ import { AnthropicService } from '../ai/anthropic.service';
 import { AI_PERSONA_INTRO } from '../ai/prompts';
 import { extractToolUseBlock } from '../ai/tool-use';
 import { PrismaService } from '../prisma/prisma.service';
+import { formatStructuredBriefForPrompt } from '../projects/project-brief.constants';
 import { formatRubricForPrompt } from './diagnosis.constants';
 import { parseDiagnosisOutput, SUBMIT_SERVICE_SCORE_TOOL } from './diagnosis-schema';
 import type { DiagnosisOutput } from './diagnosis-types';
@@ -80,10 +81,14 @@ export class ProductDiagnosisService {
         name: true,
         description: true,
         status: true,
+        // 自由補足 4 フィールド(Day 44)
         targetUsers: true,
         problemStatement: true,
         proposedFeatures: true,
         pricingModel: true,
+        // 構造化セレクト 2 フィールド(Day 46.5 案 A)
+        categoryDomain: true,
+        pricingTier: true,
       },
     });
     if (!project) {
@@ -155,11 +160,20 @@ export class ProductDiagnosisService {
       ? `前回スコア: ${lastScore.totalScore}/100(${lastScore.createdAt.toISOString().slice(0, 10)} 実施)\n前回ブレークダウン: ${JSON.stringify(lastScore.breakdown)}`
       : '(本機能の初回診断)';
 
+    // 構造化セレクト 2 フィールド(Day 46.5 案 A、ADR-013 改訂版 v2)を AI 用に整形
+    const structuredBrief = formatStructuredBriefForPrompt({
+      categoryDomain: project.categoryDomain,
+      pricingTier: project.pricingTier,
+    });
+
     const userText = [
       '# プロジェクト情報',
       `- 名前: ${project.name}`,
       `- 概要: ${project.description?.trim() || '(未記入)'}`,
       `- 状態: ${project.status}`,
+      structuredBrief || '- (構造化情報なし)',
+      '',
+      '# 補足(自由記述)',
       `- 想定ユーザー: ${project.targetUsers?.trim() || '(未入力)'}`,
       `- 解きたい課題: ${project.problemStatement?.trim() || '(未入力)'}`,
       `- 想定機能: ${project.proposedFeatures?.trim() || '(未入力)'}`,
@@ -189,12 +203,12 @@ export class ProductDiagnosisService {
       max_tokens: PRODUCT_DIAGNOSIS_MAX_TOKENS,
       temperature: PRODUCT_DIAGNOSIS_TEMPERATURE,
       system: systemPrompt,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tools: [
         {
           type: WEB_SEARCH_TOOL_TYPE,
           name: WEB_SEARCH_TOOL_NAME,
           max_uses: WEB_SEARCH_MAX_USES,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any,
         SUBMIT_SERVICE_SCORE_TOOL,
       ],

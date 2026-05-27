@@ -45,13 +45,16 @@ export async function updateProjectAction(
       // 空文字は「null クリア」として扱う(編集で説明を消したいケース)。
       description: parsed.data.description.length > 0 ? parsed.data.description : null,
       status: parsed.data.status,
-      // ADR-013 改訂版「2 モード化」 の詳細情報フィールド(同じく空文字 = null クリア)。
+      // 自由補足 4 フィールド(同じく空文字 = null クリア、Day 44)。
       targetUsers: parsed.data.targetUsers.length > 0 ? parsed.data.targetUsers : null,
       problemStatement:
         parsed.data.problemStatement.length > 0 ? parsed.data.problemStatement : null,
       proposedFeatures:
         parsed.data.proposedFeatures.length > 0 ? parsed.data.proposedFeatures : null,
       pricingModel: parsed.data.pricingModel.length > 0 ? parsed.data.pricingModel : null,
+      // 構造化セレクト 2 フィールド(未選択 = null クリア、Day 46.5 案 A)。
+      categoryDomain: parsed.data.categoryDomain ?? null,
+      pricingTier: parsed.data.pricingTier ?? null,
     });
   } catch (e) {
     if (e instanceof ApiError) {

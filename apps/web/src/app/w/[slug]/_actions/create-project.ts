@@ -51,13 +51,16 @@ export async function createProjectAction(
       name: parsed.data.name,
       description: parsed.data.description.length > 0 ? parsed.data.description : undefined,
       status: parsed.data.status,
-      // ADR-013 改訂版「2 モード化」 の詳細情報フィールド(IDEA 新規作成時に最初から入れるユースケース)
+      // 自由補足 4 フィールド(Day 44)
       targetUsers: parsed.data.targetUsers.length > 0 ? parsed.data.targetUsers : undefined,
       problemStatement:
         parsed.data.problemStatement.length > 0 ? parsed.data.problemStatement : undefined,
       proposedFeatures:
         parsed.data.proposedFeatures.length > 0 ? parsed.data.proposedFeatures : undefined,
       pricingModel: parsed.data.pricingModel.length > 0 ? parsed.data.pricingModel : undefined,
+      // 構造化セレクト 2 フィールド(Day 46.5 案 A)
+      categoryDomain: parsed.data.categoryDomain,
+      pricingTier: parsed.data.pricingTier,
     });
     projectId = project.id;
   } catch (e) {
