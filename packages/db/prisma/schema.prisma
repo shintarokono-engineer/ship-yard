@@ -524,6 +524,10 @@ model Subscription {
   plan             Plan
   /// 課金状態(ACTIVE / PAST_DUE / CANCELED / INCOMPLETE / TRIALING)
   status           SubStatus @default(ACTIVE)
+  /// 課金数量(Team プランのメンバー数 = Stripe Subscription Quantity、ADR-012)。
+  /// AI クレジット計算(Team の上限 = quantity × 800 cr)はこの列を真実の源にし、Webhook 受信時に同期される。
+  /// Pro / Free は常に 1 で運用(quantity 概念はあるが意味なし)。
+  quantity         Int       @default(1)
   /// 現課金期間終了日(次回更新基準、Stripe からの情報)
   currentPeriodEnd DateTime?
   /// 解約申請日時(7 日 grace → 30 日凍結 → 削除フローの起点、ADR-004)

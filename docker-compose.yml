@@ -1,9 +1,26 @@
+# Shipyard ローカル DB(PostgreSQL 16 + pgvector)。
+#
+# 並行ブランチ / worktree ごとに別 DB を使い分けるため、コンテナ名・ポート・ボリュームは
+# 環境変数で切り替えられるようにしてある(`.env` を参照、`.env.example` 参照):
+#
+# - `COMPOSE_PROJECT_NAME`: Docker Compose のプロジェクト名。コンテナ・ネットワーク・
+#   ボリュームの prefix になる(例: `shipyard-adr012-postgres-1`)。デフォルトは作業
+#   ディレクトリ名(`shipyard`)。
+# - `POSTGRES_PORT`: ホスト側公開ポート。別ブランチで並列起動するときに別値を割り当てる
+#   (例: 5433、5434)。コンテナ内部は常に 5432。
+#
+# 切替手順(別ブランチで作業する例):
+#   1. ルートに `.env` を作って `COMPOSE_PROJECT_NAME=shipyard-<branch>` と
+#      `POSTGRES_PORT=5433` を書く
+#   2. `docker compose up -d` で新コンテナ起動
+#   3. `apps/api/.env.local` と `packages/db/.env` の `DATABASE_URL` のポートを 5433 に
+#   4. `pnpm --filter @shipyard/db exec prisma migrate dev` で migration を適用
+
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: shipyard-postgres
     ports:
-      - '5432:5432'
+      - '${POSTGRES_PORT:-5432}:5432'
     environment:
       POSTGRES_USER: shipyard
       POSTGRES_PASSWORD: shipyard
