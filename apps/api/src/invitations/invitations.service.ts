@@ -165,12 +165,15 @@ export class InvitationsService {
   }
 
   async accept(token: string, clerkUserId: string): Promise<AcceptInvitationResult> {
-    const user = await this.prisma.user.findUnique({
-      where: { clerkUserId },
+    // §9.10 Clerk webhook(Day 49):`deletedAt` セット済(論理削除)ユーザーは招待受諾も不可。
+    // `findFirst` で `clerkUserId` + `deletedAt: null` の AND 条件を使う。
+    const user = await this.prisma.user.findFirst({
+      where: { clerkUserId, deletedAt: null },
       select: { id: true, email: true },
     });
     if (!user) {
-      // Clerk JWT は通っているが User テーブルに同期されていないケース(Clerk Webhook 未受信等)
+      // Clerk JWT は通っているが User テーブルに同期されていない or 論理削除済みのケース。
+      // Webhook 未到達時の JIT は workspace 作成側でのみ実施するため、招待承諾側は 403 にする。
       throw new ForbiddenException('User not registered in Shipyard');
     }
 

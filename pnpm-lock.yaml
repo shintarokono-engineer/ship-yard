@@ -37,7 +37,7 @@ importers:
         version: 0.95.2(zod@3.25.76)
       '@clerk/backend':
         specifier: ^1.0.0
-        version: 1.34.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(svix@1.92.2)
+        version: 1.34.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(svix@1.94.0)
       '@nestjs/common':
         specifier: ^11.0.0
         version: 11.1.19(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -89,6 +89,9 @@ importers:
       stripe:
         specifier: ^22.1.1
         version: 22.1.1(@types/node@22.19.18)
+      svix:
+        specifier: ^1.94.0
+        version: 1.94.0
     devDependencies:
       '@nestjs/cli':
         specifier: ^11.0.0
@@ -4973,6 +4976,9 @@ packages:
   svix@1.92.2:
     resolution: {integrity: sha512-ZmuA3UVvlnF9EgxlzmPtF7CKjQb64Z6OFlyfdDfU0sdcC7dJa+3aOYX5B9mA+RS6ch1AxBa4UP/l6KmqfGtWBQ==}
 
+  svix@1.94.0:
+    resolution: {integrity: sha512-FuP5nJez1P/SeK+4zOBI8RrNhtrzMTBSvwuD4yGGsn+Af2yQazid6OwPu3fpZpMifOJxrJua0su/dYB5fe4v9Q==}
+
   swr@2.3.4:
     resolution: {integrity: sha512-bYd2lrhc+VarcpkgWclcUi92wYCpOgMws9Sd1hG1ntAu0NEy+14CbotuFjshBU2kt9rYj9TSmDcybpxpeTU1fg==}
     peerDependencies:
@@ -5445,7 +5451,7 @@ snapshots:
 
   '@chevrotain/utils@12.0.0': {}
 
-  '@clerk/backend@1.34.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(svix@1.92.2)':
+  '@clerk/backend@1.34.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(svix@1.94.0)':
     dependencies:
       '@clerk/shared': 3.47.5(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       '@clerk/types': 4.101.23(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -5453,7 +5459,7 @@ snapshots:
       snakecase-keys: 8.0.1
       tslib: 2.8.1
     optionalDependencies:
-      svix: 1.92.2
+      svix: 1.94.0
     transitivePeerDependencies:
       - react
       - react-dom
@@ -10539,6 +10545,10 @@ snapshots:
   supports-preserve-symlinks-flag@1.0.0: {}
 
   svix@1.92.2:
+    dependencies:
+      standardwebhooks: 1.0.0
+
+  svix@1.94.0:
     dependencies:
       standardwebhooks: 1.0.0
 

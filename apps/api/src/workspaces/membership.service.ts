@@ -35,8 +35,10 @@ export class MembershipService {
     });
     if (!tenant) return null;
 
-    const dbUser = await this.prisma.user.findUnique({
-      where: { clerkUserId },
+    // §9.10 Clerk webhook(Day 49):論理削除済みユーザー(`deletedAt` セット済)は JWT 有効期間中も
+    // 全テナント API から弾く。`findFirst` で複合 where を使う(`clerkUserId` ユニーク制約 + 1 行のみで実害なし)。
+    const dbUser = await this.prisma.user.findFirst({
+      where: { clerkUserId, deletedAt: null },
       select: { id: true },
     });
     if (!dbUser) return null;

@@ -18,6 +18,7 @@ import { TaskSplitController } from './ai/task-split.controller';
 import { TaskSplitService } from './ai/task-split.service';
 import { UsageController } from './ai/usage.controller';
 import { AppController } from './app.controller';
+import { clerkClientProvider } from './auth/clerk-client.provider';
 import { BillingService } from './billing/billing.service';
 import { ChecklistController } from './checklist/checklist.controller';
 import { ChecklistService } from './checklist/checklist.service';
@@ -42,6 +43,7 @@ import { ProjectsController } from './projects/projects.controller';
 import { ProjectsService } from './projects/projects.service';
 import { StripeModule } from './stripe/stripe.module';
 import { TenantMiddleware } from './tenant/tenant.middleware';
+import { ClerkWebhookService } from './webhooks/clerk-webhook.service';
 import { StripeWebhookService } from './webhooks/stripe-webhook.service';
 import { WebhooksController } from './webhooks/webhooks.controller';
 import { MembershipService } from './workspaces/membership.service';
@@ -80,10 +82,12 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     MembersController,
   ],
   providers: [
+    clerkClientProvider,
     MembershipService,
     WorkspacesService,
     BillingService,
     StripeWebhookService,
+    ClerkWebhookService,
     ProjectsService,
     ChecklistService,
     DocumentsService,
