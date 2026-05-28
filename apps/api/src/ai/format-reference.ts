@@ -1,6 +1,6 @@
 /**
  * RAG ヒットを LLM プロンプト用の「# 参考」セクションに整形する共通ロジック。
- * DraftGenService(README/LP 生成)と ChecklistGenService(チェックリスト生成)の両方から利用される。
+ * DraftGenService(README / 告知文 等の生成)と ChecklistGenService(チェックリスト生成)の両方から利用される。
  *
  * **プロンプトインジェクション対策(ADR-005)**:
  * 参考本文は ` ```markdown ... ``` ` で囲んで「コードブロック内の資料」として LLM に提示する。

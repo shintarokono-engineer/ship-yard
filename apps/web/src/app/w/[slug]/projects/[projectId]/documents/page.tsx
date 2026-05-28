@@ -20,10 +20,10 @@ import { GenerateDocumentDialog } from './_components/generate-document-dialog';
 /**
  * `/w/{slug}/projects/{projectId}/documents` — ドキュメント一覧。
  *
- * 全 DocType(README / LP / RELEASE_BLOG / TWEET / PRODUCT_HUNT / EMAIL / OTHER)を縦に並べ、
+ * 全 DocType(README / RELEASE_BLOG / TWEET / PRODUCT_HUNT / EMAIL / OTHER の 6 種)を縦に並べ、
  * 各 type の最新 version のカードを表示する。クリックで詳細ページへ。
- * 未作成 type は破線カードで表示し、AI 生成対応(OTHER / LANDING_PAGE 以外の 5 種)は「AI で生成」ボタンを置く。
- * LP は ADR-009 で LandingPage テーブル + ブロック生成へ移行したため AI 生成対象外。
+ * 未作成 type は破線カードで表示し、AI 生成対応(OTHER 以外の 5 種)は「AI で生成」ボタンを置く。
+ * LP は §9.12.1(Day 49.5)で `DocType` から削除済(ADR-009 の `LandingPage` 専用ページに移行)。
  */
 export default async function DocumentsPage({
   params,

@@ -20,7 +20,8 @@ import { ListDocumentsQueryDto } from './dto/list-documents-query.dto';
 import { UpdateProjectDocumentDto } from './dto/update-project-document.dto';
 
 /**
- * プロジェクトに紐付くドキュメント(README / LP / 告知文 等)の API。
+ * プロジェクトに紐付くドキュメント(README / 告知文 等)の API。
+ * LP は §9.12.1 で `DocType` から削除済(ADR-009 の `LandingPage` 専用テーブル経路へ移行)。
  *
  * - 参照(`GET`): テナントメンバーなら誰でも可。
  * - 編集(`PATCH`): WRITER 以上。**append-only** で元行は変更せず、新しい version の行を作る。
@@ -34,7 +35,7 @@ import { UpdateProjectDocumentDto } from './dto/update-project-document.dto';
 export class DocumentsController {
   constructor(private readonly documents: DocumentsService) {}
 
-  /** GET /workspaces/:slug/projects/:projectId/documents[?type=README|LANDING_PAGE|...] — 一覧(本文なし、soft delete 済みは除外)。 */
+  /** GET /workspaces/:slug/projects/:projectId/documents[?type=README|RELEASE_BLOG|...] — 一覧(本文なし、soft delete 済みは除外)。 */
   @Get()
   list(
     @CurrentWorkspace() ws: WorkspaceAccess,

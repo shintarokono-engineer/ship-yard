@@ -73,12 +73,10 @@ export class RefineDocService {
     references?: readonly RagReference[];
   }): Promise<RefinedDraft> {
     const { original, goal, references } = input;
+    // §9.12.1(Day 49.5)で `DocType.LANDING_PAGE` を enum から削除。LP は ADR-009 の `LandingPage`
+    // 専用テーブル + ブロック編集に移行したため、refine の対象外。
     const kindLabel =
-      original.type === DocType.README
-        ? 'README(GitHub のプロジェクト説明文)'
-        : original.type === DocType.LANDING_PAGE
-          ? 'ランディングページ本文'
-          : 'ドキュメント';
+      original.type === DocType.README ? 'README(GitHub のプロジェクト説明文)' : 'ドキュメント';
 
     const systemPrompt = [
       AI_PERSONA_INTRO,

@@ -18,7 +18,7 @@ import { RagSearchService } from './rag-search.service';
  * AI によるドキュメントドラフト生成 API(DRAFT_GEN、ADR-005)。
  *
  * 認証 → 所属解決 → 書き込み権限チェックは `ClerkAuthGuard` → `WorkspaceGuard`(`@Roles(...WRITER_ROLES)`)が担う。
- * リクエストボディの検証(`docType` は README / LANDING_PAGE のみ等)は `GenerateDocumentDto` + `ValidationPipe`。
+ * リクエストボディの検証(`docType` は `GENERATABLE_DOC_TYPES` のいずれか)は `GenerateDocumentDto` + `ValidationPipe`。
  * 本処理: 親プロジェクト取得 → Free プランの月次 AI 上限チェック → Sonnet 4 + Tool Use で生成 →
  * `DocumentsService.createDraft` で ProjectDocument 保存 → `AIUsageService.record` で利用記録。
  */
@@ -38,7 +38,7 @@ export class DraftGenController {
    * - 未所属 / slug・project 不在 → 404(存在の有無を漏らさない)
    * - DEVELOPER 未満のロール → 403(`WorkspaceGuard` + `@Roles`)
    * - Free プランの月次 AI 上限超過 → 403
-   * - docType が README / LANDING_PAGE 以外 → 400(`GenerateDocumentDto`)
+   * - docType が `GENERATABLE_DOC_TYPES` 外 → 400(`GenerateDocumentDto`)
    */
   @Post('generate')
   @Roles(...WRITER_ROLES)

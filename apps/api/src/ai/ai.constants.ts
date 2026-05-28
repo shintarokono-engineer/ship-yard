@@ -61,8 +61,8 @@ export const FALLBACK_PRICING_USD_PER_MTOK = { in: 3, out: 15 };
 
 /**
  * AI 生成(DRAFT_GEN)に対応している ProjectDocument の種別。
- * `OTHER` と `LANDING_PAGE` を除く 5 種。LP は ADR-009 で `LandingPage` テーブル +
- * ブロック生成(`submit_landing_page`)に移行したため DRAFT_GEN の対象外。
+ * `OTHER` を除く 5 種(LP は §9.12.1 で `DocType` 自体から削除済、
+ * ADR-009 の `LandingPage` テーブル + `submit_landing_page` ブロック生成に移行)。
  * 対応種別を増やすときはここに足す(DTO の `@IsIn` もこれを参照)。
  */
 export const GENERATABLE_DOC_TYPES = [
