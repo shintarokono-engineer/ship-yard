@@ -173,6 +173,30 @@ enum WebhookStatus {
   RETRYING
 }
 
+/// 告知配信の状態(ADR-014)。DRAFT(AI 生成前 / Delivery 0 件)→ READY(AI 生成済 / 未実行)
+/// → EXECUTING(1 つ以上実行中 or 失敗あり)→ DONE(すべて SENT)
+enum AnnouncementStatus {
+  DRAFT
+  READY
+  EXECUTING
+  DONE
+}
+
+/// Delivery のチャネル種別(ADR-014)。MVP では TWITTER / BLOG のみ、v1.x で EMAIL 追加予定。
+enum DeliveryChannel {
+  TWITTER
+  BLOG
+}
+
+/// Delivery の実行状態(ADR-014)。DRAFT(content 未確定)→ SCHEDULED(予約済、MVP では未使用、v1.x BullMQ で実装)
+/// → SENT(成功)/ FAILED(失敗、error にユーザー向け文言)
+enum DeliveryStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+  FAILED
+}
+
 // ============================================================================
 // Models
 // ============================================================================
@@ -181,30 +205,33 @@ enum WebhookStatus {
 /// 複数のテナントに所属可能(TenantMember 経由)で、テナントには属さない例外モデル。
 model User {
   /// 内部 ID(cuid)
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   /// Clerk のユーザー ID。Clerk Webhook 受信時の同期キー
-  clerkUserId String   @unique
+  clerkUserId String    @unique
   /// メールアドレス。連絡用(ログイン認証は Clerk 側で実施)
-  email       String   @unique
+  email       String    @unique
   /// 表示名(任意、Clerk 側のプロフィール変更で更新)
   name        String?
   /// アバター画像 URL(任意、Clerk から取得)
   image       String?
   /// ユーザー作成日時(Clerk からの初回 Webhook 受信時)
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
   /// 論理削除日時。Clerk Webhook の `user.deleted` 受信時にセットする。
   /// `TenantMember` / `Project` 等の既存リレーションを破壊しないため物理削除はせず、
   /// 認証経路から弾く(JIT プロビジョニング側で deletedAt セット済みなら 403)。
   deletedAt   DateTime?
 
-  memberships     TenantMember[]
-  ownedTenants    Tenant[]          @relation("TenantOwner")
-  documents       ProjectDocument[]
-  usage           AIUsage[]
-  invitations     InvitationToken[]
-  ragQaSessions   RagQaSession[]
-  serviceScores   ServiceScore[]
-  ideaValidations IdeaValidation[]
+  memberships              TenantMember[]
+  ownedTenants             Tenant[]          @relation("TenantOwner")
+  documents                ProjectDocument[]
+  usage                    AIUsage[]
+  invitations              InvitationToken[]
+  ragQaSessions            RagQaSession[]
+  serviceScores            ServiceScore[]
+  ideaValidations          IdeaValidation[]
+  announcementsCreated     Announcement[]
+  deliveriesExecuted       Delivery[]
+  twitterAccountsConnected TwitterAccount[]
 }
 
 /// ワークスペース(テナント)。マルチテナント分離の基本単位(ADR-002)。
@@ -233,6 +260,10 @@ model Tenant {
   landingPages    LandingPage[]
   serviceScores   ServiceScore[]
   ideaValidations IdeaValidation[]
+  announcements   Announcement[]
+  deliveries      Delivery[]
+  blogPosts       BlogPost[]
+  twitterAccounts TwitterAccount[]
 
   @@index([slug])
 }
@@ -260,20 +291,20 @@ model TenantMember {
 /// チェックリスト・ProjectDocument の親エンティティ。
 model Project {
   /// 内部 ID(cuid)
-  id          String        @id @default(cuid())
+  id               String  @id @default(cuid())
   /// 所属テナント ID(マルチテナント分離キー、Prisma Client Extension で自動注入)
-  tenantId    String
+  tenantId         String
   /// プロジェクト名
-  name        String
+  name             String
   /// 概要(Markdown 可、任意)
-  description String?       @db.Text
+  description      String? @db.Text
   /// 想定ユーザー(自由補足、ADR-013 改訂版「2 モード化」 で追加、Day 46.5 案 A で textarea 中心の運用に)。
   /// プロダクトのエンドユーザー像を 1〜2 行で記述(B2C 個人 / B2B 組織 どちらにも対応)。
-  targetUsers      String?       @db.Text
+  targetUsers      String? @db.Text
   /// 解きたい課題(自由補足、ADR-013 改訂版)。Lean Startup の Problem-Solution Fit 検証の中核。
-  problemStatement String?       @db.Text
+  problemStatement String? @db.Text
   /// 想定機能リスト(自由補足 Markdown、ADR-013 改訂版)。コア機能を箇条書きで列挙する用途。
-  proposedFeatures String?       @db.Text
+  proposedFeatures String? @db.Text
   /// 想定価格モデル(自由補足、ADR-013 改訂版)。`pricingTier` で表現しきれない補足説明。
   pricingModel     String?
 
@@ -283,30 +314,32 @@ model Project {
   /// プロダクトのドメイン分類(セレクト 1 値)。
   /// 'ENTERTAINMENT' | 'PRODUCTIVITY' | 'EDUCATION' | 'FINANCE' | 'HEALTH' |
   /// 'COMMERCE' | 'SOCIAL' | 'DEVELOPER_TOOL' | 'LIFESTYLE' | 'OTHER'
-  categoryDomain   String?
+  categoryDomain String?
   /// 課金モデル + 月額レンジを統合した 1 軸(セレクト 1 値)。矛盾組合せを構造的に防ぐ。
   /// 'FREE_ONLY' | 'FREEMIUM_UNDER_1000' | 'FREEMIUM_1000_3000' | 'FREEMIUM_OVER_3000' |
   /// 'PAID_UNDER_1000' | 'PAID_1000_3000' | 'PAID_OVER_3000' |
   /// 'USAGE_BASED' | 'AD_SUPPORTED' | 'DONATION'
-  pricingTier      String?
+  pricingTier    String?
   /// ライフサイクル状態(IDEA / IN_DEV / BETA / LAUNCHED / ARCHIVED)
-  status      ProjectStatus @default(IDEA)
+  status         ProjectStatus @default(IDEA)
   /// リリース予定日 or 実績日(任意)
-  launchDate  DateTime?
+  launchDate     DateTime?
   /// 作成者 User ID
-  createdById String
+  createdById    String
   /// 作成日時
-  createdAt   DateTime      @default(now())
+  createdAt      DateTime      @default(now())
   /// 最終更新日時(Prisma 自動更新)
-  updatedAt   DateTime      @updatedAt
+  updatedAt      DateTime      @updatedAt
 
-  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  checklist        ChecklistItem[]
-  documents        ProjectDocument[]
-  ragQaSessions    RagQaSession[]
-  landingPage      LandingPage?
-  serviceScores    ServiceScore[]
-  ideaValidations  IdeaValidation[]
+  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  checklist       ChecklistItem[]
+  documents       ProjectDocument[]
+  ragQaSessions   RagQaSession[]
+  landingPage     LandingPage?
+  serviceScores   ServiceScore[]
+  ideaValidations IdeaValidation[]
+  announcements   Announcement[]
+  blogPosts       BlogPost[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -375,16 +408,16 @@ model ProjectDocument {
 
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   createdBy User    @relation(fields: [createdById], references: [id])
+  /// 一覧クエリの絞り込み(deletedAt IS NULL + projectId + type)を支援する partial index は
+  /// `migrations/20260514130000_partial_index_for_active_documents/migration.sql` で raw SQL 管理。
+  /// Prisma schema は partial index を表現できないため、HNSW と同じパターンで Prisma 管理外にしている
+  /// (今後 `prisma migrate diff` が「未知の index」として DROP 提案するが、手作業で除外する)。
 
   /// 同一プロジェクト・同一タイプ内で version は一意(並行生成時の version 重複を DB レベルで防止)。
   /// 注: deletedAt は含めない。soft delete 後の version 再利用は許さず、欠番を許して常にインクリメント続行する
   /// (例: v3 を soft delete → 次の新版は v4。v3 を作り直さない)
   @@unique([projectId, type, version])
   @@index([tenantId])
-  /// 一覧クエリの絞り込み(deletedAt IS NULL + projectId + type)を支援する partial index は
-  /// `migrations/20260514130000_partial_index_for_active_documents/migration.sql` で raw SQL 管理。
-  /// Prisma schema は partial index を表現できないため、HNSW と同じパターンで Prisma 管理外にしている
-  /// (今後 `prisma migrate diff` が「未知の index」として DROP 提案するが、手作業で除外する)。
 }
 
 /// プロジェクトの公開ランディングページ(ADR-009)。
@@ -631,25 +664,25 @@ model RagQaSession {
 /// 1 セッションあたり 100 メッセージ上限(暴走防止)、1 メッセージあたり content 最大 8000 文字(DTO で制約)
 model RagQaMessage {
   /// 内部 ID(cuid)
-  id        String    @id @default(cuid())
+  id         String    @id @default(cuid())
   /// 所属テナント ID(マルチテナント分離キー、必須、session.tenantId と一致)
-  tenantId  String
+  tenantId   String
   /// 所属セッション ID
-  sessionId String
+  sessionId  String
   /// 発話者種別(USER = ユーザー質問、ASSISTANT = AI 回答)
-  role      RagQaRole
+  role       RagQaRole
   /// メッセージ本文(Markdown 可)
-  content   String    @db.Text
+  content    String    @db.Text
   /// 入力トークン数(ASSISTANT のみ、USER は null)
-  tokensIn  Int?
+  tokensIn   Int?
   /// 出力トークン数(ASSISTANT のみ、USER は null)
-  tokensOut Int?
+  tokensOut  Int?
   /// この回答が参照した過去ドキュメント(RAG ヒット)のスナップショット(ADR-005 Day 27 改訂)。
   /// ASSISTANT のみ非 null。`{ id, projectId, type, title, isSeed, distance }[]` 形式。
   /// 参照先が後で編集 / 削除されても「この回答が何を見たか」 の履歴的事実を保つためスナップショット保存(正規化しない)。
   references Json?
   /// 作成日時
-  createdAt DateTime  @default(now())
+  createdAt  DateTime  @default(now())
 
   session RagQaSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
@@ -684,4 +717,127 @@ model InvitationToken {
 
   @@index([tenantId, email])
   @@index([token])
+}
+
+/// 1 つの告知トピック(ADR-014)。Project 配下に複数件持てる。
+model Announcement {
+  /// 内部 ID
+  id          String             @id @default(cuid())
+  /// 所属テナント(マルチテナント分離キー、必須)
+  tenantId    String
+  /// 所属プロジェクト
+  projectId   String
+  /// 内部管理用タイトル(配信文面とは別)
+  title       String
+  /// 告知の状態(DRAFT / READY / EXECUTING / DONE)
+  status      AnnouncementStatus @default(DRAFT)
+  /// 作成者(`TenantMember.userId`)
+  createdById String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy  User       @relation(fields: [createdById], references: [id])
+  deliveries Delivery[]
+
+  @@index([tenantId, projectId])
+}
+
+/// チャネル別配信(ADR-014)。1 Announcement × 1 channel = 1 Delivery(@@unique で重複防止)。
+/// content は Json でチャネル別ペイロードを保持(v1.x で EMAIL 追加時にスキーマ変更不要)。
+model Delivery {
+  /// 内部 ID
+  id             String          @id @default(cuid())
+  /// 所属テナント(マルチテナント分離キー、必須)
+  tenantId       String
+  /// 紐付く Announcement
+  announcementId String
+  /// チャネル種別(TWITTER / BLOG)
+  channel        DeliveryChannel
+  /// 実行状態
+  status         DeliveryStatus  @default(DRAFT)
+  /// チャネル別ペイロード:
+  /// - TWITTER: { text: string }(280 字、BE + FE で二重バリデーション)
+  /// - BLOG: { blogPostId: string, summary: string }(BlogPost を別 entity に切り出し)
+  content        Json
+  /// 予約実行時刻(MVP では未使用、v1.x BullMQ)
+  scheduledAt    DateTime?
+  /// 実行成功時刻
+  sentAt         DateTime?
+  /// 実行者(execute API を叩いた人、監査用)
+  executedById   String?
+  /// 外部参照:TWITTER = tweet id / BLOG = BlogPost.id
+  externalRef    String?
+  /// 失敗時のユーザー向け日本語メッセージ(原文 Twitter API response は CloudWatch Logs に残す)
+  error          String?
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  executedBy   User?        @relation(fields: [executedById], references: [id])
+  blogPost     BlogPost?
+
+  @@unique([announcementId, channel])
+  @@index([tenantId, status])
+}
+
+/// 自前ブログの記事(ADR-014)。LP と同じ「アプリ内編集 + 公開 URL」 パターン(ADR-009)を踏襲。
+/// Delivery 経由で publish された記事は deliveryId で紐付く。Delivery 削除時は SetNull で残置 = 公開 URL は維持。
+model BlogPost {
+  /// 内部 ID
+  id          String    @id @default(cuid())
+  /// 所属テナント(マルチテナント分離キー、必須)
+  tenantId    String
+  /// 所属プロジェクト
+  projectId   String
+  /// URL 用 slug(kebab-case)
+  slug        String
+  /// 記事タイトル
+  title       String
+  /// Markdown 本文
+  body        String
+  /// 公開日時(null = 下書き)
+  publishedAt DateTime?
+  /// 紐付く Delivery(Announcement 経由で作られた場合のみ)
+  deliveryId  String?   @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  delivery Delivery? @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, projectId, slug])
+  @@index([tenantId, projectId, publishedAt])
+}
+
+/// Twitter (X) アカウント連携情報(ADR-014)。テナント単位で複数アカウント連携を許容。
+/// accessToken / refreshToken はアプリ層 AES-256-GCM で暗号化してから保存(`iv||tag||ciphertext` の base64url)。
+/// master key は AWS Secrets Manager 管理(env `TWITTER_TOKEN_ENCRYPTION_KEY`)。
+model TwitterAccount {
+  /// 内部 ID
+  id            String   @id @default(cuid())
+  /// 所属テナント(マルチテナント分離キー、必須)
+  tenantId      String
+  /// 連携実行者(`TenantMember.userId`、監査用、配信実行権限とは独立)
+  connectedById String
+  /// X 側 user id
+  xUserId       String
+  /// @handle(表示用)
+  handle        String
+  /// 暗号化済 access_token(base64url(iv||tag||ciphertext))
+  accessToken   String
+  /// 暗号化済 refresh_token
+  refreshToken  String
+  /// access_token の有効期限
+  expiresAt     DateTime
+  /// 付与された scope(tweet.read / tweet.write / users.read / offline.access)
+  scopes        String[]
+  createdAt     DateTime @default(now())
+
+  tenant      Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  connectedBy User   @relation(fields: [connectedById], references: [id])
+
+  @@unique([tenantId, xUserId])
+  @@index([tenantId])
 }
