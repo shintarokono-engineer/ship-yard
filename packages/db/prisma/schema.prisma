@@ -99,12 +99,13 @@ enum Category {
   OTHER
 }
 
-/// ProjectDocument の種別(AI 生成・ユーザー手動作成のいずれも対象)
+/// ProjectDocument の種別(AI 生成・ユーザー手動作成のいずれも対象)。
+/// `LANDING_PAGE` は ADR-009 で `LandingPage` 専用テーブル + ブロック生成に移行したため、
+/// §9.12.1(2026-05-28)で enum から削除済(`Feature.COMPETITOR_RESEARCH` と異なり、
+/// 旧 `ProjectDocument.type=LANDING_PAGE` 行はユーザー 0 期に物理削除 + 型再生成で完全除去)。
 enum DocType {
   /// プロジェクトの README
   README
-  /// ランディングページ本文
-  LANDING_PAGE
   /// リリースブログ記事
   RELEASE_BLOG
   /// X / Twitter 告知文
@@ -354,7 +355,7 @@ model ProjectDocument {
   tenantId    String
   /// 所属プロジェクト ID
   projectId   String
-  /// 文書タイプ(README / LANDING_PAGE / RELEASE_BLOG / TWEET 等)
+  /// 文書タイプ(README / RELEASE_BLOG / TWEET / PRODUCT_HUNT / EMAIL / OTHER の 6 種)
   type        DocType
   /// 文書タイトル
   title       String

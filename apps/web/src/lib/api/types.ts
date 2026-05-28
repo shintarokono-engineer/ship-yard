@@ -417,10 +417,13 @@ export interface ChecklistItem {
   createdAt: string;
 }
 
-/** ProjectDocument の種別(`DocType` enum、packages/db/prisma/schema.prisma)。 */
+/**
+ * ProjectDocument の種別(`DocType` enum、packages/db/prisma/schema.prisma)。
+ * `LANDING_PAGE` は §9.12.1(2026-05-28)で enum から削除済(LP は ADR-009 の `LandingPage`
+ * 専用テーブル + アプリ内編集に移行したため、ProjectDocument の文脈には含めない)。
+ */
 export const DOC_TYPES = [
   'README',
-  'LANDING_PAGE',
   'RELEASE_BLOG',
   'TWEET',
   'PRODUCT_HUNT',
@@ -431,8 +434,7 @@ export type DocType = (typeof DOC_TYPES)[number];
 
 /**
  * AI 生成(DRAFT_GEN)に対応する DocType。apps/api `ai.constants.ts:GENERATABLE_DOC_TYPES` と同期。
- * `OTHER` と `LANDING_PAGE` を除く 5 種。LP は ADR-009 で `LandingPage` テーブル + ブロック生成に
- * 移行したため DRAFT_GEN の対象外(UI 側でも型レベルで弾く)。
+ * `OTHER` を除く 5 種。
  */
 export const GENERATABLE_DOC_TYPES = [
   'README',
@@ -450,7 +452,6 @@ export function isGeneratableDocType(t: DocType): t is GeneratableDocType {
 /** Document の種別ごとの表示メタ。 */
 export const DOC_TYPE_META: Record<DocType, { label: string; description: string }> = {
   README: { label: 'README', description: 'プロジェクト概要' },
-  LANDING_PAGE: { label: 'ランディングページ', description: '訴求 / ファーストビュー' },
   RELEASE_BLOG: { label: 'リリースブログ', description: '公開時の記事' },
   TWEET: { label: 'X / Twitter 告知文', description: '短文告知' },
   PRODUCT_HUNT: { label: 'Product Hunt 投稿', description: 'PH ローンチ用テキスト' },
