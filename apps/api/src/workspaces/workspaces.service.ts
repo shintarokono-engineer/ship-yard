@@ -1,10 +1,11 @@
 import { randomBytes } from 'crypto';
 
-import { ConflictException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common';
 
 import { Plan, Role } from '@shipyard/db';
 
 import { BillingService } from '../billing/billing.service';
+import { CLERK_CLIENT, type ClerkClient } from '../auth/clerk-client.provider';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreateWorkspaceDto } from './dto/create-workspace.dto';
 
@@ -44,7 +45,9 @@ export interface MyWorkspaceListItem {
  * ワークスペース(= テナント)の新規作成ロジック。
  *
  * 手順:
- * 1. Clerk ユーザー ID から DB の User を解決(未登録 = 403、Clerk Webhook 未受信ケース)
+ * 1. Clerk ユーザー ID から DB の User を解決。未存在なら Clerk SDK で詳細を取得して JIT プロビジョニング
+ *    (Clerk Webhook 未到達のレース・初期セットアップ時の冗長路、§9.10 Clerk webhook、Day 49)。
+ *    削除済み(`deletedAt` セット済)は 403 で弾く。
  * 2. slug を決定(DTO 指定 or `name` から自動生成、衝突時はサフィックスで一意化)
  * 3. `$transaction` で `Tenant` + `TenantMember(role=OWNER)` を原子的に INSERT(両方 DB クエリのみ)
  * 4. トランザクション外で `BillingService.initializeProTrialSubscription` を呼んで Stripe Customer +
@@ -63,17 +66,11 @@ export class WorkspacesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly billing: BillingService,
+    @Inject(CLERK_CLIENT) private readonly clerkClient: ClerkClient,
   ) {}
 
   async create(clerkUserId: string, dto: CreateWorkspaceDto): Promise<CreateWorkspaceResult> {
-    const user = await this.prisma.user.findUnique({
-      where: { clerkUserId },
-      select: { id: true, email: true, name: true },
-    });
-    if (!user) {
-      // Clerk JWT は通っているが User テーブルに同期されていないケース(Clerk Webhook 未受信等)
-      throw new ForbiddenException('User not registered in Shipyard');
-    }
+    const user = await this.ensureUser(clerkUserId);
 
     const slug = dto.slug
       ? await this.requireSlugAvailable(dto.slug)
@@ -158,6 +155,71 @@ export class WorkspacesService {
       role: m.role,
       joinedAt: m.joinedAt.toISOString(),
     }));
+  }
+
+  /**
+   * `clerkUserId` から DB の `User` を解決。未存在なら Clerk SDK で詳細を取得して JIT で upsert する。
+   * Webhook 経由の同期(§9.10)が主、本メソッドは Webhook 遅延・未配信時の冗長路。
+   *
+   * `deletedAt` がセット済みの User は Clerk 側で論理削除済みとみなし 403。
+   */
+  private async ensureUser(
+    clerkUserId: string,
+  ): Promise<{ id: string; email: string; name: string | null }> {
+    const existing = await this.prisma.user.findUnique({
+      where: { clerkUserId },
+      select: { id: true, email: true, name: true, deletedAt: true },
+    });
+    if (existing) {
+      if (existing.deletedAt) {
+        throw new ForbiddenException('User has been deleted');
+      }
+      return { id: existing.id, email: existing.email, name: existing.name };
+    }
+
+    // Webhook 未到達 → Clerk SDK から直接取得して User 行を作る
+    let clerkUser: Awaited<ReturnType<ClerkClient['users']['getUser']>>;
+    try {
+      clerkUser = await this.clerkClient.users.getUser(clerkUserId);
+    } catch (err) {
+      this.logger.error(
+        `JIT user provisioning failed: cannot fetch Clerk user ${clerkUserId}`,
+        err instanceof Error ? err.stack : undefined,
+      );
+      throw new ForbiddenException('User not registered in Shipyard');
+    }
+
+    const email =
+      clerkUser.emailAddresses.find((e) => e.id === clerkUser.primaryEmailAddressId)
+        ?.emailAddress ?? clerkUser.emailAddresses[0]?.emailAddress;
+    if (!email) {
+      throw new ForbiddenException('Clerk user has no primary email');
+    }
+    const nameParts = [clerkUser.firstName, clerkUser.lastName].filter(
+      (s): s is string => typeof s === 'string' && s.length > 0,
+    );
+    const name = nameParts.length > 0 ? nameParts.join(' ') : null;
+    // Clerk SDK 経由の URL は信頼できるが Defense in Depth で http(s) に限定。
+    const image = clerkUser.imageUrl && /^https?:\/\//i.test(clerkUser.imageUrl)
+      ? clerkUser.imageUrl
+      : null;
+
+    // 並行で Webhook の `user.deleted` が先に走って `deletedAt` をセットした場合に、
+    // ここで `deletedAt: null` を update で書き戻して復活させない設計
+    // (削除されたユーザーの再アクティブ化は Clerk Webhook の `user.created/updated` 経由のみとする)。
+    // 既に upsert へ来た時点で findUnique は null だったが、レースで insert が `unique` で衝突したら
+    // update 節に進む。update 節では `deletedAt` を触らない。
+    const created = await this.prisma.user.upsert({
+      where: { clerkUserId },
+      create: { clerkUserId, email, name, image },
+      update: { email, name, image },
+      select: { id: true, email: true, name: true, deletedAt: true },
+    });
+    if (created.deletedAt) {
+      throw new ForbiddenException('User has been deleted');
+    }
+    this.logger.log(`JIT provisioned user ${clerkUserId} (id=${created.id})`);
+    return { id: created.id, email: created.email, name: created.name };
   }
 
   /** ユーザー指定 slug の重複確認。既存があれば 409。 */

@@ -162,7 +162,7 @@ enum SubStatus {
   TRIALING
 }
 
-/// Stripe Webhook の処理状態
+/// Webhook の処理状態(Stripe / Clerk 共通で `WebhookEvent` / `ClerkWebhookEvent` の `status` に使う)
 enum WebhookStatus {
   /// 正常に処理完了
   PROCESSED
@@ -191,6 +191,10 @@ model User {
   image       String?
   /// ユーザー作成日時(Clerk からの初回 Webhook 受信時)
   createdAt   DateTime @default(now())
+  /// 論理削除日時。Clerk Webhook の `user.deleted` 受信時にセットする。
+  /// `TenantMember` / `Project` 等の既存リレーションを破壊しないため物理削除はせず、
+  /// 認証経路から弾く(JIT プロビジョニング側で deletedAt セット済みなら 403)。
+  deletedAt   DateTime?
 
   memberships     TenantMember[]
   ownedTenants    Tenant[]          @relation("TenantOwner")
@@ -562,6 +566,27 @@ model WebhookEvent {
   /// Stripe イベント ID(Idempotency Key、ユニーク制約で重複処理を構造的に防止)
   stripeEventId String        @unique
   /// イベントタイプ(例: `checkout.session.completed` / `invoice.paid`)
+  type          String
+  /// 受信ペイロード全体(監査・再処理用)
+  payload       Json
+  /// 処理状態(PROCESSED / FAILED / RETRYING)
+  status        WebhookStatus @default(PROCESSED)
+  /// 処理完了日時
+  processedAt   DateTime      @default(now())
+
+  @@index([type, processedAt])
+}
+
+/// Clerk Webhook の受信ログ(§9.10 Clerk webhook、Day 49)。
+/// Stripe 用 `WebhookEvent` と責務分離するため別テーブルにしている
+/// (Idempotency Key は Stripe = `event.id`、Clerk = Svix `svix-id` ヘッダーで異なる)。
+/// テナントを持たない例外モデル(User は Tenant に属さない)。
+model ClerkWebhookEvent {
+  /// 内部 ID(cuid)
+  id            String        @id @default(cuid())
+  /// Svix の `svix-id` ヘッダー値(Idempotency Key、ユニーク制約で重複処理を構造的に防止)
+  svixMessageId String        @unique
+  /// イベントタイプ(例: `user.created` / `user.updated` / `user.deleted`)
   type          String
   /// 受信ペイロード全体(監査・再処理用)
   payload       Json

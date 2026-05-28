@@ -105,6 +105,7 @@ RETRYING RETRYING
     String name "❓"
     String image "❓"
     DateTime createdAt 
+    DateTime deletedAt "❓"
     }
   
 
@@ -236,6 +237,16 @@ RETRYING RETRYING
     }
   
 
+  "ClerkWebhookEvent" {
+    String id "🗝️"
+    String svixMessageId 
+    String type 
+    Json payload 
+    WebhookStatus status 
+    DateTime processedAt 
+    }
+  
+
   "RagQaSession" {
     String id "🗝️"
     String title 
@@ -295,6 +306,7 @@ RETRYING RETRYING
     "Subscription" |o--|| "SubStatus" : "enum:status"
     "Subscription" |o--|| "Tenant" : "tenant"
     "WebhookEvent" |o--|| "WebhookStatus" : "enum:status"
+    "ClerkWebhookEvent" |o--|| "WebhookStatus" : "enum:status"
     "RagQaSession" }o--|| "Tenant" : "tenant"
     "RagQaSession" }o--|| "Project" : "project"
     "RagQaSession" }o--|| "User" : "createdBy"
