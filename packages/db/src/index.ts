@@ -27,6 +27,10 @@ export {
   RagQaRole,
   SubStatus,
   WebhookStatus,
+  // ADR-014 マルチチャネル告知配信
+  AnnouncementStatus,
+  DeliveryChannel,
+  DeliveryStatus,
 } from '@prisma/client';
 
 // model 由来の型(値ではない)。Service / Controller の戻り値型として使う。
@@ -36,6 +40,11 @@ export type {
   LandingPage,
   ServiceScore,
   IdeaValidation,
+  // ADR-014 マルチチャネル告知配信
+  Announcement,
+  Delivery,
+  BlogPost,
+  TwitterAccount,
 } from '@prisma/client';
 
 // マルチテナントのリクエストコンテキスト(ADR-002)
