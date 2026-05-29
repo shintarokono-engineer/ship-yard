@@ -39,9 +39,13 @@ export default async function WorkspaceLayout({
       <header className="bg-card border-b">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3">
           <WorkspaceSwitcher current={workspace} workspaces={myWorkspaces} />
-          {/* F1.5(§9.12.2 観点 2):/sign-out-cleanup で LocalStorage / SessionStorage を
-              クリアしてから / にフルロード遷移する(Clerk Issue #6691 ワークアラウンド)。 */}
-          <UserButton afterSignOutUrl="/sign-out-cleanup" />
+          {/* F1.5(§9.12.2 観点 2):サインアウト後の遷移先(`/sign-out-cleanup` で LocalStorage /
+              SessionStorage cleanup + フルロード)は `<ClerkProvider afterSignOutUrl="...">`
+              (apps/web/src/app/layout.tsx)に集約。`<UserButton afterSignOutUrl>` は Clerk v6 で
+              deprecated のため使わない。Multi-session handling は Clerk Dashboard で OFF に
+              設定する前提(Sessions ページ、デフォルト OFF)= 1 ブラウザ 1 セッションで
+              `signOut()` 標準動作で全セッション無効化となる。 */}
+          <UserButton />
         </div>
         <WorkspaceNav slug={workspace.slug} />
       </header>

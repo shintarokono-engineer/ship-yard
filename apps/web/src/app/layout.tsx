@@ -39,7 +39,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    // afterSignOutUrl: F1.5(§9.12.2 観点 2)中間ページに遷移し LocalStorage /
+    // SessionStorage cleanup + フルロードで Clerk SDK を再初期化する。
+    // `<UserButton afterSignOutUrl>` は Clerk v6 で deprecated のため
+    // `<ClerkProvider>` 側に集約(Clerk 公式ベストプラクティス)。
+    // 加えて Clerk Dashboard で Multi-session handling を OFF にする運用前提
+    // (デフォルト OFF、Sessions ページで確認)。
+    <ClerkProvider afterSignOutUrl="/sign-out-cleanup">
       <html lang="ja">
         {/* ブラウザ拡張(ColorZilla 等)が body に属性注入することによる
             hydration mismatch を抑制(1 階層のみ。子要素の警告は引き続き出る) */}
