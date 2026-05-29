@@ -161,35 +161,43 @@ pnpm exec prisma studio
 
 > 念のため Studio 起動時のターミナルに表示される DATABASE_URL が現在の作業 DB と一致するかも確認(別 worktree / 別 DB に繋がっていないか)。
 
-### 2.6 🟡 サインアウト後 / User 削除後 → `Uncaught FetchError` で白紙(F1.5 で対応済)
+### 2.6 🟡 サインアウト後 / User 削除後 → `Uncaught FetchError` で白紙 / リロード自動再ログイン(F1.5 + Clerk 公式ベストプラクティスで対応済)
 
-**症状(2 パターン)**:
+**症状(3 パターン)**:
 
-- **パターン A**(MVP 本番ユーザーが遭遇しうる):アプリ内 `<UserButton>` → Sign out → `/` で「Continue with Google」 押下 → Google 画面に遷移すらせず白紙。Console に `Uncaught (in promise) {name: 'FetchError'}` が出る
+- **パターン A**(MVP 本番ユーザーが遭遇しうる、最重要):アプリ内 `<UserButton>` → Sign out → `/` で「Continue with Google」 押下 → 一瞬 Clerk アイコンが見え白紙。**リロードするとサインアウト前のアカウントで自動ログイン済み**。Console に `Uncaught (in promise) {name: 'FetchError'}`
 - **パターン B**(主に開発検証時):Clerk Dashboard で User 削除後、通常ブラウザで「Continue with Google」 → 同様に白紙
+- **パターン C**:Clerk Dashboard で Multi-session handling が ON のとき、`signOut()` が現セッションのみ無効化 → 他セッションが残る → リロードで再ログイン
 
-**原因**: Clerk SDK は LocalStorage / SessionStorage / `*.clerk.accounts.dev` ドメインの Cookie に **クライアントトークン**(`__clerk_db_jwt` 等)とセッション履歴を保存する。`signOut()` だけでは `*.clerk.accounts.dev` ドメインの一部キャッシュが残ることがあり、次の OAuth フローで SDK が「残ったセッションを復元」しようとして整合性エラー → SDK 内部で `FetchError`。Clerk Issue [#6691](https://github.com/clerk/javascript/issues/6691) で **"Closed as not planned"** としてクローズ済み = Clerk チームは修正しないと宣言。
+**原因(2 層)**:
 
-**復旧 / 予防(優先順、F1.5 実装後の運用)**:
+1. **Clerk Dashboard の Multi-session handling が ON だと、`signOut()` は現セッションのみ無効化** = 他セッション(別 OAuth 経路 / 別タブ等)が Clerk サーバー側に残る → リロードで自動再ログイン
+2. **クライアント側ストレージの残骸**:`*.clerk.accounts.dev` ドメインの Cookie + LocalStorage / SessionStorage に古いトークンが残ると、次の OAuth フローで SDK が整合性エラー → `FetchError`
 
-1. **アプリ側で `/sign-out-cleanup` 中間ページを実装済**(F1.5、`apps/web/src/app/sign-out-cleanup/page.tsx`)。`<UserButton afterSignOutUrl="/sign-out-cleanup" />` 経由で:
+Clerk Issue [#6691](https://github.com/clerk/javascript/issues/6691) で **"Closed as not planned"** としてクローズ済み = Multi-session 環境の制約として理解されている。
+
+**復旧 / 予防(Clerk 公式ベストプラクティス、F1.5 実装後の運用)**:
+
+1. **Clerk Dashboard で Multi-session handling = OFF を確認**(デフォルト OFF、Sessions ページのトグル)。Shipyard は B2B SaaS = 1 ブラウザ 1 セッション運用のため Multi-session は不要。OFF なら `signOut()` 標準動作で唯一のセッションが無効化 → 原因 1 が構造的に発生しない
+2. **`<ClerkProvider afterSignOutUrl="/sign-out-cleanup">` でアプリ全体のサインアウト遷移先を集約**(`apps/web/src/app/layout.tsx`)。`<UserButton afterSignOutUrl>` は Clerk v6 で deprecated のため使わない
+3. **F1.5:`/sign-out-cleanup` 中間ページでクライアント側 cleanup**(`apps/web/src/app/sign-out-cleanup/page.tsx`):
    - LocalStorage の Clerk 関連キー(`__clerk_*` / `clerk_*`)をピンポイント削除
    - `sessionStorage.clear()`
    - `window.location.replace('/')` でフルロード → SDK が新規セッションで再初期化
-   - **パターン A はこれで 80-90% 解消**(Clerk Issue #6691 提案の `sessionId: ['all']` + `sessionStorage.clear()` パターン準拠)
-2. **シークレットウィンドウで再試行**(`Cmd+Shift+N`)→ 永続データが完全分離、F1.5 で解消しなかった残り 10-20% および パターン B(Dashboard 削除)の確実な fallback
-3. 通常ウィンドウで手動復旧したい場合:
+4. **シークレットウィンドウで再試行**(`Cmd+Shift+N`)→ 永続データが完全分離、上記 1-3 で解消しなかった残りケースおよびパターン B(Dashboard 削除)の確実な fallback
+5. 通常ウィンドウで手動復旧したい場合:
    - DevTools → **Application** → **Storage** → **Clear site data**(全項目 ON)
    - アドレスバーで `https://<your-clerk-frontend-api>.clerk.accounts.dev/` を開く → 同じ手順
    - `http://localhost:3000` に戻って再試行
-4. ブラウザ拡張(uBlock / Privacy Badger 等)を疑う場合は拡張を一旦 OFF で切り分け
 
-**F1.5 実装の限界**: `*.clerk.accounts.dev` ドメインの Cookie は Same-origin policy でアプリから直接削除できない。フルロード起動 + SDK 側の残セッショントークン失効処理で大半のケースは解消するが、完全治癒は Clerk SDK 側の修正待ち。
+**限界**: `*.clerk.accounts.dev` ドメインの Cookie は Same-origin policy でアプリから直接削除できない。Dashboard で Multi-session OFF + `ClerkProvider afterSignOutUrl` + F1.5 中間ページの組み合わせで大半解消するが、稀に残るケースはシークレットウィンドウが fallback。
 
-**関連実装**:
-- `apps/web/src/app/sign-out-cleanup/page.tsx`(中間ページ本体)
+**関連実装 / 設定**:
+- **Clerk Dashboard**(Sessions ページ):Multi-session handling = **OFF**(デフォルト)
+- `apps/web/src/app/layout.tsx`(`<ClerkProvider afterSignOutUrl="/sign-out-cleanup">`)
+- `apps/web/src/app/sign-out-cleanup/page.tsx`(**F1.5**、中間ページ本体、LocalStorage / SessionStorage cleanup)
 - `apps/web/src/middleware.ts`(`/sign-out-cleanup` を `isPublicRoute` に追加)
-- `apps/web/src/app/w/[slug]/layout.tsx:42`(`<UserButton afterSignOutUrl="/sign-out-cleanup" />`)
+- `apps/web/src/app/w/[slug]/layout.tsx`(`<UserButton />` 素のまま、deprecated `afterSignOutUrl` は使わない)
 
 ### 2.7 🟢 `400 Missing one of svix-id / svix-timestamp / svix-signature headers`
 
