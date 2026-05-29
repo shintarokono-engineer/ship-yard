@@ -2,8 +2,9 @@ import { ChevronLeft, Gauge } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { EmptyState } from '@/components/empty-state';
 import { isWriterRole } from '@/lib/api/types';
-import { fetchProject, fetchWorkspace, listDiagnoses } from '@/lib/api/workspaces';
+import { fetchProject, fetchUsage, fetchWorkspace, listDiagnoses } from '@/lib/api/workspaces';
 import { formatDateTime } from '@/lib/format';
 
 import { RunDiagnosisDialog } from './_components/run-diagnosis-dialog';
@@ -27,7 +28,10 @@ export default async function DiagnosesPage({
   const project = await fetchProject(slug, projectId);
   if (!project) notFound();
 
-  const diagnoses = await listDiagnoses(slug, projectId);
+  const [diagnoses, usage] = await Promise.all([
+    listDiagnoses(slug, projectId),
+    fetchUsage(slug),
+  ]);
   const canWrite = isWriterRole(workspace.role);
   const hasDiagnoses = diagnoses.length > 0;
 
@@ -50,7 +54,7 @@ export default async function DiagnosesPage({
               Team 限定機能です。
             </p>
           </div>
-          {canWrite && <RunDiagnosisDialog slug={slug} projectId={projectId} />}
+          {canWrite && <RunDiagnosisDialog slug={slug} projectId={projectId} usage={usage} />}
         </div>
       </div>
 
@@ -77,15 +81,15 @@ export default async function DiagnosesPage({
           ))}
         </ul>
       ) : (
-        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-12 text-center">
-          <Gauge className="text-muted-foreground/60 size-8" aria-hidden="true" />
-          <p className="text-muted-foreground text-sm">まだ診断の履歴がありません。</p>
-          <p className="text-muted-foreground/70 text-xs">
-            {canWrite
+        <EmptyState
+          icon={Gauge}
+          title="まだ診断の履歴がありません。"
+          description={
+            canWrite
               ? '「診断を実行する」 から最初の診断を行いましょう。'
-              : '書き込み権限を持つメンバーが診断を実行すると、ここに表示されます。'}
-          </p>
-        </div>
+              : '書き込み権限を持つメンバーが診断を実行すると、ここに表示されます。'
+          }
+        />
       )}
     </div>
   );

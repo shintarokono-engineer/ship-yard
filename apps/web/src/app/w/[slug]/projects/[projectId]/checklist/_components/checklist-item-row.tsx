@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { ITEM_STATUS_META, type ChecklistItem } from '@/lib/api/types';
+import { ITEM_STATUS_META, type ChecklistItem, type MonthlyUsageSummary } from '@/lib/api/types';
 
 import { DeleteChecklistItemButton } from './delete-checklist-item-button';
 import { EditChecklistItemDialog } from './edit-checklist-item-dialog';
@@ -23,6 +23,7 @@ export function ChecklistItemRow({
   subtaskCount,
   indent,
   canWrite,
+  usage,
 }: {
   slug: string;
   projectId: string;
@@ -30,6 +31,7 @@ export function ChecklistItemRow({
   subtaskCount: number;
   indent: boolean;
   canWrite: boolean;
+  usage: MonthlyUsageSummary;
 }) {
   const meta = ITEM_STATUS_META[item.status];
   const showStatusBadge = item.status === 'IN_PROGRESS' || item.status === 'NOT_APPLICABLE';
@@ -66,7 +68,7 @@ export function ChecklistItemRow({
         <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
           {/* TASK_SPLIT は親タスク(parentId=null)のみ対象。サブタスクのさらに分解は階層 2 段までの仕様外。 */}
           {item.parentId === null && (
-            <SplitTaskDialog slug={slug} projectId={projectId} parent={item} />
+            <SplitTaskDialog slug={slug} projectId={projectId} parent={item} usage={usage} />
           )}
           <EditChecklistItemDialog slug={slug} projectId={projectId} item={item} />
           <DeleteChecklistItemButton

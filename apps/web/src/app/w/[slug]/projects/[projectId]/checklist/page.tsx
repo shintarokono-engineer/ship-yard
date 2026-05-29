@@ -9,7 +9,7 @@ import {
   type Category,
   type ChecklistItem,
 } from '@/lib/api/types';
-import { fetchProject, fetchWorkspace, listChecklist } from '@/lib/api/workspaces';
+import { fetchProject, fetchUsage, fetchWorkspace, listChecklist } from '@/lib/api/workspaces';
 
 import { ChecklistItemRow } from './_components/checklist-item-row';
 import { GenerateChecklistDialog } from './_components/generate-checklist-dialog';
@@ -36,7 +36,7 @@ export default async function ChecklistPage({
   const project = await fetchProject(slug, projectId);
   if (!project) notFound();
 
-  const items = await listChecklist(slug, projectId);
+  const [items, usage] = await Promise.all([listChecklist(slug, projectId), fetchUsage(slug)]);
   const canWrite = isWriterRole(workspace.role);
   const grouped = groupByCategory(items);
 
@@ -57,7 +57,7 @@ export default async function ChecklistPage({
               リリース前に必要な作業をカテゴリ別に管理します。
             </p>
           </div>
-          {canWrite && <GenerateChecklistDialog slug={slug} projectId={projectId} />}
+          {canWrite && <GenerateChecklistDialog slug={slug} projectId={projectId} usage={usage} />}
         </div>
       </div>
 
@@ -87,6 +87,7 @@ export default async function ChecklistPage({
                         subtaskCount={group.subtasks.get(parent.id)?.length ?? 0}
                         indent={false}
                         canWrite={canWrite}
+                        usage={usage}
                       />
                       {(group.subtasks.get(parent.id) ?? []).map((sub) => (
                         <ChecklistItemRow
@@ -97,6 +98,7 @@ export default async function ChecklistPage({
                           subtaskCount={0}
                           indent={true}
                           canWrite={canWrite}
+                          usage={usage}
                         />
                       ))}
                       {/* 真のトップレベル項目(parentId=null)のみ、その直下に「+ サブタスク」を出す。

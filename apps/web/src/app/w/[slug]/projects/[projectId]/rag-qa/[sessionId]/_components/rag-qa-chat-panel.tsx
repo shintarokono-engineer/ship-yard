@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { useActionState, useEffect, useMemo, useOptimistic, useRef } from 'react';
 
+import { CreditCostBadge } from '@/components/credit-cost-badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import type { RagQaMessage } from '@/lib/api/types';
+import type { MonthlyUsageSummary, RagQaMessage } from '@/lib/api/types';
 
 import { askMessageAction, type AskMessageFormState } from '../../_actions/ask-message';
 import {
@@ -32,12 +33,14 @@ export function RagQaChatPanel({
   sessionId,
   initialMessages,
   canWrite,
+  usage,
 }: {
   slug: string;
   projectId: string;
   sessionId: string;
   initialMessages: RagQaMessage[];
   canWrite: boolean;
+  usage: MonthlyUsageSummary;
 }) {
   const boundAction = useMemo(
     () => askMessageAction.bind(null, slug, projectId, sessionId),
@@ -163,9 +166,12 @@ export function RagQaChatPanel({
           )}
 
           <div className="flex items-center justify-between gap-2">
-            <p aria-live="polite" className="text-muted-foreground text-xs">
-              {pending ? 'AI が回答を生成しています…' : ' '}
-            </p>
+            <div className="flex items-center gap-2">
+              <CreditCostBadge feature="RAG_QA" usage={usage} />
+              <p aria-live="polite" className="text-muted-foreground text-xs">
+                {pending ? 'AI が回答を生成しています…' : ' '}
+              </p>
+            </div>
             <Button type="submit" disabled={pending} aria-busy={pending}>
               {pending ? '生成中...' : '送信'}
             </Button>

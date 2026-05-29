@@ -6,7 +6,12 @@ import { LpRenderer } from '@/components/lp-blocks/lp-renderer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { isWriterRole } from '@/lib/api/types';
-import { fetchLandingPage, fetchProject, fetchWorkspace } from '@/lib/api/workspaces';
+import {
+  fetchLandingPage,
+  fetchProject,
+  fetchUsage,
+  fetchWorkspace,
+} from '@/lib/api/workspaces';
 import { formatDateTime } from '@/lib/format';
 
 import { GenerateLpDialog } from './_components/generate-lp-dialog';
@@ -33,7 +38,10 @@ export default async function LandingPagePreviewPage({
   if (!project) notFound();
 
   // プロジェクト存在は上で確認済みのため、ここでの null は「LP 未生成」を意味する。
-  const landingPage = await fetchLandingPage(slug, projectId);
+  const [landingPage, usage] = await Promise.all([
+    fetchLandingPage(slug, projectId),
+    fetchUsage(slug),
+  ]);
   const canWrite = isWriterRole(workspace.role);
   const hasBlocks = !!landingPage && landingPage.blocks.length > 0;
 
@@ -88,7 +96,7 @@ export default async function LandingPagePreviewPage({
                   編集
                 </Link>
               </Button>
-              <GenerateLpDialog slug={slug} projectId={projectId} mode="regenerate" />
+              <GenerateLpDialog slug={slug} projectId={projectId} mode="regenerate" usage={usage} />
               <PublishToggle
                 slug={slug}
                 projectId={projectId}
@@ -130,7 +138,7 @@ export default async function LandingPagePreviewPage({
           </p>
           {canWrite && (
             <div className="pt-1">
-              <GenerateLpDialog slug={slug} projectId={projectId} mode="create" />
+              <GenerateLpDialog slug={slug} projectId={projectId} mode="create" usage={usage} />
             </div>
           )}
         </div>

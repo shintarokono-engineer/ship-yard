@@ -6,6 +6,7 @@ import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { FormField } from '@/app/w/[slug]/_shared/form-field';
+import { CreditCostBadge } from '@/components/credit-cost-badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -17,7 +18,12 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { CATEGORIES, CATEGORY_META, type Category } from '@/lib/api/types';
+import {
+  CATEGORIES,
+  CATEGORY_META,
+  type Category,
+  type MonthlyUsageSummary,
+} from '@/lib/api/types';
 
 import {
   generateChecklistAction,
@@ -35,7 +41,15 @@ import {
  * 数〜十数秒の同期処理なので Dialog 内 pending インジケータで状態表示。成功時は Dialog 自動 close
  * + toast で生成件数を通知。redirect なし(同じページに留まる)。
  */
-export function GenerateChecklistDialog({ slug, projectId }: { slug: string; projectId: string }) {
+export function GenerateChecklistDialog({
+  slug,
+  projectId,
+  usage,
+}: {
+  slug: string;
+  projectId: string;
+  usage: MonthlyUsageSummary;
+}) {
   const [open, setOpen] = useState(false);
   const boundAction = useMemo(
     () => generateChecklistAction.bind(null, slug, projectId),
@@ -174,6 +188,10 @@ export function GenerateChecklistDialog({ slug, projectId }: { slug: string; pro
           <p aria-live="polite" className="text-muted-foreground text-xs">
             {pending ? 'AI が生成しています。完了まで 5〜15 秒ほどかかります…' : ' '}
           </p>
+
+          <div className="flex justify-end">
+            <CreditCostBadge feature="CHECKLIST_GEN" usage={usage} />
+          </div>
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>

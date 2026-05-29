@@ -3,7 +3,12 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { isWriterRole } from '@/lib/api/types';
-import { fetchProject, fetchRagQaSession, fetchWorkspace } from '@/lib/api/workspaces';
+import {
+  fetchProject,
+  fetchRagQaSession,
+  fetchUsage,
+  fetchWorkspace,
+} from '@/lib/api/workspaces';
 
 import { RagQaChatPanel } from './_components/rag-qa-chat-panel';
 
@@ -26,7 +31,10 @@ export default async function RagQaSessionPage({
   const project = await fetchProject(slug, projectId);
   if (!project) notFound();
 
-  const detail = await fetchRagQaSession(slug, projectId, sessionId);
+  const [detail, usage] = await Promise.all([
+    fetchRagQaSession(slug, projectId, sessionId),
+    fetchUsage(slug),
+  ]);
   if (!detail) notFound();
 
   const canWrite = isWriterRole(workspace.role);
@@ -53,6 +61,7 @@ export default async function RagQaSessionPage({
         sessionId={sessionId}
         initialMessages={detail.messages}
         canWrite={canWrite}
+        usage={usage}
       />
     </div>
   );

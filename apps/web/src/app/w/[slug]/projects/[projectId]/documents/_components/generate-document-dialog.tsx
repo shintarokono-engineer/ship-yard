@@ -5,6 +5,7 @@ import { useActionState, useMemo, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 
 import { FormField } from '@/app/w/[slug]/_shared/form-field';
+import { CreditCostBadge } from '@/components/credit-cost-badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,7 +17,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import type { DocType, GeneratableDocType } from '@/lib/api/types';
+import type { DocType, GeneratableDocType, MonthlyUsageSummary } from '@/lib/api/types';
 
 import {
   generateDocumentAction,
@@ -39,12 +40,14 @@ export function GenerateDocumentDialog({
   projectId,
   docType,
   typeLabel,
+  usage,
 }: {
   slug: string;
   projectId: string;
   docType: GeneratableDocType;
   /** カード側で表示中のラベル(例: 「README」「リリースブログ」)。Dialog タイトルに使う。 */
   typeLabel: string;
+  usage: MonthlyUsageSummary;
 }) {
   const [open, setOpen] = useState(false);
   const boundAction = useMemo(
@@ -129,6 +132,10 @@ export function GenerateDocumentDialog({
           <p aria-live="polite" className="text-muted-foreground text-xs">
             {pending ? 'AI が生成しています。完了まで 10〜30 秒ほどかかります…' : ' '}
           </p>
+
+          <div className="flex justify-end">
+            <CreditCostBadge feature="DRAFT_GEN" usage={usage} />
+          </div>
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>

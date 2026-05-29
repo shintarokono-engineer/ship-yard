@@ -2,6 +2,7 @@ import { ChevronLeft, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { EmptyState } from '@/components/empty-state';
 import { isWriterRole } from '@/lib/api/types';
 import { fetchProject, fetchWorkspace, listRagQaSessions } from '@/lib/api/workspaces';
 import { formatDateTime } from '@/lib/format';
@@ -72,15 +73,15 @@ export default async function RagQaSessionsPage({
           ))}
         </ul>
       ) : (
-        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-12 text-center">
-          <MessageCircle className="text-muted-foreground/60 size-8" aria-hidden="true" />
-          <p className="text-muted-foreground text-sm">まだ壁打ちセッションがありません。</p>
-          <p className="text-muted-foreground/70 text-xs">
-            {canWrite
+        <EmptyState
+          icon={MessageCircle}
+          title="まだ壁打ちセッションがありません。"
+          description={
+            canWrite
               ? '「新しい壁打ち」 から AI への相談を始めましょう。'
-              : '書き込み権限を持つメンバーがセッションを作成すると、ここに表示されます。'}
-          </p>
-        </div>
+              : '書き込み権限を持つメンバーがセッションを作成すると、ここに表示されます。'
+          }
+        />
       )}
     </div>
   );

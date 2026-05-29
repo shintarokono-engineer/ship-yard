@@ -6,6 +6,7 @@ import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { FormField } from '@/app/w/[slug]/_shared/form-field';
+import { CreditCostBadge } from '@/components/credit-cost-badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -17,7 +18,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import type { ChecklistItem } from '@/lib/api/types';
+import type { ChecklistItem, MonthlyUsageSummary } from '@/lib/api/types';
 
 import { splitTaskAction, type SplitTaskFormState } from '../_actions/split-task';
 import { INITIAL_SPLIT_TASK_FORM_STATE, INSTRUCTIONS_MAX_LENGTH } from '../_shared/split-task-form';
@@ -32,10 +33,12 @@ export function SplitTaskDialog({
   slug,
   projectId,
   parent,
+  usage,
 }: {
   slug: string;
   projectId: string;
   parent: ChecklistItem;
+  usage: MonthlyUsageSummary;
 }) {
   const [open, setOpen] = useState(false);
   const boundAction = useMemo(
@@ -131,6 +134,10 @@ export function SplitTaskDialog({
           <p aria-live="polite" className="text-muted-foreground text-xs">
             {pending ? 'AI が分解しています。完了まで 5〜15 秒ほどかかります…' : ' '}
           </p>
+
+          <div className="flex justify-end">
+            <CreditCostBadge feature="TASK_SPLIT" usage={usage} />
+          </div>
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>
