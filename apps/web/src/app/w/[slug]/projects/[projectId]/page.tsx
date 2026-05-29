@@ -120,7 +120,7 @@ export default async function ProjectDetailPage({
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground text-sm">
-                README / ランディングページ / 告知文などを AI と一緒に作ります。
+                README / 告知文などを AI と一緒に作ります。
               </p>
             </CardContent>
           </Card>
