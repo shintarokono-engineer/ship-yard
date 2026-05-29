@@ -9,55 +9,54 @@ import { editDocument } from '@/lib/api/workspaces';
 
 import {
   classifyApiMessages,
-  parseDocumentFormData,
-  type DocumentFormState,
-} from '../_shared/document-form';
+  parseReadmeFormData,
+  type ReadmeFormState,
+} from '../_shared/readme-form';
 
-export type { DocumentFormState };
+export type { ReadmeFormState };
 
 /**
- * ProjectDocument を編集する Server Action(append-only)。
+ * README を編集する Server Action(append-only)。
  *
- * API 側で **既存行は変更されず新しい version の行が INSERT** される。成功時は新版の
- * id にリダイレクトして、ユーザーは「最新の version を見ている」状態になる。
+ * §9.12.4(2026-05-29)で `documents/[documentId]/_actions/edit-document.ts` から README 専用に移植。
+ * API 側で **既存行は変更されず新しい version の行が INSERT** される。成功時は `/readme` に
+ * redirect し、Server Component が最新 version を表示する。
  */
-export async function editDocumentAction(
+export async function editReadmeAction(
   slug: string,
   projectId: string,
   documentId: string,
-  _prev: DocumentFormState,
+  _prev: ReadmeFormState,
   formData: FormData,
-): Promise<DocumentFormState> {
+): Promise<ReadmeFormState> {
   const { userId } = await auth();
   if (!userId) {
     return { ok: false, formError: '認証が必要です。再度サインインしてください。' };
   }
 
-  const parsed = parseDocumentFormData(formData);
+  const parsed = parseReadmeFormData(formData);
   if (parsed.data === null) {
     return { ok: false, fieldErrors: parsed.fieldErrors, fields: parsed.fields };
   }
 
-  let newId: string;
   try {
-    const next = await editDocument(slug, projectId, documentId, {
+    await editDocument(slug, projectId, documentId, {
       title: parsed.data.title,
       content: parsed.data.content,
     });
-    newId = next.id;
   } catch (e) {
     if (e instanceof ApiError) {
       if (e.status === 403) {
         return {
           ok: false,
-          formError: 'このドキュメントを編集する権限がありません。',
+          formError: 'この README を編集する権限がありません。',
           fields: parsed.fields,
         };
       }
       if (e.status === 404) {
         return {
           ok: false,
-          formError: 'ドキュメントが見つかりません。一覧に戻って再度開いてください。',
+          formError: 'README が見つかりません。ページを再読み込みしてください。',
           fields: parsed.fields,
         };
       }
@@ -74,16 +73,15 @@ export async function editDocumentAction(
       }
       return {
         ok: false,
-        formError: `ドキュメントの更新に失敗しました (HTTP ${e.status})`,
+        formError: `README の更新に失敗しました (HTTP ${e.status})`,
         fields: parsed.fields,
       };
     }
     throw e;
   }
 
-  revalidatePath(`/w/${slug}/projects/${projectId}/documents`);
-  revalidatePath(`/w/${slug}/projects/${projectId}/documents/${documentId}`);
-  revalidatePath(`/w/${slug}/projects/${projectId}/documents/${newId}`);
-  // 新版の URL に切り替えて、ユーザーは最新 version を見る。
-  redirect(`/w/${slug}/projects/${projectId}/documents/${newId}`);
+  revalidatePath(`/w/${slug}/projects/${projectId}/readme`);
+  revalidatePath(`/w/${slug}/projects/${projectId}`);
+  // 最新 version は Server Component が自動表示するため、`?v=` は付けずに `/readme` に戻す。
+  redirect(`/w/${slug}/projects/${projectId}/readme`);
 }

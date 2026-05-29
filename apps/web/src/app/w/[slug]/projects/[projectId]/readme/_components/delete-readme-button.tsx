@@ -15,11 +15,17 @@ import {
 } from '@/components/ui/dialog';
 import type { ProjectDocument } from '@/lib/api/types';
 
-import { deleteDocumentAction, type DeleteDocumentFormState } from '../_actions/delete-document';
+import { deleteReadmeAction, type DeleteReadmeFormState } from '../_actions/delete-readme';
 
-const INITIAL_STATE: DeleteDocumentFormState = { ok: false };
+const INITIAL_STATE: DeleteReadmeFormState = { ok: false };
 
-export function DeleteDocumentButton({
+/**
+ * README の特定 version 削除ボタン + 確認ダイアログ。
+ *
+ * §9.12.4(2026-05-29)で `documents/[documentId]/_components/delete-document-button.tsx` から
+ * README 専用に移植。`/readme/?v=...` で参照中の version 単位の soft delete を行う。
+ */
+export function DeleteReadmeButton({
   slug,
   projectId,
   document,
@@ -30,10 +36,10 @@ export function DeleteDocumentButton({
 }) {
   const [open, setOpen] = useState(false);
   const boundAction = useMemo(
-    () => deleteDocumentAction.bind(null, slug, projectId, document.id),
+    () => deleteReadmeAction.bind(null, slug, projectId, document.id),
     [slug, projectId, document.id],
   );
-  const [state, formAction, pending] = useActionState<DeleteDocumentFormState, FormData>(
+  const [state, formAction, pending] = useActionState<DeleteReadmeFormState, FormData>(
     boundAction,
     INITIAL_STATE,
   );
@@ -48,7 +54,7 @@ export function DeleteDocumentButton({
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>このドキュメントを削除しますか?</DialogTitle>
+          <DialogTitle>この README version を削除しますか?</DialogTitle>
           <DialogDescription>
             <span className="font-medium text-foreground">{document.title}</span> (v
             {document.version}) を削除します。この操作は元に戻せません。

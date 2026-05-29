@@ -6,27 +6,29 @@ import { redirect } from 'next/navigation';
 
 import { classifyAiApiError } from '@/app/w/[slug]/_shared/ai-form';
 import { ApiError } from '@/lib/api/errors';
-import { generateDocument } from '@/lib/api/workspaces';
-import type { GeneratableDocType } from '@/lib/api/types';
+import { refineDocument } from '@/lib/api/workspaces';
 
 import {
-  parseGenerateDocumentFormData,
-  type GenerateDocumentFormState,
-} from '../_shared/generate-document-form';
+  parseRefineReadmeFormData,
+  type RefineReadmeFormState,
+} from '../_shared/refine-readme-form';
 
-export type { GenerateDocumentFormState } from '../_shared/generate-document-form';
+export type { RefineReadmeFormState } from '../_shared/refine-readme-form';
 
 /**
- * DRAFT_GEN(README / LP の AI ドラフト生成)Server Action。成功時は生成された新 document の
- * 詳細ページへ redirect。append-only なので、既存 v1 が居ても v2 として並列に積まれる。
+ * REFINE_DOC(AI による README 推敲)Server Action。
+ *
+ * §9.12.4(2026-05-29)で `documents/[documentId]/_actions/refine-document.ts` から README 専用に移植。
+ * Sonnet 4 + Tool Use で推敲し、append-only で新版を作成する(Day 10 の edit に乗る)。成功時は
+ * `/readme` に redirect し、Server Component が最新 version(= 推敲後)を表示する。
  */
-export async function generateDocumentAction(
+export async function refineReadmeAction(
   slug: string,
   projectId: string,
-  docType: GeneratableDocType,
-  _prev: GenerateDocumentFormState,
+  documentId: string,
+  _prev: RefineReadmeFormState,
   formData: FormData,
-): Promise<GenerateDocumentFormState> {
+): Promise<RefineReadmeFormState> {
   void _prev;
 
   const { userId } = await auth();
@@ -34,18 +36,13 @@ export async function generateDocumentAction(
     return { ok: false, formError: '認証が必要です。再度サインインしてください。' };
   }
 
-  const parsed = parseGenerateDocumentFormData(formData);
+  const parsed = parseRefineReadmeFormData(formData);
   if (Object.keys(parsed.fieldErrors).length > 0) {
     return { ok: false, fieldErrors: parsed.fieldErrors, fields: parsed.fields };
   }
 
-  let newId: string;
   try {
-    const created = await generateDocument(slug, projectId, {
-      docType,
-      instructions: parsed.instructions,
-    });
-    newId = created.id;
+    await refineDocument(slug, projectId, documentId, { goal: parsed.goal });
   } catch (e) {
     if (e instanceof ApiError) {
       const classified = classifyAiApiError(e);
@@ -63,7 +60,7 @@ export async function generateDocumentAction(
       if (classified.kind === 'not_found') {
         return {
           ok: false,
-          formError: 'プロジェクトが見つかりません。',
+          formError: 'README が見つかりません。ページを再読み込みしてください。',
           fields: parsed.fields,
         };
       }
@@ -76,14 +73,14 @@ export async function generateDocumentAction(
       }
       return {
         ok: false,
-        formError: `ドキュメントの生成に失敗しました (HTTP ${e.status})`,
+        formError: `README の推敲に失敗しました (HTTP ${e.status})`,
         fields: parsed.fields,
       };
     }
     throw e;
   }
 
-  revalidatePath(`/w/${slug}/projects/${projectId}/documents`);
+  revalidatePath(`/w/${slug}/projects/${projectId}/readme`);
   revalidatePath(`/w/${slug}/projects/${projectId}`);
-  redirect(`/w/${slug}/projects/${projectId}/documents/${newId}`);
+  redirect(`/w/${slug}/projects/${projectId}/readme`);
 }

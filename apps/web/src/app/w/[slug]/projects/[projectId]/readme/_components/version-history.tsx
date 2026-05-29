@@ -6,11 +6,13 @@ import type { ProjectDocument } from '@/lib/api/types';
 import { formatDateTime } from '@/lib/format';
 
 /**
- * 同じ (projectId, type) で append-only に蓄積された全 version をタイムライン表示する。
+ * 同じ projectId の README 全 version を append-only にタイムライン表示する。
  *
- * - 現在表示中の version は強調表示
- * - 各 version の項目は `<Link>` でその version の URL に飛ぶ(history-aware な永続リンク)
- * - 1 件しかない場合は履歴セクション自体を出さない(呼び出し側で判断)
+ * §9.12.4(2026-05-29)で `documents/[documentId]/_components/version-history.tsx` から README 専用に移植。
+ * 単一ページ `/readme` + `?v={versionId}` で過去 version を切替表示する。
+ *   - 現在表示中の version は強調表示
+ *   - 各 version の項目は `<Link>` で `?v={id}` 付きの URL に飛ぶ(history-aware な永続リンク)
+ *   - 1 件しかない場合は履歴セクション自体を出さない(呼び出し側で判断)
  */
 export function VersionHistory({
   slug,
@@ -21,7 +23,7 @@ export function VersionHistory({
   slug: string;
   projectId: string;
   currentDocumentId: string;
-  /** 同 (projectId, type) の全 version、version 降順で渡す。 */
+  /** README の全 version、version 降順で渡す。 */
   versions: readonly ProjectDocument[];
 }) {
   return (
@@ -37,7 +39,7 @@ export function VersionHistory({
           return (
             <li key={v.id}>
               <Link
-                href={`/w/${slug}/projects/${projectId}/documents/${v.id}`}
+                href={`/w/${slug}/projects/${projectId}/readme?v=${v.id}`}
                 className={cn(
                   'block rounded-md px-3 py-2 text-sm transition-colors',
                   isCurrent

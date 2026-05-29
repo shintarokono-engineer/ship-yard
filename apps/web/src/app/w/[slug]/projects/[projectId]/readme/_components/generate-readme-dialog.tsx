@@ -16,44 +16,39 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import type { DocType, GeneratableDocType } from '@/lib/api/types';
 
 import {
-  generateDocumentAction,
-  type GenerateDocumentFormState,
-} from '../_actions/generate-document';
+  generateReadmeAction,
+  type GenerateReadmeFormState,
+} from '../_actions/generate-readme';
 import {
-  INITIAL_GENERATE_DOCUMENT_FORM_STATE,
+  INITIAL_GENERATE_README_FORM_STATE,
   INSTRUCTIONS_MAX_LENGTH,
-} from '../_shared/generate-document-form';
+} from '../_shared/generate-readme-form';
 
 /**
- * DRAFT_GEN(README / LP の AI 生成)を起動する Dialog。
+ * DRAFT_GEN(README の AI 生成)を起動する Dialog。
  *
- * 「(未作成)」破線カード内のボタンから開く。Sonnet 4 + RAG で 10〜30 秒級の同期処理になるため
- * Dialog 内 pending インジケータを表示し、生成中はキャンセル不可。成功時は Server Action 側で
- * 新 document 詳細ページへ redirect する(Dialog は次ページ描画で消える)。
+ * §9.12.4(2026-05-29)で `documents/_components/generate-document-dialog.tsx` から README 専用に移植
+ * (kind 選択 UI を削除し、Project 詳細ページからも import される共通 Dialog として位置付け)。
+ * Sonnet 4 + RAG で 10〜30 秒級の同期処理になるため Dialog 内 pending インジケータを表示し、生成中は
+ * キャンセル不可。成功時は Server Action 側で `/readme` に redirect する(Dialog は次ページ描画で消える)。
  */
-export function GenerateDocumentDialog({
+export function GenerateReadmeDialog({
   slug,
   projectId,
-  docType,
-  typeLabel,
 }: {
   slug: string;
   projectId: string;
-  docType: GeneratableDocType;
-  /** カード側で表示中のラベル(例: 「README」「ランディングページ」)。Dialog タイトルに使う。 */
-  typeLabel: string;
 }) {
   const [open, setOpen] = useState(false);
   const boundAction = useMemo(
-    () => generateDocumentAction.bind(null, slug, projectId, docType satisfies DocType),
-    [slug, projectId, docType],
+    () => generateReadmeAction.bind(null, slug, projectId),
+    [slug, projectId],
   );
-  const [state, formAction, pending] = useActionState<GenerateDocumentFormState, FormData>(
+  const [state, formAction, pending] = useActionState<GenerateReadmeFormState, FormData>(
     boundAction,
-    INITIAL_GENERATE_DOCUMENT_FORM_STATE,
+    INITIAL_GENERATE_README_FORM_STATE,
   );
 
   const instructionsRaw = state.fields?.instructions ?? '';
@@ -76,7 +71,7 @@ export function GenerateDocumentDialog({
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{typeLabel} を AI で生成</DialogTitle>
+          <DialogTitle>README を AI で生成</DialogTitle>
           <DialogDescription>
             プロジェクト情報をもとに AI
             が初稿を作成します。追加の指示(任意)があれば下に入力してください。
@@ -127,7 +122,7 @@ export function GenerateDocumentDialog({
           )}
 
           <p aria-live="polite" className="text-muted-foreground text-xs">
-            {pending ? 'AI が生成しています。完了まで 10〜30 秒ほどかかります…' : ' '}
+            {pending ? 'AI が生成しています。完了まで 10〜30 秒ほどかかります…' : ' '}
           </p>
 
           <DialogFooter>

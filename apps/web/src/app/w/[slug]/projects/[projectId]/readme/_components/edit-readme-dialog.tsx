@@ -17,19 +17,21 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import type { ProjectDocument } from '@/lib/api/types';
 
-import { FormField } from '../../../../../_shared/form-field';
+import { FormField } from '@/app/w/[slug]/_shared/form-field';
 import {
   CONTENT_MAX_LENGTH,
-  INITIAL_DOCUMENT_FORM_STATE,
+  INITIAL_README_FORM_STATE,
   TITLE_MAX_LENGTH,
-} from '../_shared/document-form';
-import { editDocumentAction, type DocumentFormState } from '../_actions/edit-document';
+} from '../_shared/readme-form';
+import { editReadmeAction, type ReadmeFormState } from '../_actions/edit-readme';
 
 /**
- * ProjectDocument 編集ダイアログ。append-only なので保存すると新 version の URL に遷移する
- * (Action 側で redirect)。Project / Checklist の編集ダイアログと違って自動 close 不要。
+ * README 編集ダイアログ。append-only なので保存すると新 version となり、Action 側で `/readme` に
+ * redirect されて Server Component が最新を表示する。Project / Checklist の編集ダイアログと違って
+ * 自動 close 不要。§9.12.4(2026-05-29)で `documents/[documentId]/_components/edit-document-dialog.tsx`
+ * から README 専用に移植。
  */
-export function EditDocumentDialog({
+export function EditReadmeDialog({
   slug,
   projectId,
   document,
@@ -40,12 +42,12 @@ export function EditDocumentDialog({
 }) {
   const [open, setOpen] = useState(false);
   const boundAction = useMemo(
-    () => editDocumentAction.bind(null, slug, projectId, document.id),
+    () => editReadmeAction.bind(null, slug, projectId, document.id),
     [slug, projectId, document.id],
   );
-  const [state, formAction, pending] = useActionState<DocumentFormState, FormData>(
+  const [state, formAction, pending] = useActionState<ReadmeFormState, FormData>(
     boundAction,
-    INITIAL_DOCUMENT_FORM_STATE,
+    INITIAL_README_FORM_STATE,
   );
 
   const initialTitle = state.fields?.title ?? document.title;
@@ -66,7 +68,7 @@ export function EditDocumentDialog({
       </DialogTrigger>
       <DialogContent className="flex max-h-[90vh] flex-col gap-0 sm:max-w-3xl">
         <DialogHeader className="shrink-0 pb-4">
-          <DialogTitle>ドキュメントを編集</DialogTitle>
+          <DialogTitle>README を編集</DialogTitle>
           <DialogDescription>
             保存すると新しい version として履歴に積まれます(append-only)。
           </DialogDescription>

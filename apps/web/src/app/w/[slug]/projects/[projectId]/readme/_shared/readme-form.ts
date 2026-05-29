@@ -1,9 +1,9 @@
 /**
- * ProjectDocument 編集フォームで共有する型・定数・ヘルパー。
+ * README 編集フォームで共有する型・定数・ヘルパー。
  *
- * Day 19 の `_shared/project-form.ts` / Day 20 の `_shared/checklist-form.ts` と同じ思想:
- * `'use server'` ファイルから export できない定数・型・同期関数をここに集約し、各 Server Action
- * から import する。
+ * §9.12.4(2026-05-29)で `documents/[documentId]/_shared/document-form.ts` から README 専用に
+ * 移植。`'use server'` ファイルから export できない定数・型・同期関数をここに集約し、各 Server
+ * Action から import する。
  */
 
 /** title の最大長(apps/api `UpdateProjectDocumentDto` と一致)。 */
@@ -18,21 +18,21 @@ export const FORM_FIELDS = ['title', 'content'] as const;
 export type FieldName = (typeof FORM_FIELDS)[number];
 
 /** Server Action の戻り値。Project/Checklist と同じ shape。 */
-export interface DocumentFormState {
+export interface ReadmeFormState {
   ok: boolean;
   fieldErrors?: Partial<Record<FieldName, string[]>>;
   formError?: string;
   fields?: { title?: string; content?: string };
 }
 
-export const INITIAL_DOCUMENT_FORM_STATE: DocumentFormState = { ok: false };
+export const INITIAL_README_FORM_STATE: ReadmeFormState = { ok: false };
 
 /**
  * `FormData` から title / content を取り出し、バリデーションを行う。
  *
  * UI 側のルール: **title は必須**、content は自由入力(空のままでも保存可)。
  */
-export function parseDocumentFormData(formData: FormData): {
+export function parseReadmeFormData(formData: FormData): {
   data: { title: string | undefined; content: string | undefined } | null;
   fieldErrors: Partial<Record<FieldName, string[]>>;
   fields: { title: string; content: string };

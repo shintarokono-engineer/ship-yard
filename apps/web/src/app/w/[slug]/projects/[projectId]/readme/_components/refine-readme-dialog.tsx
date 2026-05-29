@@ -17,19 +17,20 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 
-import { refineDocumentAction, type RefineDocumentFormState } from '../_actions/refine-document';
+import { refineReadmeAction, type RefineReadmeFormState } from '../_actions/refine-readme';
 import {
   GOAL_MAX_LENGTH,
-  INITIAL_REFINE_DOCUMENT_FORM_STATE,
-} from '../_shared/refine-document-form';
+  INITIAL_REFINE_README_FORM_STATE,
+} from '../_shared/refine-readme-form';
 
 /**
- * REFINE_DOC(AI で既存 ProjectDocument を推敲)Dialog。
+ * REFINE_DOC(AI で既存 README を推敲)Dialog。
  *
- * Sonnet 4 + Tool Use で推敲し、append-only で新版を作る。成功時は Action 側で新版に redirect
- * するので Dialog の自動 close 処理は不要(ページ遷移で消える)。EditDocumentDialog と同じ思想。
+ * §9.12.4(2026-05-29)で `documents/[documentId]/_components/refine-document-dialog.tsx` から
+ * README 専用に移植。Sonnet 4 + Tool Use で推敲し、append-only で新版を作る。成功時は Action 側で
+ * `/readme` に redirect するので Dialog の自動 close 処理は不要(ページ遷移で消える)。
  */
-export function RefineDocumentDialog({
+export function RefineReadmeDialog({
   slug,
   projectId,
   documentId,
@@ -40,12 +41,12 @@ export function RefineDocumentDialog({
 }) {
   const [open, setOpen] = useState(false);
   const boundAction = useMemo(
-    () => refineDocumentAction.bind(null, slug, projectId, documentId),
+    () => refineReadmeAction.bind(null, slug, projectId, documentId),
     [slug, projectId, documentId],
   );
-  const [state, formAction, pending] = useActionState<RefineDocumentFormState, FormData>(
+  const [state, formAction, pending] = useActionState<RefineReadmeFormState, FormData>(
     boundAction,
-    INITIAL_REFINE_DOCUMENT_FORM_STATE,
+    INITIAL_REFINE_README_FORM_STATE,
   );
 
   const [goalLength, setGoalLength] = useState(state.fields?.goal?.length ?? 0);
@@ -66,7 +67,7 @@ export function RefineDocumentDialog({
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>ドキュメントを AI で推敲</DialogTitle>
+          <DialogTitle>README を AI で推敲</DialogTitle>
           <DialogDescription>
             現在の本文を AI が推敲し、新しい version
             として履歴に積まれます(append-only)。完了後は最新版に自動遷移します。

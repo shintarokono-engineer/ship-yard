@@ -1,8 +1,9 @@
 /**
- * DRAFT_GEN(README / LP 等の AI ドラフト生成)Server Action で共有する型・定数・ヘルパー。
+ * DRAFT_GEN(README の AI ドラフト生成)Server Action で共有する型・定数・ヘルパー。
  *
- * 既存の `_shared/[documentId]/document-form.ts`(編集用)とは別ファイル:編集は title + content
- * を扱うのに対し、生成は instructions のみで、docType は Dialog コンポーネントから props で固定される。
+ * §9.12.4(2026-05-29)で `documents/_shared/generate-document-form.ts` から README 専用に移植
+ * (docType は README 固定なので kind 選択スキーマを削除)。`'use server'` ファイルから export できない
+ * 定数・型・同期パースはここに集約。
  */
 
 import { INSTRUCTIONS_MAX_LENGTH } from '@/app/w/[slug]/_shared/ai-form';
@@ -12,7 +13,7 @@ export { INSTRUCTIONS_MAX_LENGTH };
 export const FORM_FIELDS = ['instructions'] as const;
 export type FieldName = (typeof FORM_FIELDS)[number];
 
-export interface GenerateDocumentFormState {
+export interface GenerateReadmeFormState {
   ok: boolean;
   fieldErrors?: Partial<Record<FieldName, string[]>>;
   formError?: string;
@@ -21,13 +22,13 @@ export interface GenerateDocumentFormState {
   fields?: { instructions?: string };
 }
 
-export const INITIAL_GENERATE_DOCUMENT_FORM_STATE: GenerateDocumentFormState = { ok: false };
+export const INITIAL_GENERATE_README_FORM_STATE: GenerateReadmeFormState = { ok: false };
 
 /**
  * `FormData` から instructions を取り出して、長さチェックのみ行う。
  * instructions は任意なので空でも OK(API 側でも `@IsOptional`)。
  */
-export function parseGenerateDocumentFormData(formData: FormData): {
+export function parseGenerateReadmeFormData(formData: FormData): {
   instructions: string | undefined;
   fieldErrors: Partial<Record<FieldName, string[]>>;
   fields: { instructions: string };

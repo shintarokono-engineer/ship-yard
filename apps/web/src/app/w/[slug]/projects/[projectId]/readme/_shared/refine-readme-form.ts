@@ -1,6 +1,7 @@
 /**
- * REFINE_DOC(AI による ProjectDocument 推敲)Server Action で共有する型・定数・ヘルパー。
+ * REFINE_DOC(AI による README 推敲)Server Action で共有する型・定数・ヘルパー。
  *
+ * §9.12.4(2026-05-29)で `documents/[documentId]/_shared/refine-document-form.ts` から README 専用に移植。
  * `'use server'` ファイルから値を export できない制約のため、定数・型・同期パースはここに集約。
  */
 
@@ -11,7 +12,7 @@ export { GOAL_MAX_LENGTH };
 export const FORM_FIELDS = ['goal'] as const;
 export type FieldName = (typeof FORM_FIELDS)[number];
 
-export interface RefineDocumentFormState {
+export interface RefineReadmeFormState {
   ok: boolean;
   fieldErrors?: Partial<Record<FieldName, string[]>>;
   formError?: string;
@@ -20,10 +21,10 @@ export interface RefineDocumentFormState {
   fields?: { goal?: string };
 }
 
-export const INITIAL_REFINE_DOCUMENT_FORM_STATE: RefineDocumentFormState = { ok: false };
+export const INITIAL_REFINE_README_FORM_STATE: RefineReadmeFormState = { ok: false };
 
 /** `FormData` から goal を取り出してバリデーション。 */
-export function parseRefineDocumentFormData(formData: FormData): {
+export function parseRefineReadmeFormData(formData: FormData): {
   goal: string | undefined;
   fieldErrors: Partial<Record<FieldName, string[]>>;
   fields: { goal: string };

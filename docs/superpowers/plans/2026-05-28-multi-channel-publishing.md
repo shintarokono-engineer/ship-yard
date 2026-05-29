@@ -487,6 +487,93 @@ git commit -m "feat(db): Feature.ANNOUNCEMENT_GEN 追加 + DocType 縮小(README
 
 ---
 
+### Task 3.6: §9.12.4 `/documents` ページ廃止 + README 専用ページ化(A1 採用、2026-05-29)
+
+**Background:** §9.12.3 で DocType を `README` / `OTHER` の 2 値に縮小した結果、`/documents` ページの存在意義(複数 DocType を一覧する場)は失われた。Card 2 つだけのための専用ページは過剰で、Project 詳細 Card グリッド(§9.12.2 観点 1 / 11)の肥大化も悪化する。ユーザー判断で A1 パターン(Project 詳細にプレビューインライン + `/readme/` 単独ページに編集 / 履歴 / 生成を集約)を採用。`OTHER` は DB enum 残置だが UI 入口なし。
+
+**URL 設計:**
+
+- `/w/{slug}/projects/{projectId}/readme/` = 最新 version の README を表示する単一ページ
+- `?v={versionId}` クエリパラメータで過去 version を表示(動的ルート `[documentId]` は廃止)
+- 削除時の redirect 先 = Project 詳細
+
+**Files (新規):**
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/page.tsx`(Server Component、最新 version + searchParams v 解決)
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_actions/generate-readme.ts`
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_actions/edit-readme.ts`
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_actions/refine-readme.ts`
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_actions/delete-readme.ts`
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_components/generate-readme-dialog.tsx`(Project 詳細からも import)
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_components/edit-readme-dialog.tsx`
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_components/refine-readme-dialog.tsx`
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_components/delete-readme-button.tsx`
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_components/version-history.tsx`(href を `?v={versionId}` パターンに)
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_shared/generate-readme-form.ts`(kind 選択 schema 除去)
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_shared/readme-form.ts`
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_shared/refine-readme-form.ts`
+
+**Files (編集):**
+- `apps/web/src/app/w/[slug]/projects/[projectId]/page.tsx`:ドキュメント Card 削除 + README プレビューセクション追加(Promise.all で `listDocuments(slug, projectId, 'README')` 追加 fetch、`README_PREVIEW_CHARS = 200` 定数、最新版の先頭 200 字 + version カウント + 更新日時 + 編集/履歴 Button + GenerateReadmeDialog、未作成時は `(未作成)` italic + Dialog のみ)
+
+**Files (削除):**
+- `apps/web/src/app/w/[slug]/projects/[projectId]/documents/`(配下全 14 ファイル、`git rm -r`)
+
+**Files (温存):**
+- `apps/api/src/documents/*`(REST API は README CRUD のバックボーンとして継続利用、URL 階層名は backend のみ historical な命名)
+- `apps/web/src/lib/api/workspaces.ts` の `fetchDocument` / `listDocuments` / `createDocument` 等(API パスと対応した命名)
+
+- [ ] **Step 1: 新規 13 ファイルを作成(移植 + 改名 + README 専用化)**
+
+`/documents/*` → `/readme/*` のファイル単位移植。命名規則は `document` → `readme`。kind 選択 schema は除去、`DocType.README` に固定。
+
+- [ ] **Step 2: `version-history.tsx` の Link href を変更**
+
+旧:`href={`/w/${slug}/projects/${projectId}/documents/${v.id}`}`
+新:`href={`/w/${slug}/projects/${projectId}/readme?v=${v.id}`}`(searchParams 経由)
+
+- [ ] **Step 3: Action 群の redirect / revalidatePath を `/readme/` に修正**
+
+- `revalidatePath` は `/readme` と Project 詳細 `/projects/{projectId}` の 2 つ
+- generate / edit / refine の redirect → `/readme/`(最新が自動表示される)
+- delete の redirect → Project 詳細
+
+- [ ] **Step 4: Project 詳細 `page.tsx` を更新**
+
+import 追加(`Button` / `listDocuments` / `GenerateReadmeDialog`)、ドキュメント Card 削除、README プレビューセクションを「概要」 と Card グリッドの間に挿入、`Promise.all` に `listDocuments(slug, projectId, 'README')` 追加、`sortedReadmes` / `latestReadme` / `readmePreview` 算出、docstring 更新。
+
+- [ ] **Step 5: `/documents/` ディレクトリ削除**
+
+```bash
+git rm -r apps/web/src/app/w/'[slug]'/projects/'[projectId]'/documents/
+```
+
+- [ ] **Step 6: 検証**
+
+```bash
+pnpm --filter @shipyard/web type-check
+pnpm --filter @shipyard/web build
+grep -rn "/documents/" apps/web/src   # URL リンクの残存ゼロ確認(workspaces.ts の API パスは OK)
+```
+
+すべて ✅ になるまで修正。
+
+- [ ] **Step 7: ドキュメント同期**
+
+- `PROJECT_STATUS.md` §9.12.4 追加 + §9.12.2「ドキュメント一覧整理」 行を「✅完了」 に更新 + §11 履歴
+- 本 Plan doc に Task 3.6 セクション追加(本作業)
+- Spec doc は §3「FE 画面構成」 で `/documents` 言及があれば §9.12.4 反映を追記(なければ skip)
+
+- [ ] **Step 8: 単独コミット**
+
+§9.12.3 とは論理的に別件(DB enum 整理 vs UI 再構成)なので別コミット。
+
+```bash
+git add apps/web/ docs/
+git commit -m "refactor(web): README 専用ページ化 + Project 詳細にプレビュー統合、/documents 廃止(§9.12.4)(ADR-014 Day 56)"
+```
+
+---
+
 ### Task 4: TokenEncryptionService 実装(AES-256-GCM)+ 単体テスト
 
 **Files:**
