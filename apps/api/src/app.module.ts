@@ -22,6 +22,7 @@ import { clerkClientProvider } from './auth/clerk-client.provider';
 import { BillingService } from './billing/billing.service';
 import { ChecklistController } from './checklist/checklist.controller';
 import { ChecklistService } from './checklist/checklist.service';
+import { CryptoModule } from './common/crypto/crypto.module';
 import { DocumentsController } from './documents/documents.controller';
 import { DocumentsService } from './documents/documents.service';
 import { IdeaValidationController } from './idea-validation/idea-validation.controller';
@@ -59,6 +60,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     AnthropicModule,
     OpenAIModule,
     MailModule,
+    CryptoModule,
   ],
   controllers: [
     AppController,
