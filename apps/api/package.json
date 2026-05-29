@@ -8,6 +8,9 @@
     "build": "nest build",
     "start": "node dist/main",
     "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "backfill:embeddings": "ts-node --transpile-only -P tsconfig.json scripts/backfill-embeddings.ts",
     "seed-corpus:apply": "ts-node --transpile-only -P tsconfig.json scripts/seed-corpus.ts"
   },
@@ -39,7 +42,9 @@
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.2.14",
+    "@vitest/coverage-v8": "^4.1.7",
     "ts-node": "^10.9.2",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "vitest": "^4.1.7"
   }
 }

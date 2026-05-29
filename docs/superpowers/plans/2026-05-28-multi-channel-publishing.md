@@ -11,6 +11,8 @@
 **Spec doc:** `docs/superpowers/specs/2026-05-28-multi-channel-publishing-design.md`
 **ADR:** `docs/adr/014-multi-channel-announcement.md`
 
+> **テストフレームワーク注記(2026-05-29、Task 4 時点で確定)**:本 Plan は当初 Jest 前提で `*.spec.ts` 例を載せていたが、API プロジェクトに Jest が未導入だったため **Vitest を導入** した(`apps/api/devDependencies` に `vitest` + `@vitest/coverage-v8`、`apps/api/vitest.config.ts`、`pnpm --filter @shipyard/api test` で実行)。Vitest は Jest API 互換のため、本 Plan 内の `describe / it / expect / beforeEach` 記述はすべて無改修で動作する。`@nestjs/testing` は controller / service の DI テストが必要になった時に別途追加(Task 7 以降で随時判断)。
+
 ---
 
 ## File Structure
