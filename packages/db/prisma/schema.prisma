@@ -106,14 +106,6 @@ enum Category {
 enum DocType {
   /// プロジェクトの README
   README
-  /// リリースブログ記事
-  RELEASE_BLOG
-  /// X / Twitter 告知文
-  TWEET
-  /// Product Hunt 投稿用テキスト
-  PRODUCT_HUNT
-  /// 告知メール本文
-  EMAIL
   /// その他
   OTHER
 }
@@ -123,7 +115,7 @@ enum Feature {
   /// @deprecated ADR-013 で PRODUCT_DIAGNOSIS に統合済(新規実装では PRODUCT_DIAGNOSIS を使う)。
   /// PostgreSQL の `ALTER TYPE DROP VALUE` 非サポートのため schema から削除はしない。
   COMPETITOR_RESEARCH
-  /// ドキュメント自動生成(README / LP / 告知文、Sonnet 4)
+  /// ドキュメント自動生成(README、Sonnet 4)。LP は ADR-009、告知文は ADR-014 で別 Feature に分離済。
   DRAFT_GEN
   /// タスク分解(Tool Use、Haiku 4.5)
   TASK_SPLIT
@@ -137,6 +129,8 @@ enum Feature {
   PRODUCT_DIAGNOSIS
   /// アイデア検証(発案段階の Problem-Solution Fit 検証、Sonnet 4 + Web Search Tool + Tool Use、ADR-013 改訂版)
   IDEA_VALIDATION
+  /// マルチチャネル告知配信の文面生成(Sonnet 4 + Tool Use、Twitter + Blog を一括、ADR-014)
+  ANNOUNCEMENT_GEN
   /// その他の AI 機能
   OTHER
 }
@@ -388,7 +382,7 @@ model ProjectDocument {
   tenantId    String
   /// 所属プロジェクト ID
   projectId   String
-  /// 文書タイプ(README / RELEASE_BLOG / TWEET / PRODUCT_HUNT / EMAIL / OTHER の 6 種)
+  /// 文書タイプ(README / OTHER の 2 種、§9.12.1 + §9.12.3 で告知系を削除済)
   type        DocType
   /// 文書タイトル
   title       String

@@ -400,9 +400,89 @@ Expected: エラーなし。
 
 - [ ] **Step 7: コミット**
 
+Task 3.5(§9.12.3)とセットコミットする方針のため、本 Task 単独ではコミットしない。Task 3.5 完了後にまとめて以下のメッセージでコミット:
+
 ```bash
-git add packages/db/prisma/
-git commit -m "feat(db): Feature.ANNOUNCEMENT_GEN 追加(ADR-014 Day 56)"
+git add packages/db/ apps/api/ apps/web/
+git commit -m "feat(db): Feature.ANNOUNCEMENT_GEN 追加 + DocType 縮小(README/OTHER の 2 値、§9.12.3)(ADR-014 Day 56)"
+```
+
+---
+
+### Task 3.5: §9.12.3 DocType から告知系 4 値を構造削除(2026-05-29 ユーザー判断で追加)
+
+**Background:** ADR-014 ANNOUNCEMENT_GEN(マルチチャネル一括 Tool Use 生成)の導入で、DRAFT_GEN が単一 DocType で生成していた `RELEASE_BLOG` / `TWEET` / `PRODUCT_HUNT` / `EMAIL` は配信用文面として ANNOUNCEMENT_GEN に役割が完全統合される。§9.12.1(LP 削除)と同パターンで型レベルから構造削除し、DRAFT_GEN を README 専用に絞る。ローカル / 本番 DB は公開前(ユーザー 0)で `ProjectDocument` に該当行 0 件確認済のため物理削除可能。
+
+**Files:**
+- Modify: `packages/db/prisma/schema.prisma`(`enum DocType` を 2 値に縮小 + `DRAFT_GEN` Feature コメント更新 + `ProjectDocument.type` フィールドコメント更新)
+- Create: `packages/db/prisma/migrations/{ts}_remove_announcement_doc_types/migration.sql`(手作業、Day 49.5 パターン)
+- Modify: `apps/api/src/ai/ai.constants.ts`(`GENERATABLE_DOC_TYPES` を `[DocType.README]` に縮小)
+- Modify: `apps/api/src/ai/draft-gen.service.ts`(`KIND_LABEL` / `STRUCTURE_HINT` を README 専用に簡素化 + class docstring 更新)
+- Modify: `apps/api/src/documents/documents.controller.ts`(`type` クエリ例の文言更新)
+- Modify: `apps/api/scripts/seed-corpus.ts`(Markdown フロントマター例の文言更新)
+- Modify: `apps/web/src/lib/api/types.ts`(`DOC_TYPES` 2 値に縮小 + `GENERATABLE_DOC_TYPES` を `['README']` に + `DOC_TYPE_META` から 4 値削除)
+- Modify: `apps/web/src/app/w/[slug]/projects/[projectId]/documents/page.tsx`(ヘッダコメント更新、告知配信は `/announcements` へ誘導を明記)
+- Modify: `docs/PROJECT_STATUS.md`(§9.12.3 を追加、§9.12.2「ドキュメント一覧整理」 行を降格、§11 履歴に追記、最終更新日を 2026-05-29 に)
+- Modify: `docs/superpowers/specs/2026-05-28-multi-channel-publishing-design.md`(§0 と §2「既存 DRAFT_GEN との使い分け」 を §9.12.3 反映で更新)
+
+- [ ] **Step 1: ProjectDocument 該当行件数を実測 = 0 件確認**
+
+```bash
+docker compose exec postgres psql -U shipyard -d shipyard -c "SELECT type, COUNT(*) FROM \"ProjectDocument\" WHERE type IN ('RELEASE_BLOG','TWEET','PRODUCT_HUNT','EMAIL') GROUP BY type;"
+```
+
+Expected: 0 rows。0 件でなければ運用合意の上でデータ移行方針を再検討。
+
+- [ ] **Step 2: schema.prisma の `enum DocType` を `README` / `OTHER` の 2 値に縮小**
+
+`DRAFT_GEN` Feature コメントを「ドキュメント自動生成(README、Sonnet 4)。LP は ADR-009、告知文は ADR-014 で別 Feature に分離済。」 に更新。`ProjectDocument.type` のフィールドコメントも「README / OTHER の 2 種、§9.12.1 + §9.12.3 で告知系を削除済」 に。
+
+- [ ] **Step 3: 手作業 migration ファイル作成**
+
+`packages/db/prisma/migrations/{ts}_remove_announcement_doc_types/migration.sql`:
+
+```sql
+-- §9.12.3 ADR-014 ANNOUNCEMENT_GEN 追加に伴い、DRAFT_GEN を README 専用に縮小(2026-05-29)。
+DELETE FROM "ProjectDocument" WHERE "type" IN ('RELEASE_BLOG', 'TWEET', 'PRODUCT_HUNT', 'EMAIL');
+ALTER TYPE "DocType" RENAME TO "DocType_old";
+CREATE TYPE "DocType" AS ENUM ('README', 'OTHER');
+ALTER TABLE "ProjectDocument" ALTER COLUMN "type" TYPE "DocType" USING ("type"::text::"DocType");
+DROP TYPE "DocType_old";
+```
+
+- [ ] **Step 4: `prisma migrate dev` で DB 適用 + enum 値確認**
+
+```bash
+pnpm --filter @shipyard/db exec prisma migrate dev
+docker compose exec postgres psql -U shipyard -d shipyard -c 'SELECT unnest(enum_range(NULL::"DocType"))'
+```
+
+Expected: `README` / `OTHER` の 2 行。
+
+- [ ] **Step 5: コード側参照を一掃**
+
+型エラー駆動で `apps/api/src/ai/ai.constants.ts` / `draft-gen.service.ts` / `documents.controller.ts` / `apps/web/src/lib/api/types.ts` / `documents/page.tsx` / `apps/api/scripts/seed-corpus.ts` を順次修正。`grep -rn "RELEASE_BLOG\|PRODUCT_HUNT\|DocType.TWEET\|DocType.EMAIL"` で残存ゼロを確認。
+
+- [ ] **Step 6: 型チェック**
+
+```bash
+pnpm --filter @shipyard/db exec prisma generate
+pnpm --filter @shipyard/db build
+pnpm --filter @shipyard/api type-check
+pnpm --filter @shipyard/web type-check
+```
+
+Expected: 全て ✅。
+
+- [ ] **Step 7: ドキュメント同期**
+
+PROJECT_STATUS.md §9.12.3 追加 + §9.12.2「ドキュメント一覧整理」 行降格 + §11 履歴追記 + 最終更新日更新。Spec doc §0 と §2「既存 DRAFT_GEN との使い分け」 を §9.12.3 反映で更新。本 Plan doc に本 Task 3.5 セクションを追加(本作業)。
+
+- [ ] **Step 8: Task 3 とセットコミット**
+
+```bash
+git add packages/db/ apps/api/ apps/web/ docs/
+git commit -m "feat(db): Feature.ANNOUNCEMENT_GEN 追加 + DocType 縮小(README/OTHER の 2 値、§9.12.3)(ADR-014 Day 56)"
 ```
 
 ---
