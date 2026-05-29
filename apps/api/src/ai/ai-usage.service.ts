@@ -24,10 +24,16 @@ function estimateCostJpy(model: string, tokensIn: number, tokensOut: number): st
 }
 
 /** ある AI 呼び出しが消費する AI クレジット数(ADR-012)。
- * `Feature.OTHER`(裏方 embedding / RAG 検索など、ユーザー明示的でない機能)は cr 消費なし。 */
-function creditsForUsage(model: string, feature: Feature): number {
+ * `Feature.OTHER`(裏方 embedding / RAG 検索など、ユーザー明示的でない機能)は cr 消費なし。
+ *
+ * `turnCount` は 1 つの機能で複数ターンの API call をした場合の合算値(デフォルト 1)。
+ * 例:ADR-013 改訂版の IDEA_VALIDATION / PRODUCT_DIAGNOSIS は Day 47.5 で 2-step 化
+ * (調査ターン + 採点ターン)したため `turnCount = 2`。ユーザー視点のクレジット消費を
+ * 実 API call 回数と一致させ、サービス側の AI 原価とプラン上限判定を整合させるため。
+ */
+function creditsForUsage(model: string, feature: Feature, turnCount = 1): number {
   if (feature === Feature.OTHER) return 0;
-  return MODEL_CREDITS[model] ?? FALLBACK_MODEL_CREDITS;
+  return (MODEL_CREDITS[model] ?? FALLBACK_MODEL_CREDITS) * turnCount;
 }
 
 /** 当月の 1 日 00:00(UTC)。`AIUsage` の月次集計の基準。 */
@@ -43,6 +49,13 @@ export interface RecordAIUsageInput {
   feature: Feature;
   tokensIn: number;
   tokensOut: number;
+  /**
+   * 1 機能で複数ターンの API call をした場合のターン数(デフォルト 1)。
+   * クレジット計算に効く(`credits = MODEL_CREDITS[model] * turnCount`)。
+   * Day 47.5 で 2-step 化した IDEA_VALIDATION / PRODUCT_DIAGNOSIS は `2` を渡す。
+   * `tokensIn` / `tokensOut` は呼び出し側で全ターン合算した値を渡すこと。
+   */
+  turnCount?: number;
 }
 
 /** `AIUsageService.getMonthlySummary` の戻り値。設定画面の「利用状況」タブ用。 */
@@ -195,7 +208,7 @@ export class AIUsageService {
     }
   }
 
-  /** AI 呼び出し 1 回分をテナント単位で記録する。credits はモデル × Feature から自動計算。 */
+  /** AI 呼び出し 1 回分をテナント単位で記録する。credits はモデル × Feature × turnCount から自動計算。 */
   async record(usage: RecordAIUsageInput): Promise<void> {
     await this.prisma.aIUsage.create({
       data: {
@@ -206,7 +219,7 @@ export class AIUsageService {
         tokensIn: usage.tokensIn,
         tokensOut: usage.tokensOut,
         costJpy: estimateCostJpy(usage.model, usage.tokensIn, usage.tokensOut),
-        credits: creditsForUsage(usage.model, usage.feature),
+        credits: creditsForUsage(usage.model, usage.feature, usage.turnCount ?? 1),
       },
     });
   }

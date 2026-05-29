@@ -2,8 +2,7 @@
 
 import { Lightbulb } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useActionState, useEffect, useMemo, useState } from 'react';
+import { useActionState, useMemo, useState } from 'react';
 
 import { FormField } from '@/app/w/[slug]/_shared/form-field';
 import { Button } from '@/components/ui/button';
@@ -33,8 +32,12 @@ import {
  *
  * 成功時は作成された IdeaValidation の結果ページへ遷移する(URL の `[id]` 部分)。
  */
+/**
+ * 成功時の遷移は Server Action 側の `redirect()` が担当する(useEffect + router.push は使わない、
+ * Next.js dev の遅延コンパイルとレースコンディションを避けるため)。
+ * クライアント側でハンドルするのは「入力検証エラー」「クレジット超過」「BE エラー」 等の state のみ。
+ */
 export function RunValidationDialog({ slug, projectId }: { slug: string; projectId: string }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const boundAction = useMemo(
     () => runValidationAction.bind(null, slug, projectId),
@@ -45,13 +48,6 @@ export function RunValidationDialog({ slug, projectId }: { slug: string; project
     INITIAL_RUN_VALIDATION_FORM_STATE,
   );
   const [length, setLength] = useState(state.instructions?.length ?? 0);
-
-  // 成功時は結果ページへ遷移する。
-  useEffect(() => {
-    if (state.ok && state.createdId) {
-      router.push(`/w/${slug}/projects/${projectId}/idea-validations/${state.createdId}`);
-    }
-  }, [state, router, slug, projectId]);
 
   return (
     <Dialog
