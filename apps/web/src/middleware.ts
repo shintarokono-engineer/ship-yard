@@ -9,10 +9,13 @@ import { TENANT_SLUG_HEADER } from '@/lib/tenant-slug';
 // 検証で防いでいる(ADR-007)。
 // `/p/{slug}/{projectId}` は公開 LP ページ(ADR-009 Day 33)。誰でも閲覧できるべきもので、API 側も
 // `publishedAt` がセットされた LP のみ返すため認証不要。
+// `/sign-out-cleanup` は Clerk サインアウト後の中間ページ(F1.5、§9.12.2 観点 2)。
+// LocalStorage / SessionStorage を cleanup してから `/` にフルロード遷移するため認証不要。
 const isPublicRoute = createRouteMatcher([
   '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
+  '/sign-out-cleanup',
   '/invite/(.*)',
   '/p/(.*)',
 ]);
