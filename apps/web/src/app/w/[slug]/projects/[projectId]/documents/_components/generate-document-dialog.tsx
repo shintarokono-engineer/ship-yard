@@ -43,7 +43,7 @@ export function GenerateDocumentDialog({
   slug: string;
   projectId: string;
   docType: GeneratableDocType;
-  /** カード側で表示中のラベル(例: 「README」「ランディングページ」)。Dialog タイトルに使う。 */
+  /** カード側で表示中のラベル(例: 「README」「リリースブログ」)。Dialog タイトルに使う。 */
   typeLabel: string;
 }) {
   const [open, setOpen] = useState(false);

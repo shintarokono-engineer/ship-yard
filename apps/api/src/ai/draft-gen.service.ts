@@ -68,7 +68,8 @@ const SUBMIT_DOCUMENT_TOOL = {
 };
 
 /**
- * README / ランディングページのドラフトを Claude(Sonnet 4)で生成する(DRAFT_GEN、ADR-005)。
+ * ProjectDocument のドラフトを Claude(Sonnet 4)で生成する(DRAFT_GEN、ADR-005)。
+ * 対応種別は `GENERATABLE_DOC_TYPES`(`ai.constants.ts`)= README / RELEASE_BLOG / TWEET / PRODUCT_HUNT / EMAIL の 5 種。
  *
  * 構造化出力(title / content の 2 フィールド)が欲しいので Tool Use を使い、`tool_choice` で
  * `submit_document` の呼び出しを強制する(自由文ではなく必ずツール入力として返させる)。

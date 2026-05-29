@@ -63,7 +63,7 @@ export default async function DocumentsPage({
         </Link>
         <h1 className="text-2xl font-semibold">ドキュメント</h1>
         <p className="text-muted-foreground text-sm">
-          README / ランディングページ / 告知文などをカテゴリ別に管理します。
+          README / 告知文などをカテゴリ別に管理します。
         </p>
       </div>
 
