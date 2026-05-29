@@ -161,30 +161,35 @@ pnpm exec prisma studio
 
 > 念のため Studio 起動時のターミナルに表示される DATABASE_URL が現在の作業 DB と一致するかも確認(別 worktree / 別 DB に繋がっていないか)。
 
-### 2.6 🟡 User 削除 → 同 Clerk アカウントで再サインアップ → `Uncaught FetchError` で白紙
+### 2.6 🟡 サインアウト後 / User 削除後 → `Uncaught FetchError` で白紙(F1.5 で対応済)
 
-**症状**:
+**症状(2 パターン)**:
 
-- Clerk Dashboard で当該ユーザーを削除した直後、**通常ブラウザ**(普段使い)で「Continue with Google」を押す
-- Google 画面に遷移すらせず白紙。Console に `Uncaught (in promise) {name: 'FetchError'}` が出る
-- URL は `http://localhost:3000/sign-up#/sso-callback?redirect_url=...`
+- **パターン A**(MVP 本番ユーザーが遭遇しうる):アプリ内 `<UserButton>` → Sign out → `/` で「Continue with Google」 押下 → Google 画面に遷移すらせず白紙。Console に `Uncaught (in promise) {name: 'FetchError'}` が出る
+- **パターン B**(主に開発検証時):Clerk Dashboard で User 削除後、通常ブラウザで「Continue with Google」 → 同様に白紙
 
-**原因**: Clerk SDK は LocalStorage / IndexedDB / `*.clerk.accounts.dev` ドメインの Cookie に **クライアントトークン**(`__clerk_db_jwt` 等)とセッション履歴を保存する。User 削除前のトークンが残ったまま再サインアップを試みると、SDK が「既存セッションを復元」しようとして削除済みユーザーを参照 → サーバーが整合性エラーを返し SDK 内部で `FetchError` を投げて中断。`localhost:3000` の Cookie だけ削除しても LocalStorage / IndexedDB と Clerk ドメイン Cookie は残るため発生する。
+**原因**: Clerk SDK は LocalStorage / SessionStorage / `*.clerk.accounts.dev` ドメインの Cookie に **クライアントトークン**(`__clerk_db_jwt` 等)とセッション履歴を保存する。`signOut()` だけでは `*.clerk.accounts.dev` ドメインの一部キャッシュが残ることがあり、次の OAuth フローで SDK が「残ったセッションを復元」しようとして整合性エラー → SDK 内部で `FetchError`。Clerk Issue [#6691](https://github.com/clerk/javascript/issues/6691) で **"Closed as not planned"** としてクローズ済み = Clerk チームは修正しないと宣言。
 
-**復旧(優先順)**:
+**復旧 / 予防(優先順、F1.5 実装後の運用)**:
 
-1. **シークレットウィンドウ / プライベートウィンドウで再試行**(`Cmd+Shift+N`)→ 永続データが完全分離されるため確実に動く
-2. 通常ウィンドウで復旧したい場合:
+1. **アプリ側で `/sign-out-cleanup` 中間ページを実装済**(F1.5、`apps/web/src/app/sign-out-cleanup/page.tsx`)。`<UserButton afterSignOutUrl="/sign-out-cleanup" />` 経由で:
+   - LocalStorage の Clerk 関連キー(`__clerk_*` / `clerk_*`)をピンポイント削除
+   - `sessionStorage.clear()`
+   - `window.location.replace('/')` でフルロード → SDK が新規セッションで再初期化
+   - **パターン A はこれで 80-90% 解消**(Clerk Issue #6691 提案の `sessionId: ['all']` + `sessionStorage.clear()` パターン準拠)
+2. **シークレットウィンドウで再試行**(`Cmd+Shift+N`)→ 永続データが完全分離、F1.5 で解消しなかった残り 10-20% および パターン B(Dashboard 削除)の確実な fallback
+3. 通常ウィンドウで手動復旧したい場合:
    - DevTools → **Application** → **Storage** → **Clear site data**(全項目 ON)
    - アドレスバーで `https://<your-clerk-frontend-api>.clerk.accounts.dev/` を開く → 同じ手順
-   - `http://localhost:3000` に戻ってサインアップ再試行
-3. ブラウザ拡張(uBlock / Privacy Badger 等)を疑う場合は拡張を一旦 OFF で切り分け
+   - `http://localhost:3000` に戻って再試行
+4. ブラウザ拡張(uBlock / Privacy Badger 等)を疑う場合は拡張を一旦 OFF で切り分け
 
-**予防策(開発運用)**:
+**F1.5 実装の限界**: `*.clerk.accounts.dev` ドメインの Cookie は Same-origin policy でアプリから直接削除できない。フルロード起動 + SDK 側の残セッショントークン失効処理で大半のケースは解消するが、完全治癒は Clerk SDK 側の修正待ち。
 
-- **User 削除 → 再サインアップの検証は必ずシークレットウィンドウで行う**
-- 開発専用のブラウザプロファイル(Chrome の「ユーザーを追加」)を作って本業のブラウザと分離する
-- これは Clerk SDK 側の設計上の制約で、Day 49 の Shipyard 側コードに不具合はない
+**関連実装**:
+- `apps/web/src/app/sign-out-cleanup/page.tsx`(中間ページ本体)
+- `apps/web/src/middleware.ts`(`/sign-out-cleanup` を `isPublicRoute` に追加)
+- `apps/web/src/app/w/[slug]/layout.tsx:42`(`<UserButton afterSignOutUrl="/sign-out-cleanup" />`)
 
 ### 2.7 🟢 `400 Missing one of svix-id / svix-timestamp / svix-signature headers`
 

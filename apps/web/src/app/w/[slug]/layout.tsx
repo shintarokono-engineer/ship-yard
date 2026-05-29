@@ -39,7 +39,9 @@ export default async function WorkspaceLayout({
       <header className="bg-card border-b">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3">
           <WorkspaceSwitcher current={workspace} workspaces={myWorkspaces} />
-          <UserButton afterSignOutUrl="/" />
+          {/* F1.5(§9.12.2 観点 2):/sign-out-cleanup で LocalStorage / SessionStorage を
+              クリアしてから / にフルロード遷移する(Clerk Issue #6691 ワークアラウンド)。 */}
+          <UserButton afterSignOutUrl="/sign-out-cleanup" />
         </div>
         <WorkspaceNav slug={workspace.slug} />
       </header>
