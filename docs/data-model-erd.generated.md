@@ -97,6 +97,31 @@ FAILED FAILED
 RETRYING RETRYING
         }
     
+
+
+        AnnouncementStatus {
+            DRAFT DRAFT
+READY READY
+EXECUTING EXECUTING
+DONE DONE
+        }
+    
+
+
+        DeliveryChannel {
+            TWITTER TWITTER
+BLOG BLOG
+        }
+    
+
+
+        DeliveryStatus {
+            DRAFT DRAFT
+SCHEDULED SCHEDULED
+SENT SENT
+FAILED FAILED
+        }
+    
   "User" {
     String id "🗝️"
     String clerkUserId 
@@ -276,6 +301,50 @@ RETRYING RETRYING
     DateTime revokedAt "❓"
     }
   
+
+  "Announcement" {
+    String id "🗝️"
+    String title 
+    AnnouncementStatus status 
+    DateTime createdAt 
+    DateTime updatedAt 
+    }
+  
+
+  "Delivery" {
+    String id "🗝️"
+    DeliveryChannel channel 
+    DeliveryStatus status 
+    Json content 
+    DateTime scheduledAt "❓"
+    DateTime sentAt "❓"
+    String externalRef "❓"
+    String error "❓"
+    }
+  
+
+  "BlogPost" {
+    String id "🗝️"
+    String slug 
+    String title 
+    String body 
+    DateTime publishedAt "❓"
+    DateTime createdAt 
+    DateTime updatedAt 
+    }
+  
+
+  "TwitterAccount" {
+    String id "🗝️"
+    String xUserId 
+    String handle 
+    String accessToken 
+    String refreshToken 
+    DateTime expiresAt 
+    String scopes 
+    DateTime createdAt 
+    }
+  
     "Tenant" |o--|| "Plan" : "enum:plan"
     "Tenant" }o--|| "User" : "owner"
     "TenantMember" |o--|| "Role" : "enum:role"
@@ -314,4 +383,18 @@ RETRYING RETRYING
     "InvitationToken" |o--|| "Role" : "enum:role"
     "InvitationToken" }o--|| "Tenant" : "tenant"
     "InvitationToken" }o--|| "User" : "invitedBy"
+    "Announcement" |o--|| "AnnouncementStatus" : "enum:status"
+    "Announcement" }o--|| "Tenant" : "tenant"
+    "Announcement" }o--|| "Project" : "project"
+    "Announcement" }o--|| "User" : "createdBy"
+    "Delivery" |o--|| "DeliveryChannel" : "enum:channel"
+    "Delivery" |o--|| "DeliveryStatus" : "enum:status"
+    "Delivery" }o--|| "Tenant" : "tenant"
+    "Delivery" }o--|| "Announcement" : "announcement"
+    "Delivery" }o--|o "User" : "executedBy"
+    "BlogPost" }o--|| "Tenant" : "tenant"
+    "BlogPost" }o--|| "Project" : "project"
+    "BlogPost" |o--|o "Delivery" : "delivery"
+    "TwitterAccount" }o--|| "Tenant" : "tenant"
+    "TwitterAccount" }o--|| "User" : "connectedBy"
 ```
