@@ -2,8 +2,7 @@
 
 import { Gauge } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useActionState, useEffect, useMemo, useState } from 'react';
+import { useActionState, useMemo, useState } from 'react';
 
 import { FormField } from '@/app/w/[slug]/_shared/form-field';
 import { Button } from '@/components/ui/button';
@@ -31,8 +30,12 @@ import {
  * スコア化する。Pro / Team 限定、約 1〜2 分かかる。
  * 成功時は作成された ServiceScore の結果ページへ遷移する。
  */
+/**
+ * 成功時の遷移は Server Action 側の `redirect()` が担当する(useEffect + router.push は使わない、
+ * Next.js dev の遅延コンパイルとレースコンディションを避けるため)。
+ * クライアント側でハンドルするのは「入力検証エラー」「クレジット超過」「BE エラー」 等の state のみ。
+ */
 export function RunDiagnosisDialog({ slug, projectId }: { slug: string; projectId: string }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const boundAction = useMemo(
     () => runDiagnosisAction.bind(null, slug, projectId),
@@ -43,12 +46,6 @@ export function RunDiagnosisDialog({ slug, projectId }: { slug: string; projectI
     INITIAL_RUN_DIAGNOSIS_FORM_STATE,
   );
   const [length, setLength] = useState(state.instructions?.length ?? 0);
-
-  useEffect(() => {
-    if (state.ok && state.createdId) {
-      router.push(`/w/${slug}/projects/${projectId}/diagnoses/${state.createdId}`);
-    }
-  }, [state, router, slug, projectId]);
 
   return (
     <Dialog

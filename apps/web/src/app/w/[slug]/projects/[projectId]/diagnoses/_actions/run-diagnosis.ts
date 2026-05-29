@@ -2,6 +2,7 @@
 
 import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 import { classifyAiApiError } from '@/app/w/[slug]/_shared/ai-form';
 import { ApiError } from '@/lib/api/errors';
@@ -19,7 +20,11 @@ export type { RunDiagnosisFormState } from '../_shared/run-diagnosis-form';
  *
  * IN_DEV 以降のプロジェクトを対象に、5 軸でサービスレベルをスコア化する。
  * クレジット上限超過は `classifyAiApiError` で `quota_exceeded` に分類し、UI でアップグレード導線を出す。
- * 成功時は履歴一覧を revalidate し、`createdId` を返す。
+ *
+ * 成功時は `redirect()` で結果ページへ遷移する。useEffect + router.push の anti-pattern を避け、
+ * Next.js dev の遅延コンパイル(初回 visit でルートをコンパイルする方式)と Server Action 後の
+ * クライアント遷移のレースコンディションによる「初回 404 → リロードで表示」 問題を回避する。
+ * `redirect()` は try/catch の外で呼ぶこと(catch で redirect の内部 throw を握りつぶさないため)。
  */
 export async function runDiagnosisAction(
   slug: string,
@@ -39,11 +44,10 @@ export async function runDiagnosisAction(
     return { ok: false, fieldError: parsed.fieldError, instructions: parsed.instructions };
   }
 
+  let createdId: string;
   try {
     const score = await runDiagnosis(slug, projectId, parsed.instructions);
-    revalidatePath(`/w/${slug}/projects/${projectId}/diagnoses`);
-    revalidatePath(`/w/${slug}/projects/${projectId}`);
-    return { ok: true, createdId: score.id, instructions: parsed.instructions };
+    createdId = score.id;
   } catch (e) {
     if (e instanceof ApiError) {
       const classified = classifyAiApiError(e);
@@ -91,4 +95,10 @@ export async function runDiagnosisAction(
     }
     throw e;
   }
+
+  // 成功時:キャッシュを無効化して結果ページへ遷移する。redirect は内部で throw するので、
+  // この行より下のコードには到達しない(Next.js フレームワークが redirect を処理して 303 を返す)。
+  revalidatePath(`/w/${slug}/projects/${projectId}/diagnoses`);
+  revalidatePath(`/w/${slug}/projects/${projectId}`);
+  redirect(`/w/${slug}/projects/${projectId}/diagnoses/${createdId}`);
 }
