@@ -218,6 +218,43 @@ Clerk Issue [#6691](https://github.com/clerk/javascript/issues/6691) で **"Clos
 - Clerk Dashboard で Endpoint の Signing Secret を再表示 → `.env.local` に貼り直し → API 再起動
 - 複数 Endpoint がある場合、どちらの Signing Secret かを取り違えていないか確認
 
+### 2.9 🟡 OAuth(Google / GitHub)で直前ログインアカウントが即時認証される(F1.7 撤回・SDK 制約)
+
+**症状**: サインアウト済(`__client_uat=0`)の状態で `/sign-up` または `/sign-in` を開き「Continue with Google」 を押すと、Google のアカウント選択画面が出ずに **直前ログインの Google アカウントで瞬時にサインイン**して `/w/{slug}` に遷移する。GitHub も同症状。
+
+**結論(2026-05-29)**: **Shipyard はこれを業界標準パターンとして受け入れる**(F1.7 撤回)。別アカウントを使いたいユーザーは Google 側で「Use a different account」 / ログアウト操作する前提とする。Slack / Notion / Linear / Vercel も同じ挙動。
+
+**調査経緯**:
+
+1. Custom Flow 実装(`apps/web/src/components/social-auth-buttons.tsx` で `useSignUp/useSignIn().authenticateWithRedirect({ oidcPrompt: 'select_account' })` を呼ぶ)で `prompt=select_account` を Google OAuth URL に乗せる作戦を実装、Hybrid 構成(自前 Social ボタン + Clerk 標準 `<SignUp>`/`<SignIn>` の `appearance.elements` で Social 非表示)に切替。
+2. **Network 検証**で挙動が変わらないことを確認。DevTools Network → Preserve log ON で `POST https://*.clerk.accounts.dev/v1/client/sign_ups` の Form Data を見たところ、送信されているのは `strategy=oauth_google` / `redirect_url` / `action_complete_redirect_url` / `locale` のみで **`oidcPrompt` が含まれていない**。
+3. ローカル node_modules で grep:`@clerk/shared` v3.47.5 の `dist/types/index.d.ts` には `oidcPrompt?: string` が **11 箇所**定義されているが、`@clerk/clerk-js` は **CDN ロード設計**(`_clerk_js_version: 5.125.12`)で実装ファイルがローカルに無く、Network ログから実装が `oidcPrompt` を扱っていないと判明。**型定義 ≠ 実装** のケース。
+4. Clerk Issue [#6691](https://github.com/clerk/javascript/issues/6691)("Multiple User Sign Ins Not Working")は **closed as not planned**(Clerk チーム修正予定なし、メンテナコメントなし)。
+5. Clerk Bot sign-up protection(Cloudflare Turnstile)を Dashboard で OFF にしても挙動変わらず(別問題と判明)。
+
+**判断根拠**:
+
+- SDK が `oidcPrompt` を Frontend API に送信しない実装である限り、Custom Flow でも `<SignUp>`/`<SignIn>` 標準 UI でも `prompt=select_account` を Google OAuth URL に渡せない。
+- Clerk が「修正予定なし」 と明言しているため、Clerk SDK の改修待ちは見込めない。
+- 自前で Google OAuth Client を立てて Clerk バイパスする選択肢もあるが、Clerk の認証フロー外で動かす負債 + Day 50 リリーススケジュールを圧迫するため見送り。
+- 同症状を Slack / Notion / Linear / Vercel が業界標準として受け入れている = Shipyard 独自に解決する必要性は薄い。
+
+**Help / FAQ で案内する内容(v1.x、F23 として新規起票候補)**:
+
+- Q: 「サインイン画面で別の Google アカウントを使いたい」
+- A: 「ブラウザの右上の Google アカウント切替で対象アカウントに切り替えてから Continue with Google を押す」 / または「[https://accounts.google.com](https://accounts.google.com) から Sign out → 改めて Shipyard でサインイン」 / または「Use a different account」 のリンクを利用する。
+
+**Clerk SDK 改善を待つ場合の再開条件**:
+
+- Clerk が `authenticateWithRedirect` で `oidcPrompt` を Form Data に乗せるよう実装したバージョンをリリース(Issue #6691 が re-open or 新規 issue で着手される)
+- Network ログで `oidcPrompt` が Form Data に含まれることを確認できれば、F1.7 を再着手可能。
+
+**関連ファイル**:
+
+- (削除済)`apps/web/src/components/social-auth-buttons.tsx` — F1.7 撤回で削除
+- `apps/web/src/app/sign-up/[[...sign-up]]/page.tsx` — `<SignUp />` 単独に revert
+- `apps/web/src/app/sign-in/[[...sign-in]]/page.tsx` — `<SignIn />` 単独に revert
+
 ---
 
 ## 3. 本番環境セットアップ手順(Day 50-51 で実施予定)
