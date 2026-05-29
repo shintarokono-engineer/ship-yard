@@ -5,8 +5,10 @@ import { Feature, Plan } from '@shipyard/db';
 import { dayjs } from '../common/time';
 import { PrismaService } from '../prisma/prisma.service';
 import {
+  ANNOUNCEMENT_MAX_PER_MONTH_PRO,
   FALLBACK_MODEL_CREDITS,
   FALLBACK_PRICING_USD_PER_MTOK,
+  FEATURE_CREDIT_OVERRIDES,
   IDEA_VALIDATION_MAX_PER_MONTH_PRO,
   MODEL_CREDITS,
   MODEL_PRICING_USD_PER_MTOK,
@@ -23,10 +25,14 @@ function estimateCostJpy(model: string, tokensIn: number, tokensOut: number): st
   return (usd * USD_PER_JPY).toFixed(4);
 }
 
-/** ある AI 呼び出しが消費する AI クレジット数(ADR-012)。
- * `Feature.OTHER`(裏方 embedding / RAG 検索など、ユーザー明示的でない機能)は cr 消費なし。 */
+/** ある AI 呼び出しが消費する AI クレジット数(ADR-012 / ADR-014)。
+ * `Feature.OTHER`(裏方 embedding / RAG 検索など、ユーザー明示的でない機能)は cr 消費なし。
+ * `FEATURE_CREDIT_OVERRIDES` に登録された Feature(Tool Use や Web Search で実コストが乖離するもの)は
+ * そちらを優先し、未登録なら `MODEL_CREDITS[model]` をそのまま返す。 */
 function creditsForUsage(model: string, feature: Feature): number {
   if (feature === Feature.OTHER) return 0;
+  const override = FEATURE_CREDIT_OVERRIDES[feature];
+  if (override !== undefined) return override;
   return MODEL_CREDITS[model] ?? FALLBACK_MODEL_CREDITS;
 }
 
@@ -191,6 +197,39 @@ export class AIUsageService {
     if (used >= IDEA_VALIDATION_MAX_PER_MONTH_PRO) {
       throw new ForbiddenException(
         `アイデア検証の月次実行回数上限(${IDEA_VALIDATION_MAX_PER_MONTH_PRO} 回)に達しました。翌月リセットされます。`,
+      );
+    }
+  }
+
+  /**
+   * ANNOUNCEMENT_GEN の月次実行回数をチェック(ADR-014、Day 56)。
+   *
+   * - FREE プラン:本機能を実行不可(ADR-012 改訂版「Free フォールバック = AI 機能停止」)→ 403
+   * - PRO / TEAM:本機能のみの月次上限 `ANNOUNCEMENT_MAX_PER_MONTH_PRO`(50 回)
+   *
+   * MVP の暴走防止枠。v1.0.1 で AI クレジット制(4 cr/回、`FEATURE_CREDIT_OVERRIDES`)に移行する際に
+   * 本メソッドは `assertWithinPlanCredits` に統合される。
+   *
+   * channel 数(MVP は 2 = Twitter + Blog、v1.x で 3 = + Email)に依存しない Announcement 単位の
+   * 単位カウント。message も channel 固有名(「Twitter とブログ」 等)を出さない設計で v1.x の
+   * EMAIL 追加時に文言改修不要。
+   */
+  async assertWithinAnnouncementQuota(tenant: { id: string; plan: Plan }): Promise<void> {
+    if (tenant.plan === Plan.FREE) {
+      throw new ForbiddenException(
+        '告知配信は Pro / Team プラン限定の機能です。Pro へのアップグレードが必要です。',
+      );
+    }
+    const used = await this.prisma.aIUsage.count({
+      where: {
+        tenantId: tenant.id,
+        createdAt: { gte: startOfMonthUtc() },
+        feature: Feature.ANNOUNCEMENT_GEN,
+      },
+    });
+    if (used >= ANNOUNCEMENT_MAX_PER_MONTH_PRO) {
+      throw new ForbiddenException(
+        `告知配信の月次実行回数上限(${ANNOUNCEMENT_MAX_PER_MONTH_PRO} 回)に達しました。翌月リセットされます。`,
       );
     }
   }

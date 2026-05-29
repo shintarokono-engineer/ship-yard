@@ -3,7 +3,7 @@
  * 料金改定・モデル更新・上限変更・対応ドキュメント種別の追加が必要になったらこのファイルだけ直す。
  */
 
-import { DocType, Plan } from '@shipyard/db';
+import { DocType, Feature, Plan } from '@shipyard/db';
 
 /** 品質要件が高い場面(競合調査 / ドキュメント生成 / RAG QA)で使う Claude モデル(ADR-005)。 */
 export const AI_MODEL_SONNET = 'claude-sonnet-4-6';
@@ -27,6 +27,21 @@ export const MODEL_CREDITS: Record<string, number> = {
 
 /** 未知モデルのフォールバック cr(Sonnet 相当)。新モデル追加忘れの安全網。 */
 export const FALLBACK_MODEL_CREDITS = 3;
+
+/**
+ * Feature 別の AI クレジット上書き(ADR-012 v1.0.1 / ADR-014)。
+ *
+ * 既定は `MODEL_CREDITS[model]`(Sonnet=3 / Haiku=1)で決まるが、Tool Use のオーバーヘッドや
+ * Web Search 等で実コストがモデル基準と乖離する Feature はここで明示的に上書きする。
+ * 未登録の Feature は `MODEL_CREDITS` 値をそのまま使う(`creditsForUsage` 参照)。
+ *
+ * MVP では `assertWithin*Quota` の月次回数制で実質制御するため、本値は AIUsage 記録上の参考値に
+ * 留まるが、v1.0.1 で credit ベース制御に切り替える際に即時反映される。
+ */
+export const FEATURE_CREDIT_OVERRIDES: Partial<Record<Feature, number>> = {
+  // ADR-014:Sonnet 4 + Tool Use で Twitter + Blog をマルチチャネル一括生成、max_tokens 3072 + tool 呼び出しオーバーヘッド
+  [Feature.ANNOUNCEMENT_GEN]: 4,
+};
 
 /** Team プランの 1 seat(メンバー)あたり月次クレジット上限(ADR-012)。共有プールで `seats × 800 cr` が上限。 */
 export const TEAM_CREDITS_PER_SEAT = 800;
@@ -192,3 +207,20 @@ export const WEB_SEARCH_TOOL_NAME = 'web_search';
  * Anthropic の Web Search は $10 / 1000 searches なので、5 回でも 1 回あたり最大 $0.05 ≒ 7.5 円。
  */
 export const WEB_SEARCH_MAX_USES = 5;
+
+/** ANNOUNCEMENT_GEN の Anthropic API `max_tokens`(Twitter 100 tok + Blog 2500 tok + 余裕、ADR-014)。 */
+export const ANNOUNCEMENT_GEN_MAX_TOKENS = 3072;
+
+/** ANNOUNCEMENT_GEN の `temperature`(訴求文のバリエーション重視、DRAFT_GEN と同等、ADR-014)。 */
+export const ANNOUNCEMENT_GEN_TEMPERATURE = 0.7;
+
+/**
+ * ANNOUNCEMENT_GEN の Pro / Team / トライアル中の月次実行回数上限(ADR-014、MVP の暴走防止枠)。
+ *
+ * 1 回 4〜6 円(Sonnet 4 + Tool Use)× 50 回 ≒ 月 300 円が Pro ARPU(¥1,480、ADR-012)に収まる水準。
+ * v1.0.1 で AI クレジット制(4 cr/回、`FEATURE_CREDIT_OVERRIDES` 参照)に移行する際は本定数を削除し、
+ * `AIUsage.credits` ベースのチェックに置き換える(ADR-012 §段階的実装と同期)。
+ *
+ * Free フォールバック状態は本機能の実行自体を 403 で弾くため月次上限の対象外。
+ */
+export const ANNOUNCEMENT_MAX_PER_MONTH_PRO = 50;
