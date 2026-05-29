@@ -742,6 +742,7 @@ model Announcement {
   deliveries Delivery[]
 
   @@index([tenantId, projectId])
+  @@index([projectId, createdAt])
 }
 
 /// チャネル別配信(ADR-014)。1 Announcement × 1 channel = 1 Delivery(@@unique で重複防止)。
@@ -779,6 +780,7 @@ model Delivery {
 
   @@unique([announcementId, channel])
   @@index([tenantId, status])
+  @@index([announcementId])
 }
 
 /// 自前ブログの記事(ADR-014)。LP と同じ「アプリ内編集 + 公開 URL」 パターン(ADR-009)を踏襲。
@@ -794,8 +796,8 @@ model BlogPost {
   slug        String
   /// 記事タイトル
   title       String
-  /// Markdown 本文
-  body        String
+  /// Markdown 本文(長文化を想定し TEXT 型を指定)
+  body        String    @db.Text
   /// 公開日時(null = 下書き)
   publishedAt DateTime?
   /// 紐付く Delivery(Announcement 経由で作られた場合のみ)
