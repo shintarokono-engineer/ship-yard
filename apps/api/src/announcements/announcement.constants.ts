@@ -12,6 +12,13 @@ export const BLOG_TITLE_MAX = 120;
 /** Blog 記事本文の最小文字数(空投稿防止、ADR-014)。 */
 export const BLOG_BODY_MIN = 100;
 
+/**
+ * Blog 記事本文の最大文字数(DoS 防止、ADR-014)。
+ * 20,000 字 ≒ A4 で 12 ページ程度。これを超える Markdown はブログとしては異常で、
+ * WRITER_ROLES の侵害アカウントによる連続巨大 POST を未然に防ぐ。
+ */
+export const BLOG_BODY_MAX = 20000;
+
 /** Blog の OG description 用 summary 最大文字数(ADR-014)。 */
 export const BLOG_SUMMARY_MAX = 200;
 

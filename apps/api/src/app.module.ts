@@ -67,6 +67,10 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     MailModule,
     CryptoModule,
     IntegrationsTwitterModule,
+    // BlogPostModule は自己完結のため Module 分離(controllers / providers / exports)。
+    // 一方 AnnouncementService / AnnouncementGenService / AnnouncementController は AppModule に
+    // 直登録(AIUsageService が AppModule の直 provider のため、別 Module で wrap すると DI スコープ
+    // が分かれて二重インスタンスが発生する。既存 AI 系 Controller も同じ AppModule 直登録パターン)。
     BlogPostModule,
   ],
   controllers: [

@@ -1,6 +1,7 @@
 import { IsBoolean, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 import {
+  BLOG_BODY_MAX,
   BLOG_BODY_MIN,
   BLOG_SLUG_MAX,
   BLOG_TITLE_MAX,
@@ -24,6 +25,7 @@ export class UpdateBlogPostDto {
   @IsOptional()
   @IsString()
   @MinLength(BLOG_BODY_MIN)
+  @MaxLength(BLOG_BODY_MAX)
   body?: string;
 
   @IsOptional()

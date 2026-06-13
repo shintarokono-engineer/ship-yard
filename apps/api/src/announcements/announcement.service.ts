@@ -10,6 +10,7 @@ import {
 } from '@shipyard/db';
 
 import { AIUsageService } from '../ai/ai-usage.service';
+import { dayjs } from '../common/time';
 import {
   TwitterApiError,
   TwitterClientService,
@@ -357,6 +358,8 @@ export class AnnouncementService {
 
     if (delivery.channel === DeliveryChannel.TWITTER) {
       const content = delivery.content as unknown as TwitterDeliveryContent;
+      // TODO(v1.x): 複数アカウント連携時に「どのアカウントから投稿するか」 を UI から選択できるようにする。
+      // MVP では最古アカウント固定(連携順 = 利用順の暗黙ルール)。
       const account = await this.prisma.twitterAccount.findFirst({
         where: { tenantId: args.tenantId },
         orderBy: { createdAt: 'asc' },
@@ -377,7 +380,7 @@ export class AnnouncementService {
           where: { id: delivery.id },
           data: {
             status: DeliveryStatus.SENT,
-            sentAt: new Date(),
+            sentAt: dayjs.utc().toDate(),
             externalRef: result.tweetId,
             executedById: args.userId,
             error: null,
@@ -400,15 +403,21 @@ export class AnnouncementService {
       }
     } else if (delivery.channel === DeliveryChannel.BLOG) {
       const content = delivery.content as unknown as BlogDeliveryContent;
+      // Json 型から取り出した blogPostId は型レベルで信頼できないため、
+      // 文字列であることを明示的に確認した上で tenantId 境界付きで UPDATE する
+      // (implementation-rules.md「全クエリで tenantId を明示注入」)。
+      if (typeof content?.blogPostId !== 'string') {
+        throw new NotFoundException('Blog 配信の内容が不正です。再生成してください。');
+      }
       const post = await this.prisma.blogPost.update({
-        where: { id: content.blogPostId },
-        data: { publishedAt: new Date() },
+        where: { id: content.blogPostId, tenantId: args.tenantId },
+        data: { publishedAt: dayjs.utc().toDate() },
       });
       await this.prisma.delivery.update({
         where: { id: delivery.id },
         data: {
           status: DeliveryStatus.SENT,
-          sentAt: new Date(),
+          sentAt: dayjs.utc().toDate(),
           externalRef: post.id,
           executedById: args.userId,
           error: null,
@@ -416,16 +425,17 @@ export class AnnouncementService {
       });
     }
 
-    // 全 Delivery が SENT なら Announcement.status = DONE、それ以外なら EXECUTING
+    // 全 Delivery が SENT なら Announcement.status = DONE、それ以外なら EXECUTING。
+    // tenantId を明示注入(getDetail で検証済の id だが、リファクタ耐性のためルール準拠)。
     const refreshed = await this.prisma.announcement.findFirstOrThrow({
-      where: { id: args.announcementId },
+      where: { id: args.announcementId, tenantId: args.tenantId },
       include: { deliveries: { select: { status: true } } },
     });
     const allSent =
       refreshed.deliveries.length > 0 &&
       refreshed.deliveries.every((d) => d.status === DeliveryStatus.SENT);
     await this.prisma.announcement.update({
-      where: { id: args.announcementId },
+      where: { id: args.announcementId, tenantId: args.tenantId },
       data: {
         status: allSent ? AnnouncementStatus.DONE : AnnouncementStatus.EXECUTING,
       },
@@ -435,7 +445,7 @@ export class AnnouncementService {
   }
 
   /**
-   * slug 候補が重複していたら `-2`, `-3` ... を試す。50 個試して埋まっていたら timestamp 付与。
+   * slug 候補が重複していたら `-2`, `-3`, ... `-49` を順に試す。48 候補すべて埋まっていたら timestamp 付与。
    *
    * トランザクション開始前に呼び出す前提(extended PrismaClient と tx callback の型が異なるため、
    * `this.prisma` を直接使う)。@@unique([tenantId, projectId, slug]) が最終ガードなので、
@@ -448,6 +458,7 @@ export class AnnouncementService {
   ): Promise<string> {
     const safeBase = base || 'post';
     let candidate = safeBase;
+    // i = 2..49 で計 48 候補(base + `-2` ... `-49`)を試行。
     for (let i = 2; i < 50; i++) {
       const existing = await this.prisma.blogPost.findFirst({
         where: { tenantId, projectId, slug: candidate },

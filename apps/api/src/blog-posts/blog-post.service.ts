@@ -2,6 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 
 import { isPrismaError, PrismaErrorCode } from '@shipyard/db';
 
+import { dayjs } from '../common/time';
 import { PrismaService } from '../prisma/prisma.service';
 import type { UpdateBlogPostDto } from './dto/update-blog-post.dto';
 
@@ -51,7 +52,7 @@ export class BlogPostService {
           ...(dto.body !== undefined ? { body: dto.body } : {}),
           ...(dto.slug !== undefined ? { slug: dto.slug } : {}),
           ...(dto.published !== undefined
-            ? { publishedAt: dto.published ? new Date() : null }
+            ? { publishedAt: dto.published ? dayjs.utc().toDate() : null }
             : {}),
         },
       });
