@@ -22,6 +22,7 @@ import type {
   ProjectDocument,
   ProjectStatus,
   PublicLandingPage,
+  PublicLandingPageRef,
   RagQaSession,
   RagQaSessionDetail,
   ServiceScore,
@@ -615,6 +616,16 @@ export const fetchPublicLandingPage = cache(
     }
   },
 );
+
+/**
+ * `GET /public/landing-pages`(未認証)
+ *
+ * 公開済み LP を全テナント横断で列挙する。sitemap(`/sitemap.xml`)生成用で、`skipAuth` で
+ * Clerk トークンを付けない。失敗時は呼び出し側で空配列フォールバックする想定(sitemap を壊さない)。
+ */
+export async function listPublishedLandingPages(): Promise<PublicLandingPageRef[]> {
+  return apiFetch<PublicLandingPageRef[]>('/public/landing-pages', { skipAuth: true });
+}
 
 // ============================================================================
 // PRODUCT_DIAGNOSIS / IDEA_VALIDATION(ADR-013 + 改訂版「2 モード化」)

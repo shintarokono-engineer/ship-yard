@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
+import { JsonLd } from '@/components/json-ld';
 import { LpRenderer } from '@/components/lp-blocks/lp-renderer';
 import type { HeroBlock } from '@/lib/api/types';
 import { fetchPublicLandingPage } from '@/lib/api/workspaces';
+import { getSiteUrl } from '@/lib/site-url';
 
 type PublicLandingPageParams = Promise<{ slug: string; projectId: string }>;
 
@@ -45,8 +47,22 @@ export default async function PublicLandingPage({ params }: { params: PublicLand
   const lp = await fetchPublicLandingPage(slug, projectId);
   if (!lp) notFound();
 
+  // 公開プロダクトの構造化データ(SoftwareApplication)。description は generateMetadata と同じく
+  // hero の sub から導出する(内部フィールドは公開面に出さない)。
+  const heroSub = lp.blocks.find((b): b is HeroBlock => b.type === 'hero')?.sub;
+  const description = heroSub?.trim() || `${lp.projectName} のランディングページ`;
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: lp.projectName,
+    applicationCategory: 'WebApplication',
+    description,
+    url: `${getSiteUrl()}/p/${slug}/${projectId}`,
+  };
+
   return (
     <main>
+      <JsonLd data={jsonLd} />
       <LpRenderer blocks={lp.blocks} theme={lp.theme} />
     </main>
   );

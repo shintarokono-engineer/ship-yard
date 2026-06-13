@@ -722,6 +722,14 @@ export interface PublicLandingPage {
   publishedAt: string;
 }
 
+/** sitemap 生成用の公開済み LP 参照(F10、`/p/{slug}/{projectId}` の最小情報)。 */
+export interface PublicLandingPageRef {
+  slug: string;
+  projectId: string;
+  /** 最終公開日時(ISO8601、sitemap の lastModified に使用)。 */
+  publishedAt: string;
+}
+
 // ============================================================================
 // PRODUCT_DIAGNOSIS / IDEA_VALIDATION(ADR-013 + 改訂版「2 モード化」)
 // ============================================================================

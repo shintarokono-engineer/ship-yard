@@ -1,7 +1,9 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 
+import { JsonLd } from '@/components/json-ld';
 import { listMyWorkspaces } from '@/lib/api/workspaces';
+import { getSiteUrl } from '@/lib/site-url';
 
 import { CtaSection } from './_components/marketing/cta-section';
 import { FeaturesSection } from './_components/marketing/features-section';
@@ -32,8 +34,28 @@ export default async function HomePage() {
     redirect(`/w/${first.slug}`);
   }
 
+  // マーケティング LP の構造化データ(Organization + WebSite)。未認証時のみ描画される。
+  const siteUrl = getSiteUrl();
+  const jsonLd = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: 'Shipyard',
+      url: siteUrl,
+      description:
+        '個人開発者および小規模開発チーム向けの、アイデアからリリースまでを一元管理する AI 支援付き SaaS',
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'Shipyard',
+      url: siteUrl,
+    },
+  ];
+
   return (
     <div className="flex min-h-screen flex-col">
+      <JsonLd data={jsonLd} />
       <SiteHeader />
       <main className="flex-1">
         <HeroSection />
