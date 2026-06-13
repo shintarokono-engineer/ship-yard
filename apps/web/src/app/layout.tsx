@@ -3,14 +3,10 @@ import { ClerkProvider } from '@clerk/nextjs';
 import './globals.css';
 
 import { Toaster } from '@/components/ui/sonner';
+import { getSiteUrl } from '@/lib/site-url';
 
-// OG 画像・メタデータの絶対 URL 解決に使うベース URL。本番ドメインは Day 37 で取得予定のため、
-// 環境変数 → Vercel 本番 URL → localhost の順でフォールバックする。
-const siteUrl =
-  process.env.SITE_URL ??
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : 'http://localhost:3000');
+// OG 画像・メタデータの絶対 URL 解決に使うベース URL(robots / sitemap と共通、`getSiteUrl` に集約)。
+const siteUrl = getSiteUrl();
 
 const description =
   '個人開発者および小規模開発チーム向けの、アイデアからリリースまでを一元管理する AI 支援付き SaaS';

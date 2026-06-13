@@ -14,6 +14,21 @@ export class PublicLandingPageController {
   constructor(private readonly landingPage: LandingPageService) {}
 
   /**
+   * GET /public/landing-pages(未認証可)
+   * - 公開済み LP を全テナント横断で列挙する(sitemap 生成用、F10)。
+   * - sitemap に載せる最小情報(slug / projectId / 公開日時)のみ返す。
+   */
+  @Get()
+  async list() {
+    const items = await this.landingPage.listPublished();
+    return items.map((lp) => ({
+      slug: lp.tenant.slug,
+      projectId: lp.projectId,
+      publishedAt: lp.publishedAt,
+    }));
+  }
+
+  /**
    * GET /public/landing-pages/:slug/:projectId(未認証可)
    * - 公開済み LP が無ければ 404
    */

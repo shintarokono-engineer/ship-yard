@@ -102,4 +102,19 @@ export class LandingPageService {
       include: { project: { select: { name: true } } },
     });
   }
+
+  /**
+   * 公開済み LP を全テナント横断で列挙する(sitemap 生成用、F10)。
+   *
+   * 未認証の公開エンドポイント(ALS テナントコンテキストなし)から呼ばれるため、`publishedAt` が
+   * セットされた LP のみを `findMany` で取得する。sitemap に載せる最小情報(tenant slug / projectId /
+   * 公開日時)のみ `select` し、ブロック本文等は返さない。
+   */
+  async listPublished() {
+    return this.prisma.landingPage.findMany({
+      where: { publishedAt: { not: null } },
+      select: { projectId: true, publishedAt: true, tenant: { select: { slug: true } } },
+      orderBy: { publishedAt: 'desc' },
+    });
+  }
 }
