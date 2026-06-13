@@ -17,7 +17,11 @@ import { RefineDocService } from './ai/refine-doc.service';
 import { TaskSplitController } from './ai/task-split.controller';
 import { TaskSplitService } from './ai/task-split.service';
 import { UsageController } from './ai/usage.controller';
+import { AnnouncementGenService } from './announcements/announcement-gen.service';
+import { AnnouncementController } from './announcements/announcement.controller';
+import { AnnouncementService } from './announcements/announcement.service';
 import { AppController } from './app.controller';
+import { BlogPostModule } from './blog-posts/blog-post.module';
 import { clerkClientProvider } from './auth/clerk-client.provider';
 import { BillingService } from './billing/billing.service';
 import { ChecklistController } from './checklist/checklist.controller';
@@ -63,6 +67,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     MailModule,
     CryptoModule,
     IntegrationsTwitterModule,
+    BlogPostModule,
   ],
   controllers: [
     AppController,
@@ -84,6 +89,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     InvitationsController,
     PublicInvitationsController,
     MembersController,
+    AnnouncementController,
   ],
   providers: [
     clerkClientProvider,
@@ -109,6 +115,8 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     LpGenService,
     ProductDiagnosisService,
     IdeaValidationService,
+    AnnouncementGenService,
+    AnnouncementService,
   ],
 })
 export class AppModule implements NestModule {
