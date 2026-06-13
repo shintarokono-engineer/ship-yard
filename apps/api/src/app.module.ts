@@ -27,6 +27,7 @@ import { DocumentsController } from './documents/documents.controller';
 import { DocumentsService } from './documents/documents.service';
 import { IdeaValidationController } from './idea-validation/idea-validation.controller';
 import { IdeaValidationService } from './idea-validation/idea-validation.service';
+import { IntegrationsTwitterModule } from './integrations/twitter/integrations-twitter.module';
 import { InvitationsController } from './invitations/invitations.controller';
 import { InvitationsService } from './invitations/invitations.service';
 import { PublicInvitationsController } from './invitations/public-invitations.controller';
@@ -61,6 +62,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     OpenAIModule,
     MailModule,
     CryptoModule,
+    IntegrationsTwitterModule,
   ],
   controllers: [
     AppController,
