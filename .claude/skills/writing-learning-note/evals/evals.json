@@ -1,0 +1,26 @@
+{
+  "skill_name": "writing-learning-note",
+  "evals": [
+    {
+      "id": 0,
+      "name": "newnote-redis",
+      "prompt": "Redis のキャッシュ戦略(cache-aside / write-through / TTL / キャッシュ無効化)について学習ノートを書いて。",
+      "expected_output": "vault に該当ノートが無いので、適切なカテゴリ(バックエンド or データベース)に Redis.md を新規作成。# Redis メモ + 定義段落 + --- 区切り + ## N. 連番セクション + 表/コードブロック + だ/である調。書く前に配置とアウトラインを提案している。",
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "append-ts-satisfies",
+      "prompt": "TypeScript の学習ノートに satisfies 演算子の解説セクションを足して。as との違いも入れて。",
+      "expected_output": "既存の Web開発/TypeScript.md を Read してから、既存の番号体系・文体に合わせて新セクションを追記。連番のズレに配慮。ですます調にしない。重複を足さない。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "workbased-nextjs-seo",
+      "prompt": "さっき ship-yard で Next.js App Router の robots.ts / sitemap.ts と JSON-LD コンポーネントを実装した。学習したことを学習ノートに残しておきたい。",
+      "expected_output": "作業ベース入力。汎用知識(Next.js App Router の SEO 実装パターン)に一般化し、ship-yard 固有情報を残さない。既存の Web開発/SEO.md に Next.js SEO セクションがあることを発見して追記を提案するのが理想(重複チェック)。書く前に提案している。",
+      "files": []
+    }
+  ]
+}
