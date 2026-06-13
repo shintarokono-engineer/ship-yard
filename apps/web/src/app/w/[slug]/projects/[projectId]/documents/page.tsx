@@ -12,7 +12,7 @@ import {
   isGeneratableDocType,
   isWriterRole,
 } from '@/lib/api/types';
-import { fetchProject, fetchWorkspace, listDocuments } from '@/lib/api/workspaces';
+import { fetchProject, fetchUsage, fetchWorkspace, listDocuments } from '@/lib/api/workspaces';
 import { formatDateTime } from '@/lib/format';
 
 import { GenerateDocumentDialog } from './_components/generate-document-dialog';
@@ -32,10 +32,11 @@ export default async function DocumentsPage({
 }) {
   const { slug, projectId } = await params;
 
-  const [workspace, project, documents] = await Promise.all([
+  const [workspace, project, documents, usage] = await Promise.all([
     fetchWorkspace(slug),
     fetchProject(slug, projectId),
     listDocuments(slug, projectId),
+    fetchUsage(slug),
   ]);
   if (!workspace) notFound();
   if (!project) notFound();
@@ -120,6 +121,7 @@ export default async function DocumentsPage({
                     projectId={projectId}
                     docType={type}
                     typeLabel={meta.label}
+                    usage={usage}
                   />
                 ) : (
                   <span>この種別は AI 生成に非対応です</span>

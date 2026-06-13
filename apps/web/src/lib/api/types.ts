@@ -572,6 +572,30 @@ export const FEATURE_META: Record<Feature, { label: string }> = {
   OTHER: { label: 'その他' },
 };
 
+/**
+ * AI 機能ごとの 1 回あたり消費クレジット(F7、§9.12.2 観点 7)。
+ *
+ * BE 側の `apps/api/src/ai/ai.constants.ts` の `MODEL_CREDITS`(Haiku=1 / Sonnet=3)と
+ * 各機能で使うモデル + ターン数(IDEA_VALIDATION / PRODUCT_DIAGNOSIS は Day 47.5 で
+ * 2-step 化 → ×2)から導出した値を、UI の事前提示用に直接列挙する(SSoT は BE)。
+ *
+ * 含まれないキー:
+ *  - `OTHER`: embedding / RAG 検索などの裏方処理(cr 消費 0)
+ *  - `COMPETITOR_RESEARCH`: deprecated(§9.9 で PRODUCT_DIAGNOSIS に統合済)
+ */
+export const FEATURE_CREDIT_COSTS: Record<
+  Exclude<Feature, 'OTHER' | 'COMPETITOR_RESEARCH'>,
+  number
+> = {
+  DRAFT_GEN: 3,
+  CHECKLIST_GEN: 1,
+  TASK_SPLIT: 1,
+  REFINE_DOC: 3,
+  RAG_QA: 3,
+  IDEA_VALIDATION: 6,
+  PRODUCT_DIAGNOSIS: 6,
+};
+
 /** `GET /workspaces/:slug/usage` のレスポンス(当月のテナント AI 利用状況サマリ、ADR-012)。 */
 export interface MonthlyUsageSummary {
   plan: Plan;

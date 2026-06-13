@@ -5,6 +5,7 @@ import { useActionState, useMemo, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 
 import { FormField } from '@/app/w/[slug]/_shared/form-field';
+import { CreditCostBadge } from '@/components/credit-cost-badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,6 +17,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import type { MonthlyUsageSummary } from '@/lib/api/types';
 
 import { refineDocumentAction, type RefineDocumentFormState } from '../_actions/refine-document';
 import {
@@ -33,10 +35,12 @@ export function RefineDocumentDialog({
   slug,
   projectId,
   documentId,
+  usage,
 }: {
   slug: string;
   projectId: string;
   documentId: string;
+  usage: MonthlyUsageSummary;
 }) {
   const [open, setOpen] = useState(false);
   const boundAction = useMemo(
@@ -119,6 +123,10 @@ export function RefineDocumentDialog({
           <p aria-live="polite" className="text-muted-foreground text-xs">
             {pending ? 'AI が推敲しています。完了まで 10〜20 秒ほどかかります…' : ' '}
           </p>
+
+          <div className="flex justify-end">
+            <CreditCostBadge feature="REFINE_DOC" usage={usage} />
+          </div>
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>

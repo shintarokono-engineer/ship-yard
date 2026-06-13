@@ -5,6 +5,7 @@ import { useActionState, useEffect, useMemo, useState } from 'react';
 import { RefreshCw, Sparkles } from 'lucide-react';
 
 import { FormField } from '@/app/w/[slug]/_shared/form-field';
+import { CreditCostBadge } from '@/components/credit-cost-badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,6 +17,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import type { MonthlyUsageSummary } from '@/lib/api/types';
 
 import {
   generateLandingPageAction,
@@ -37,10 +39,12 @@ export function GenerateLpDialog({
   slug,
   projectId,
   mode,
+  usage,
 }: {
   slug: string;
   projectId: string;
   mode: 'create' | 'regenerate';
+  usage: MonthlyUsageSummary;
 }) {
   const [open, setOpen] = useState(false);
   const boundAction = useMemo(
@@ -144,6 +148,10 @@ export function GenerateLpDialog({
           <p aria-live="polite" className="text-muted-foreground text-xs">
             {pending ? 'AI が生成しています。完了まで 10〜30 秒ほどかかります…' : ' '}
           </p>
+
+          <div className="flex justify-end">
+            <CreditCostBadge feature="DRAFT_GEN" usage={usage} />
+          </div>
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>

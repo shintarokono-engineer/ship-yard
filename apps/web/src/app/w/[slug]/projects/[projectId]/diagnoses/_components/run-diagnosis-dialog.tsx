@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useActionState, useMemo, useState } from 'react';
 
 import { FormField } from '@/app/w/[slug]/_shared/form-field';
+import { CreditCostBadge } from '@/components/credit-cost-badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,6 +17,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import type { MonthlyUsageSummary } from '@/lib/api/types';
 
 import { runDiagnosisAction, type RunDiagnosisFormState } from '../_actions/run-diagnosis';
 import {
@@ -35,7 +37,15 @@ import {
  * Next.js dev の遅延コンパイルとレースコンディションを避けるため)。
  * クライアント側でハンドルするのは「入力検証エラー」「クレジット超過」「BE エラー」 等の state のみ。
  */
-export function RunDiagnosisDialog({ slug, projectId }: { slug: string; projectId: string }) {
+export function RunDiagnosisDialog({
+  slug,
+  projectId,
+  usage,
+}: {
+  slug: string;
+  projectId: string;
+  usage: MonthlyUsageSummary;
+}) {
   const [open, setOpen] = useState(false);
   const boundAction = useMemo(
     () => runDiagnosisAction.bind(null, slug, projectId),
@@ -106,6 +116,10 @@ export function RunDiagnosisDialog({ slug, projectId }: { slug: string; projectI
               )}
             </div>
           )}
+
+          <div className="flex justify-end">
+            <CreditCostBadge feature="PRODUCT_DIAGNOSIS" usage={usage} />
+          </div>
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>

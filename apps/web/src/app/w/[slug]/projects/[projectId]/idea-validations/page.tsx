@@ -2,9 +2,15 @@ import { ChevronLeft, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { EmptyState } from '@/components/empty-state';
 import { Badge } from '@/components/ui/badge';
 import { VALIDATION_RECOMMENDATION_META, isWriterRole } from '@/lib/api/types';
-import { fetchProject, fetchWorkspace, listIdeaValidations } from '@/lib/api/workspaces';
+import {
+  fetchProject,
+  fetchUsage,
+  fetchWorkspace,
+  listIdeaValidations,
+} from '@/lib/api/workspaces';
 import { formatDateTime } from '@/lib/format';
 
 import { RunValidationDialog } from './_components/run-validation-dialog';
@@ -28,7 +34,10 @@ export default async function IdeaValidationsPage({
   const project = await fetchProject(slug, projectId);
   if (!project) notFound();
 
-  const validations = await listIdeaValidations(slug, projectId);
+  const [validations, usage] = await Promise.all([
+    listIdeaValidations(slug, projectId),
+    fetchUsage(slug),
+  ]);
   const canWrite = isWriterRole(workspace.role);
   const hasValidations = validations.length > 0;
 
@@ -50,7 +59,7 @@ export default async function IdeaValidationsPage({
               PIVOT / NO_GO の意思決定を支援します。Pro / Team 限定機能です。
             </p>
           </div>
-          {canWrite && <RunValidationDialog slug={slug} projectId={projectId} />}
+          {canWrite && <RunValidationDialog slug={slug} projectId={projectId} usage={usage} />}
         </div>
       </div>
 
@@ -88,15 +97,15 @@ export default async function IdeaValidationsPage({
           })}
         </ul>
       ) : (
-        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-12 text-center">
-          <Lightbulb className="text-muted-foreground/60 size-8" aria-hidden="true" />
-          <p className="text-muted-foreground text-sm">まだアイデア検証の履歴がありません。</p>
-          <p className="text-muted-foreground/70 text-xs">
-            {canWrite
+        <EmptyState
+          icon={Lightbulb}
+          title="まだアイデア検証の履歴がありません。"
+          description={
+            canWrite
               ? '「検証を実行する」 から最初の検証を行いましょう。'
-              : '書き込み権限を持つメンバーが検証を実行すると、ここに表示されます。'}
-          </p>
-        </div>
+              : '書き込み権限を持つメンバーが検証を実行すると、ここに表示されます。'
+          }
+        />
       )}
     </div>
   );

@@ -82,10 +82,13 @@ export async function createWorkspace(body: {
  *
  * `@Roles` なし = 全テナントメンバーが閲覧可(課金・上限の透明性をメンバー全員に見せる方針)。
  * 所属していない / slug 不在は `WorkspaceGuard` が 404 を返す(親 layout が所属判定済みの想定)。
+ *
+ * `React.cache` で同一リクエスト内 dedup(設定タブ + 機能ページの両方で参照しうるため、
+ * F7 の CreditCostBadge 用に同じ slug で複数回呼ばれても HTTP 通信は 1 回に集約される)。
  */
-export async function fetchUsage(slug: string): Promise<MonthlyUsageSummary> {
+export const fetchUsage = cache(async (slug: string): Promise<MonthlyUsageSummary> => {
   return apiFetch<MonthlyUsageSummary>(`/workspaces/${encodeURIComponent(slug)}/usage`);
-}
+});
 
 /** `GET /workspaces/:slug/projects[?status=...]` */
 export async function listProjects(slug: string, status?: ProjectStatus): Promise<Project[]> {
