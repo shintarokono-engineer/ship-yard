@@ -11,6 +11,8 @@
 **Spec doc:** `docs/superpowers/specs/2026-05-28-multi-channel-publishing-design.md`
 **ADR:** `docs/adr/014-multi-channel-announcement.md`
 
+> **テストフレームワーク注記(2026-05-29、Task 4 時点で確定)**:本 Plan は当初 Jest 前提で `*.spec.ts` 例を載せていたが、API プロジェクトに Jest が未導入だったため **Vitest を導入** した(`apps/api/devDependencies` に `vitest` + `@vitest/coverage-v8`、`apps/api/vitest.config.ts`、`pnpm --filter @shipyard/api test` で実行)。Vitest は Jest API 互換のため、本 Plan 内の `describe / it / expect / beforeEach` 記述はすべて無改修で動作する。`@nestjs/testing` は controller / service の DI テストが必要になった時に別途追加(Task 7 以降で随時判断)。
+
 ---
 
 ## File Structure
@@ -400,9 +402,176 @@ Expected: エラーなし。
 
 - [ ] **Step 7: コミット**
 
+Task 3.5(§9.12.3)とセットコミットする方針のため、本 Task 単独ではコミットしない。Task 3.5 完了後にまとめて以下のメッセージでコミット:
+
 ```bash
-git add packages/db/prisma/
-git commit -m "feat(db): Feature.ANNOUNCEMENT_GEN 追加(ADR-014 Day 56)"
+git add packages/db/ apps/api/ apps/web/
+git commit -m "feat(db): Feature.ANNOUNCEMENT_GEN 追加 + DocType 縮小(README/OTHER の 2 値、§9.12.3)(ADR-014 Day 56)"
+```
+
+---
+
+### Task 3.5: §9.12.3 DocType から告知系 4 値を構造削除(2026-05-29 ユーザー判断で追加)
+
+**Background:** ADR-014 ANNOUNCEMENT_GEN(マルチチャネル一括 Tool Use 生成)の導入で、DRAFT_GEN が単一 DocType で生成していた `RELEASE_BLOG` / `TWEET` / `PRODUCT_HUNT` / `EMAIL` は配信用文面として ANNOUNCEMENT_GEN に役割が完全統合される。§9.12.1(LP 削除)と同パターンで型レベルから構造削除し、DRAFT_GEN を README 専用に絞る。ローカル / 本番 DB は公開前(ユーザー 0)で `ProjectDocument` に該当行 0 件確認済のため物理削除可能。
+
+**Files:**
+- Modify: `packages/db/prisma/schema.prisma`(`enum DocType` を 2 値に縮小 + `DRAFT_GEN` Feature コメント更新 + `ProjectDocument.type` フィールドコメント更新)
+- Create: `packages/db/prisma/migrations/{ts}_remove_announcement_doc_types/migration.sql`(手作業、Day 49.5 パターン)
+- Modify: `apps/api/src/ai/ai.constants.ts`(`GENERATABLE_DOC_TYPES` を `[DocType.README]` に縮小)
+- Modify: `apps/api/src/ai/draft-gen.service.ts`(`KIND_LABEL` / `STRUCTURE_HINT` を README 専用に簡素化 + class docstring 更新)
+- Modify: `apps/api/src/documents/documents.controller.ts`(`type` クエリ例の文言更新)
+- Modify: `apps/api/scripts/seed-corpus.ts`(Markdown フロントマター例の文言更新)
+- Modify: `apps/web/src/lib/api/types.ts`(`DOC_TYPES` 2 値に縮小 + `GENERATABLE_DOC_TYPES` を `['README']` に + `DOC_TYPE_META` から 4 値削除)
+- Modify: `apps/web/src/app/w/[slug]/projects/[projectId]/documents/page.tsx`(ヘッダコメント更新、告知配信は `/announcements` へ誘導を明記)
+- Modify: `docs/PROJECT_STATUS.md`(§9.12.3 を追加、§9.12.2「ドキュメント一覧整理」 行を降格、§11 履歴に追記、最終更新日を 2026-05-29 に)
+- Modify: `docs/superpowers/specs/2026-05-28-multi-channel-publishing-design.md`(§0 と §2「既存 DRAFT_GEN との使い分け」 を §9.12.3 反映で更新)
+
+- [ ] **Step 1: ProjectDocument 該当行件数を実測 = 0 件確認**
+
+```bash
+docker compose exec postgres psql -U shipyard -d shipyard -c "SELECT type, COUNT(*) FROM \"ProjectDocument\" WHERE type IN ('RELEASE_BLOG','TWEET','PRODUCT_HUNT','EMAIL') GROUP BY type;"
+```
+
+Expected: 0 rows。0 件でなければ運用合意の上でデータ移行方針を再検討。
+
+- [ ] **Step 2: schema.prisma の `enum DocType` を `README` / `OTHER` の 2 値に縮小**
+
+`DRAFT_GEN` Feature コメントを「ドキュメント自動生成(README、Sonnet 4)。LP は ADR-009、告知文は ADR-014 で別 Feature に分離済。」 に更新。`ProjectDocument.type` のフィールドコメントも「README / OTHER の 2 種、§9.12.1 + §9.12.3 で告知系を削除済」 に。
+
+- [ ] **Step 3: 手作業 migration ファイル作成**
+
+`packages/db/prisma/migrations/{ts}_remove_announcement_doc_types/migration.sql`:
+
+```sql
+-- §9.12.3 ADR-014 ANNOUNCEMENT_GEN 追加に伴い、DRAFT_GEN を README 専用に縮小(2026-05-29)。
+DELETE FROM "ProjectDocument" WHERE "type" IN ('RELEASE_BLOG', 'TWEET', 'PRODUCT_HUNT', 'EMAIL');
+ALTER TYPE "DocType" RENAME TO "DocType_old";
+CREATE TYPE "DocType" AS ENUM ('README', 'OTHER');
+ALTER TABLE "ProjectDocument" ALTER COLUMN "type" TYPE "DocType" USING ("type"::text::"DocType");
+DROP TYPE "DocType_old";
+```
+
+- [ ] **Step 4: `prisma migrate dev` で DB 適用 + enum 値確認**
+
+```bash
+pnpm --filter @shipyard/db exec prisma migrate dev
+docker compose exec postgres psql -U shipyard -d shipyard -c 'SELECT unnest(enum_range(NULL::"DocType"))'
+```
+
+Expected: `README` / `OTHER` の 2 行。
+
+- [ ] **Step 5: コード側参照を一掃**
+
+型エラー駆動で `apps/api/src/ai/ai.constants.ts` / `draft-gen.service.ts` / `documents.controller.ts` / `apps/web/src/lib/api/types.ts` / `documents/page.tsx` / `apps/api/scripts/seed-corpus.ts` を順次修正。`grep -rn "RELEASE_BLOG\|PRODUCT_HUNT\|DocType.TWEET\|DocType.EMAIL"` で残存ゼロを確認。
+
+- [ ] **Step 6: 型チェック**
+
+```bash
+pnpm --filter @shipyard/db exec prisma generate
+pnpm --filter @shipyard/db build
+pnpm --filter @shipyard/api type-check
+pnpm --filter @shipyard/web type-check
+```
+
+Expected: 全て ✅。
+
+- [ ] **Step 7: ドキュメント同期**
+
+PROJECT_STATUS.md §9.12.3 追加 + §9.12.2「ドキュメント一覧整理」 行降格 + §11 履歴追記 + 最終更新日更新。Spec doc §0 と §2「既存 DRAFT_GEN との使い分け」 を §9.12.3 反映で更新。本 Plan doc に本 Task 3.5 セクションを追加(本作業)。
+
+- [ ] **Step 8: Task 3 とセットコミット**
+
+```bash
+git add packages/db/ apps/api/ apps/web/ docs/
+git commit -m "feat(db): Feature.ANNOUNCEMENT_GEN 追加 + DocType 縮小(README/OTHER の 2 値、§9.12.3)(ADR-014 Day 56)"
+```
+
+---
+
+### Task 3.6: §9.12.4 `/documents` ページ廃止 + README 専用ページ化(A1 採用、2026-05-29)
+
+**Background:** §9.12.3 で DocType を `README` / `OTHER` の 2 値に縮小した結果、`/documents` ページの存在意義(複数 DocType を一覧する場)は失われた。Card 2 つだけのための専用ページは過剰で、Project 詳細 Card グリッド(§9.12.2 観点 1 / 11)の肥大化も悪化する。ユーザー判断で A1 パターン(Project 詳細にプレビューインライン + `/readme/` 単独ページに編集 / 履歴 / 生成を集約)を採用。`OTHER` は DB enum 残置だが UI 入口なし。
+
+**URL 設計:**
+
+- `/w/{slug}/projects/{projectId}/readme/` = 最新 version の README を表示する単一ページ
+- `?v={versionId}` クエリパラメータで過去 version を表示(動的ルート `[documentId]` は廃止)
+- 削除時の redirect 先 = Project 詳細
+
+**Files (新規):**
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/page.tsx`(Server Component、最新 version + searchParams v 解決)
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_actions/generate-readme.ts`
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_actions/edit-readme.ts`
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_actions/refine-readme.ts`
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_actions/delete-readme.ts`
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_components/generate-readme-dialog.tsx`(Project 詳細からも import)
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_components/edit-readme-dialog.tsx`
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_components/refine-readme-dialog.tsx`
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_components/delete-readme-button.tsx`
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_components/version-history.tsx`(href を `?v={versionId}` パターンに)
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_shared/generate-readme-form.ts`(kind 選択 schema 除去)
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_shared/readme-form.ts`
+- `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_shared/refine-readme-form.ts`
+
+**Files (編集):**
+- `apps/web/src/app/w/[slug]/projects/[projectId]/page.tsx`:ドキュメント Card 削除 + README プレビューセクション追加(Promise.all で `listDocuments(slug, projectId, 'README')` 追加 fetch、`README_PREVIEW_CHARS = 200` 定数、最新版の先頭 200 字 + version カウント + 更新日時 + 編集/履歴 Button + GenerateReadmeDialog、未作成時は `(未作成)` italic + Dialog のみ)
+
+**Files (削除):**
+- `apps/web/src/app/w/[slug]/projects/[projectId]/documents/`(配下全 14 ファイル、`git rm -r`)
+
+**Files (温存):**
+- `apps/api/src/documents/*`(REST API は README CRUD のバックボーンとして継続利用、URL 階層名は backend のみ historical な命名)
+- `apps/web/src/lib/api/workspaces.ts` の `fetchDocument` / `listDocuments` / `createDocument` 等(API パスと対応した命名)
+
+- [ ] **Step 1: 新規 13 ファイルを作成(移植 + 改名 + README 専用化)**
+
+`/documents/*` → `/readme/*` のファイル単位移植。命名規則は `document` → `readme`。kind 選択 schema は除去、`DocType.README` に固定。
+
+- [ ] **Step 2: `version-history.tsx` の Link href を変更**
+
+旧:`href={`/w/${slug}/projects/${projectId}/documents/${v.id}`}`
+新:`href={`/w/${slug}/projects/${projectId}/readme?v=${v.id}`}`(searchParams 経由)
+
+- [ ] **Step 3: Action 群の redirect / revalidatePath を `/readme/` に修正**
+
+- `revalidatePath` は `/readme` と Project 詳細 `/projects/{projectId}` の 2 つ
+- generate / edit / refine の redirect → `/readme/`(最新が自動表示される)
+- delete の redirect → Project 詳細
+
+- [ ] **Step 4: Project 詳細 `page.tsx` を更新**
+
+import 追加(`Button` / `listDocuments` / `GenerateReadmeDialog`)、ドキュメント Card 削除、README プレビューセクションを「概要」 と Card グリッドの間に挿入、`Promise.all` に `listDocuments(slug, projectId, 'README')` 追加、`sortedReadmes` / `latestReadme` / `readmePreview` 算出、docstring 更新。
+
+- [ ] **Step 5: `/documents/` ディレクトリ削除**
+
+```bash
+git rm -r apps/web/src/app/w/'[slug]'/projects/'[projectId]'/documents/
+```
+
+- [ ] **Step 6: 検証**
+
+```bash
+pnpm --filter @shipyard/web type-check
+pnpm --filter @shipyard/web build
+grep -rn "/documents/" apps/web/src   # URL リンクの残存ゼロ確認(workspaces.ts の API パスは OK)
+```
+
+すべて ✅ になるまで修正。
+
+- [ ] **Step 7: ドキュメント同期**
+
+- `PROJECT_STATUS.md` §9.12.4 追加 + §9.12.2「ドキュメント一覧整理」 行を「✅完了」 に更新 + §11 履歴
+- 本 Plan doc に Task 3.6 セクション追加(本作業)
+- Spec doc は §3「FE 画面構成」 で `/documents` 言及があれば §9.12.4 反映を追記(なければ skip)
+
+- [ ] **Step 8: 単独コミット**
+
+§9.12.3 とは論理的に別件(DB enum 整理 vs UI 再構成)なので別コミット。
+
+```bash
+git add apps/web/ docs/
+git commit -m "refactor(web): README 専用ページ化 + Project 詳細にプレビュー統合、/documents 廃止(§9.12.4)(ADR-014 Day 56)"
 ```
 
 ---

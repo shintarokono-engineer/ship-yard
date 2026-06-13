@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "Feature" ADD VALUE 'ANNOUNCEMENT_GEN';

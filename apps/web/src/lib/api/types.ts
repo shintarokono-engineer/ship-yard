@@ -419,30 +419,18 @@ export interface ChecklistItem {
 
 /**
  * ProjectDocument の種別(`DocType` enum、packages/db/prisma/schema.prisma)。
- * `LANDING_PAGE` は §9.12.1(2026-05-28)で enum から削除済(LP は ADR-009 の `LandingPage`
- * 専用テーブル + アプリ内編集に移行したため、ProjectDocument の文脈には含めない)。
+ *   - `LANDING_PAGE` は §9.12.1(2026-05-28)で enum から削除済(LP は ADR-009 の `LandingPage` 専用テーブルに移行)。
+ *   - 告知文(`RELEASE_BLOG` / `TWEET` / `PRODUCT_HUNT` / `EMAIL`)は §9.12.3(2026-05-29)で削除済
+ *     (ADR-014 の `Feature.ANNOUNCEMENT_GEN` でマルチチャネル一括生成に移行、`Announcement` + `Delivery` テーブルへ)。
  */
-export const DOC_TYPES = [
-  'README',
-  'RELEASE_BLOG',
-  'TWEET',
-  'PRODUCT_HUNT',
-  'EMAIL',
-  'OTHER',
-] as const;
+export const DOC_TYPES = ['README', 'OTHER'] as const;
 export type DocType = (typeof DOC_TYPES)[number];
 
 /**
  * AI 生成(DRAFT_GEN)に対応する DocType。apps/api `ai.constants.ts:GENERATABLE_DOC_TYPES` と同期。
- * `OTHER` を除く 5 種。
+ * MVP では `README` のみ。
  */
-export const GENERATABLE_DOC_TYPES = [
-  'README',
-  'RELEASE_BLOG',
-  'TWEET',
-  'PRODUCT_HUNT',
-  'EMAIL',
-] as const satisfies readonly DocType[];
+export const GENERATABLE_DOC_TYPES = ['README'] as const satisfies readonly DocType[];
 export type GeneratableDocType = (typeof GENERATABLE_DOC_TYPES)[number];
 
 export function isGeneratableDocType(t: DocType): t is GeneratableDocType {
@@ -452,10 +440,6 @@ export function isGeneratableDocType(t: DocType): t is GeneratableDocType {
 /** Document の種別ごとの表示メタ。 */
 export const DOC_TYPE_META: Record<DocType, { label: string; description: string }> = {
   README: { label: 'README', description: 'プロジェクト概要' },
-  RELEASE_BLOG: { label: 'リリースブログ', description: '公開時の記事' },
-  TWEET: { label: 'X / Twitter 告知文', description: '短文告知' },
-  PRODUCT_HUNT: { label: 'Product Hunt 投稿', description: 'PH ローンチ用テキスト' },
-  EMAIL: { label: '告知メール', description: 'メーリングリスト用本文' },
   OTHER: { label: 'その他', description: '汎用ドキュメント' },
 };
 

@@ -35,7 +35,7 @@ import { UpdateProjectDocumentDto } from './dto/update-project-document.dto';
 export class DocumentsController {
   constructor(private readonly documents: DocumentsService) {}
 
-  /** GET /workspaces/:slug/projects/:projectId/documents[?type=README|RELEASE_BLOG|...] — 一覧(本文なし、soft delete 済みは除外)。 */
+  /** GET /workspaces/:slug/projects/:projectId/documents[?type=README|OTHER] — 一覧(本文なし、soft delete 済みは除外)。 */
   @Get()
   list(
     @CurrentWorkspace() ws: WorkspaceAccess,

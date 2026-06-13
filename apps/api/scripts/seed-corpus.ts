@@ -20,7 +20,7 @@
  *
  * Markdown ファイル形式:
  *   ---
- *   type: README | LANDING_PAGE | RELEASE_BLOG | ...   (DocType enum 値、`OTHER` 以外推奨)
+ *   type: README | OTHER   (DocType enum 値、`OTHER` 以外推奨)
  *   title: (人間向け表示名)
  *   source_url: (任意、OSS 引用時に必須)
  *   license: (任意、source_url とセットで必須。MIT / Apache-2.0 / BSD-3 など)
