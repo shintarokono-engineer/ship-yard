@@ -5,7 +5,7 @@ import { BlogPostService } from './blog-post.service';
 /**
  * 公開ブログ API(ADR-014 §3)。
  *
- * `/public/blog-posts/:slug/:projectId/:postSlug` で未認証アクセス可。
+ * `/public/blog-posts/...` で未認証アクセス可。
  * 公開済(`publishedAt` セット)のみ返却。内部フィールドは Service 側の `select` で除外。
  * テナント所属チェックは行わない(公開ページのため誰でも閲覧可)。
  * guard を付けない別 controller に分離する方針は `PublicLandingPageController` と同じ。
@@ -13,6 +13,22 @@ import { BlogPostService } from './blog-post.service';
 @Controller('public/blog-posts')
 export class BlogPostPublicController {
   constructor(private readonly service: BlogPostService) {}
+
+  /**
+   * GET /public/blog-posts(未認証可)
+   * - 公開済ブログを全テナント横断で列挙する(sitemap 生成用、F10)。
+   * - sitemap に載せる最小情報(slug / projectId / postSlug / 公開日時)のみ返す。
+   */
+  @Get()
+  async list() {
+    const items = await this.service.listPublic();
+    return items.map((p) => ({
+      slug: p.tenant.slug,
+      projectId: p.projectId,
+      postSlug: p.slug,
+      publishedAt: p.publishedAt,
+    }));
+  }
 
   /**
    * GET /public/blog-posts/:slug/:projectId/:postSlug(未認証可)

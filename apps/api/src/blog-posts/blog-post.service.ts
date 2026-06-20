@@ -67,6 +67,26 @@ export class BlogPostService {
   }
 
   /**
+   * 公開 API(sitemap 生成用):全テナント横断で公開済 BlogPost を列挙する(ADR-014 §3 / F10)。
+   *
+   * - `publishedAt = null`(下書き)は除外
+   * - 内部フィールド(`tenantId` / `body` 等)は `select` で除外、URL 組立に必要な最小情報のみ返す
+   * - 件数上限は当面なし(運用初期の規模を想定)。爆発時は LIMIT を追加する。
+   */
+  async listPublic() {
+    return this.prisma.blogPost.findMany({
+      where: { publishedAt: { not: null } },
+      orderBy: { publishedAt: 'desc' },
+      select: {
+        slug: true,
+        projectId: true,
+        publishedAt: true,
+        tenant: { select: { slug: true } },
+      },
+    });
+  }
+
+  /**
    * 公開 API:tenant slug + projectId + postSlug で公開済 BlogPost を取得する(ADR-014 §3)。
    *
    * - `publishedAt = null`(下書き)は 404 で弁別しない(公開していない記事の存在を漏らさない)
