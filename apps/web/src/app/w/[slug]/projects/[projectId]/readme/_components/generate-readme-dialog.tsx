@@ -17,6 +17,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import type { MonthlyUsageSummary } from '@/lib/api/types';
 
 import {
   generateReadmeAction,
@@ -38,9 +39,12 @@ import {
 export function GenerateReadmeDialog({
   slug,
   projectId,
+  usage,
 }: {
   slug: string;
   projectId: string;
+  /** §9.12.2 F7:Badge 表示用の月次クレジット消費状況。 */
+  usage: MonthlyUsageSummary;
 }) {
   const [open, setOpen] = useState(false);
   const boundAction = useMemo(

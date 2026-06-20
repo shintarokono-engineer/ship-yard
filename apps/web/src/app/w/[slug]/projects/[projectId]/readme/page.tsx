@@ -8,6 +8,7 @@ import { isWriterRole } from '@/lib/api/types';
 import {
   fetchDocument,
   fetchProject,
+  fetchUsage,
   fetchWorkspace,
   listDocuments,
 } from '@/lib/api/workspaces';
@@ -39,10 +40,11 @@ export default async function ReadmePage({
   const { slug, projectId } = await params;
   const { v } = await searchParams;
 
-  const [workspace, project, allReadmes] = await Promise.all([
+  const [workspace, project, allReadmes, usage] = await Promise.all([
     fetchWorkspace(slug),
     fetchProject(slug, projectId),
     listDocuments(slug, projectId, 'README'),
+    fetchUsage(slug),
   ]);
   if (!workspace) notFound();
   if (!project) notFound();
@@ -69,7 +71,7 @@ export default async function ReadmePage({
         <div className="border-border space-y-3 rounded-lg border border-dashed p-6">
           <p className="text-muted-foreground/70 text-sm italic">(未作成)</p>
           {canWrite && (
-            <GenerateReadmeDialog slug={slug} projectId={projectId} />
+            <GenerateReadmeDialog slug={slug} projectId={projectId} usage={usage} />
           )}
         </div>
       </div>
@@ -115,6 +117,7 @@ export default async function ReadmePage({
                 slug={slug}
                 projectId={projectId}
                 documentId={currentWithContent.id}
+                usage={usage}
               />
               <EditReadmeDialog
                 slug={slug}

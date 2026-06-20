@@ -7,6 +7,7 @@ import {
   LayoutTemplate,
   Lightbulb,
   ListChecks,
+  Megaphone,
   MessageCircle,
 } from 'lucide-react';
 
@@ -14,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { isAdminRole, isWriterRole, PROJECT_STATUS_META } from '@/lib/api/types';
-import { fetchProject, fetchWorkspace, listDocuments } from '@/lib/api/workspaces';
+import { fetchProject, fetchUsage, fetchWorkspace, listDocuments } from '@/lib/api/workspaces';
 import { formatDate, formatDateTime } from '@/lib/format';
 
 import { DeleteProjectButton } from './_components/delete-project-button';
@@ -41,10 +42,11 @@ export default async function ProjectDetailPage({
   const { slug, projectId } = await params;
 
   // layout で workspace の所属チェック済み。fetchWorkspace は React.cache で dedup される。
-  const [workspace, project, readmes] = await Promise.all([
+  const [workspace, project, readmes, usage] = await Promise.all([
     fetchWorkspace(slug),
     fetchProject(slug, projectId),
     listDocuments(slug, projectId, 'README'),
+    fetchUsage(slug),
   ]);
   if (!workspace) notFound();
   if (!project) notFound();
@@ -135,7 +137,7 @@ export default async function ProjectDetailPage({
                     {latestReadme ? '編集 / 履歴' : '全文を見る'}
                   </Link>
                 </Button>
-                <GenerateReadmeDialog slug={slug} projectId={projectId} />
+                <GenerateReadmeDialog slug={slug} projectId={projectId} usage={usage} />
               </div>
             )}
           </div>
@@ -191,6 +193,25 @@ export default async function ProjectDetailPage({
             <CardContent>
               <p className="text-muted-foreground text-sm">
                 プロジェクトの方針や課題を AI と相談します。過去ドキュメントを参照して回答します。
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link
+          href={`/w/${slug}/projects/${projectId}/announcements`}
+          className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
+        >
+          <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Megaphone className="text-primary size-4" aria-hidden="true" />
+                告知
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-sm">
+                X (Twitter) とブログ向けの告知文を AI で一括生成し、配信状況を管理します。
               </p>
             </CardContent>
           </Card>
