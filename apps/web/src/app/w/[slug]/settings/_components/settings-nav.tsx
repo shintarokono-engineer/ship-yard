@@ -16,6 +16,7 @@ const TABS: ReadonlyArray<{ key: string; label: string; segment: string }> = [
   { key: 'profile', label: 'プロフィール', segment: 'profile' },
   { key: 'billing', label: 'Billing', segment: 'billing' },
   { key: 'usage', label: '利用状況', segment: 'usage' },
+  { key: 'integrations', label: '連携', segment: 'integrations' },
 ];
 
 export function SettingsNav({ slug }: { slug: string }) {
