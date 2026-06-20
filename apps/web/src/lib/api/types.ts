@@ -534,6 +534,7 @@ export const FEATURES = [
   'REFINE_DOC',
   'PRODUCT_DIAGNOSIS',
   'IDEA_VALIDATION',
+  'ANNOUNCEMENT_GEN',
   'OTHER',
 ] as const;
 export type Feature = (typeof FEATURES)[number];
@@ -553,6 +554,7 @@ export const FEATURE_META: Record<Feature, { label: string }> = {
   REFINE_DOC: { label: '文章推敲' },
   PRODUCT_DIAGNOSIS: { label: 'プロダクト診断' },
   IDEA_VALIDATION: { label: 'アイデア検証' },
+  ANNOUNCEMENT_GEN: { label: '告知文生成' },
   OTHER: { label: 'その他' },
 };
 
@@ -578,6 +580,8 @@ export const FEATURE_CREDIT_COSTS: Record<
   RAG_QA: 3,
   IDEA_VALIDATION: 6,
   PRODUCT_DIAGNOSIS: 6,
+  /** ADR-014: Sonnet 4 + Tool Use(多チャネル一括)、`FEATURE_CREDIT_OVERRIDES` で override 済。 */
+  ANNOUNCEMENT_GEN: 4,
 };
 
 /** `GET /workspaces/:slug/usage` のレスポンス(当月のテナント AI 利用状況サマリ、ADR-012)。 */
@@ -850,3 +854,162 @@ export const SUGGESTION_PRIORITY_META: Record<
   MEDIUM: { label: 'MEDIUM', tone: 'neutral' },
   LOW: { label: 'LOW', tone: 'positive' },
 };
+
+// ============================================================
+// ADR-014: Announcement / BlogPost / Twitter Integration
+// ============================================================
+
+/** Announcement のライフサイクル状態(`AnnouncementStatus` enum と同期、ADR-014)。 */
+export const ANNOUNCEMENT_STATUSES = ['DRAFT', 'READY', 'EXECUTING', 'DONE'] as const;
+export type AnnouncementStatus = (typeof ANNOUNCEMENT_STATUSES)[number];
+
+/** Delivery のチャネル(`DeliveryChannel` enum と同期、ADR-014)。 */
+export const DELIVERY_CHANNELS = ['TWITTER', 'BLOG'] as const;
+export type DeliveryChannel = (typeof DELIVERY_CHANNELS)[number];
+
+/** Delivery の配信状態(`DeliveryStatus` enum と同期、ADR-014)。 */
+export const DELIVERY_STATUSES = ['DRAFT', 'EXECUTING', 'SENT', 'FAILED'] as const;
+export type DeliveryStatus = (typeof DELIVERY_STATUSES)[number];
+
+/** Announcement.status の表示メタ(UI Badge 用、ADR-014)。 */
+export const ANNOUNCEMENT_STATUS_META: Record<
+  AnnouncementStatus,
+  { label: string; badgeVariant: BadgeVariant; badgeClassName?: string }
+> = {
+  DRAFT: { label: '下書き', badgeVariant: 'secondary' },
+  READY: { label: '配信準備完了', badgeVariant: 'outline' },
+  EXECUTING: {
+    label: '配信中',
+    badgeVariant: 'outline',
+    badgeClassName: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  },
+  DONE: {
+    label: '配信済み',
+    badgeVariant: 'outline',
+    badgeClassName:
+      'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  },
+};
+
+/** Delivery.status の表示メタ(UI Badge 用、ADR-014)。 */
+export const DELIVERY_STATUS_META: Record<
+  DeliveryStatus,
+  { label: string; badgeVariant: BadgeVariant; badgeClassName?: string }
+> = {
+  DRAFT: { label: '下書き', badgeVariant: 'secondary' },
+  EXECUTING: {
+    label: '配信中',
+    badgeVariant: 'outline',
+    badgeClassName: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  },
+  SENT: {
+    label: '配信成功',
+    badgeVariant: 'outline',
+    badgeClassName:
+      'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  },
+  FAILED: { label: '配信失敗', badgeVariant: 'destructive' },
+};
+
+/** Delivery channel の表示メタ(UI ラベル / アイコン用、ADR-014)。 */
+export const DELIVERY_CHANNEL_META: Record<DeliveryChannel, { label: string }> = {
+  TWITTER: { label: 'X (Twitter)' },
+  BLOG: { label: 'ブログ' },
+};
+
+/**
+ * Announcement / BlogPost のフォーム制約定数(apps/api `announcement.constants.ts` と同期)。
+ * FE の入力長制限・カウンタ表示用。BE と同値を維持すること(乖離するとサーバーバリデーションで弾かれる)。
+ */
+export const TWITTER_TEXT_MAX = 280;
+export const BLOG_TITLE_MAX = 120;
+export const BLOG_BODY_MIN = 100;
+export const BLOG_BODY_MAX = 20000;
+export const BLOG_SUMMARY_MAX = 200;
+export const BLOG_SLUG_MAX = 80;
+export const ANNOUNCEMENT_TITLE_MAX = 120;
+export const ANNOUNCEMENT_TOPIC_MAX = 500;
+
+/** Delivery.content の TWITTER ペイロード(ADR-014、`announcement-types.ts` と同期)。 */
+export interface TwitterDeliveryContent {
+  text: string;
+}
+
+/** Delivery.content の BLOG ペイロード(BlogPost 本体は別 entity、ADR-014)。 */
+export interface BlogDeliveryContent {
+  blogPostId: string;
+  summary: string;
+}
+
+/** Delivery 1 件(channel ごとに content の shape が異なる、TWITTER / BLOG)。 */
+export interface Delivery {
+  id: string;
+  announcementId: string;
+  channel: DeliveryChannel;
+  status: DeliveryStatus;
+  /** channel に応じて TwitterDeliveryContent | BlogDeliveryContent。Json 型のため呼び出し側で narrow する。 */
+  content: TwitterDeliveryContent | BlogDeliveryContent | Record<string, unknown>;
+  sentAt: string | null;
+  externalRef: string | null;
+  error: string | null;
+  executedById: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** `GET /workspaces/:slug/projects/:projectId/announcements` の 1 件分(Delivery は channel/status のみ)。 */
+export interface AnnouncementListItem {
+  id: string;
+  title: string;
+  status: AnnouncementStatus;
+  createdAt: string;
+  deliveries: Array<{ channel: DeliveryChannel; status: DeliveryStatus }>;
+}
+
+/** 詳細(`GET .../announcements/:id`、Delivery 全件含む)。 */
+export interface AnnouncementDetail {
+  id: string;
+  tenantId: string;
+  projectId: string;
+  title: string;
+  status: AnnouncementStatus;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+  deliveries: Delivery[];
+}
+
+/** BlogPost(管理 UI 用、編集画面で扱う全フィールド)。 */
+export interface BlogPost {
+  id: string;
+  tenantId: string;
+  projectId: string;
+  deliveryId: string | null;
+  slug: string;
+  title: string;
+  body: string;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** 公開 API レスポンス(`GET /public/blog-posts/:slug/:projectId/:postSlug`、内部フィールド除外)。 */
+export interface PublicBlogPost {
+  title: string;
+  body: string;
+  slug: string;
+  publishedAt: string;
+  project: { id: string; name: string };
+  tenant: { slug: string };
+}
+
+/** 連携済 Twitter アカウント(`GET /workspaces/:slug/integrations/twitter`、token は含まない)。 */
+export interface TwitterAccount {
+  id: string;
+  handle: string;
+  xUserId: string;
+  connectedById: string;
+  expiresAt: string;
+  createdAt: string;
+  scopes: string[];
+}
