@@ -16,16 +16,23 @@ const base = (slug: string) => `/workspaces/${encodeURIComponent(slug)}/integrat
 /**
  * Twitter OAuth 開始 URL(BE が X の認可画面へ 302 リダイレクトする)。
  *
- * fetch ではブラウザに渡せないので、設定画面の「X を連携」リンクで使う。
- * `API_URL` はサーバー専用のため、ここでは BE のパスのみ返し、apps/web 側のルートハンドラや
- * BFF プロキシ(`/api/integrations/twitter/authorize`)を経由する設計にしてもよい。
+ * fetch ではブラウザに渡せないので、設定画面の「X を連携」リンクの href として使う。
+ * Server / Client 双方から呼び得るため、ブラウザに露出する `NEXT_PUBLIC_API_URL` を読む。
+ * (将来 BFF プロキシ `/api/integrations/twitter/authorize` 経由に変えれば `API_URL` で済む)
  *
- * MVP では BE を直接公開している前提で、`process.env.NEXT_PUBLIC_API_URL` を読む。
+ * 環境変数未設定時は **`null` を返す**(throw しない)。呼び出し側で null をハンドリングして
+ * 「設定が見つかりません」と提示するか、リンク自体を disable する。
  */
-export function twitterAuthorizeUrl(slug: string): string {
+export function twitterAuthorizeUrl(slug: string): string | null {
   const publicBase = process.env.NEXT_PUBLIC_API_URL;
   if (!publicBase) {
-    throw new Error('NEXT_PUBLIC_API_URL is not set. apps/web/.env.local を確認してください。');
+    if (process.env.NODE_ENV !== 'production') {
+      // ローカル / プレビューで設定漏れを発見しやすくする(本番は CSP / 監視で別途検知)。
+      console.warn(
+        '[twitterAuthorizeUrl] NEXT_PUBLIC_API_URL is not set. apps/web/.env.local を確認してください。',
+      );
+    }
+    return null;
   }
   return `${publicBase}${base(slug)}/authorize`;
 }

@@ -4,14 +4,31 @@ import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
 
 /**
+ * Markdown 内の URL を安全なスキームのみに制限する(XSS 対策、ADR-014 §セキュリティ)。
+ *
+ * `javascript:` / `data:` / `vbscript:` 等の能動的に script を発動できるスキームを reject する。
+ * 公開ブログ(`/p/{slug}/{projectId}/blog/{postSlug}`)は未認証ユーザーが閲覧するため必須だが、
+ * 管理 UI(documents / rag-qa)でも侵害アカウント由来の悪意ある markdown を弾けるため共通適用する。
+ *
+ * 不許可 URL は空文字に置換し、react-markdown 側で `href=""` のアンカーとして無害化される。
+ */
+function safeUrlTransform(url: string): string {
+  if (!url) return '';
+  const trimmed = url.trim();
+  if (/^(javascript|data|vbscript|file):/i.test(trimmed)) return '';
+  return trimmed;
+}
+
+/**
  * Markdown を HTML として描画するビューア。
  *
  * - remark-gfm で GFM(テーブル / strikethrough / タスクリスト / autolinks)対応
  * - 任意 HTML は描画しない(react-markdown のデフォルト挙動、XSS 防止)
+ * - URL は `safeUrlTransform` で `javascript:` 等の危険スキームを除去(本ファイル冒頭)
  * - 子孫セレクタ(`[&_h1]:...` 等)でラッパー側に Tailwind スタイルを当てる。`@tailwindcss/typography` 未導入のためベタ書き
  *
- * ProjectDocument の本文表示(documents)と RAG_QA の AI 回答表示(rag-qa)で共有するため、
- * ルート専用の `_components` ではなく `src/components/` 直下に置く。
+ * ProjectDocument の本文表示(documents)と RAG_QA の AI 回答表示(rag-qa)、公開ブログ(ADR-014)で
+ * 共有するため、ルート専用の `_components` ではなく `src/components/` 直下に置く。
  */
 export function MarkdownViewer({ source, className }: { source: string; className?: string }) {
   return (
@@ -39,7 +56,9 @@ export function MarkdownViewer({ source, className }: { source: string; classNam
         className,
       )}
     >
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{source}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={safeUrlTransform}>
+        {source}
+      </ReactMarkdown>
     </div>
   );
 }

@@ -20,13 +20,14 @@ export async function listBlogPosts(slug: string, projectId: string): Promise<Bl
   return res.posts;
 }
 
-/** `GET .../blog-posts/:id` — 単一 BlogPost(編集画面初期表示)。不在 / 他テナント = 404 → null。 */
+/** `GET .../blog-posts/:id` — 単一 BlogPost(編集画面初期表示)。不在 / 他テナント = 404 / 401 → null。 */
 export const fetchBlogPost = cache(
   async (slug: string, projectId: string, id: string): Promise<BlogPost | null> => {
     try {
       return await apiFetch<BlogPost>(`${base(slug, projectId)}/${encodeURIComponent(id)}`);
     } catch (e) {
-      if (e instanceof ApiError && e.status === 404) return null;
+      // 既存 fetchWorkspace / fetchProject 等と同じく 404 / 401(未所属)も null に変換する。
+      if (e instanceof ApiError && (e.status === 404 || e.status === 401)) return null;
       throw e;
     }
   },

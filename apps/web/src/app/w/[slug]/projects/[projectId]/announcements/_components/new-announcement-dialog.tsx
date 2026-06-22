@@ -85,6 +85,11 @@ export function NewAnnouncementDialog({
               placeholder="例: v1.2 リリース告知、〇〇機能ローンチ"
               onChange={(e) => setTitleLength(e.currentTarget.value.length)}
               disabled={pending}
+              aria-describedby={
+                state.fieldErrors?.title && state.fieldErrors.title.length > 0
+                  ? 'title-error'
+                  : undefined
+              }
               required
             />
           </FormField>

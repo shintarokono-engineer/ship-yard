@@ -29,6 +29,8 @@ export default async function IntegrationsPage({
   if (!workspace) notFound();
 
   const canManage = isAdminRole(workspace.role);
+  // NEXT_PUBLIC_API_URL 未設定時は null。 OWNER/ADMIN にだけ「連携不可」 と提示する。
+  const authorizeUrl = canManage ? twitterAuthorizeUrl(slug) : null;
 
   return (
     <div className="space-y-4">
@@ -38,11 +40,18 @@ export default async function IntegrationsPage({
             <span className="flex items-center gap-2">
               <Twitter className="text-primary size-4" aria-hidden="true" />X (Twitter) 連携
             </span>
-            {canManage && (
+            {canManage && authorizeUrl && (
               <Button asChild variant="outline" size="sm">
-                {/* Server Component から二段階で URL を渡す:NEXT_PUBLIC_API_URL を必須にし、SSR で組み立てる。 */}
-                <a href={twitterAuthorizeUrl(slug)}>X アカウントを連携</a>
+                {/* 外部(X)へのリダイレクトを伴うため `rel="noopener noreferrer"` を付与。 */}
+                <a href={authorizeUrl} rel="noopener noreferrer">
+                  X アカウントを連携
+                </a>
               </Button>
+            )}
+            {canManage && !authorizeUrl && (
+              <span className="text-destructive text-xs">
+                連携 URL を組み立てられませんでした(管理者設定を確認してください)
+              </span>
             )}
           </CardTitle>
         </CardHeader>

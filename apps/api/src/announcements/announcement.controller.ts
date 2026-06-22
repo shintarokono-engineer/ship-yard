@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -76,15 +78,19 @@ export class AnnouncementController {
     return this.service.update(ws.tenantId, projectId, id, dto);
   }
 
-  /** DELETE /workspaces/:slug/projects/:projectId/announcements/:id:Announcement + 関連 Delivery / BlogPost を削除。 */
+  /**
+   * DELETE /workspaces/:slug/projects/:projectId/announcements/:id:Announcement + 関連 Delivery / BlogPost を削除。
+   * 204 No Content を返す(既存の DELETE 系エンドポイントと統一)。
+   */
   @Delete(':id')
   @Roles(...WRITER_ROLES)
+  @HttpCode(HttpStatus.NO_CONTENT)
   async delete(
     @CurrentWorkspace() ws: WorkspaceAccess,
     @Param('projectId') projectId: string,
     @Param('id') id: string,
-  ) {
-    return this.service.delete(ws.tenantId, projectId, id);
+  ): Promise<void> {
+    await this.service.delete(ws.tenantId, projectId, id);
   }
 
   /**

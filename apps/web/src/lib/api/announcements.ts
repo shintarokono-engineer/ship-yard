@@ -52,7 +52,8 @@ export const fetchAnnouncement = cache(
         `${base(slug, projectId)}/${encodeURIComponent(id)}`,
       );
     } catch (e) {
-      if (e instanceof ApiError && e.status === 404) return null;
+      // 既存 fetchWorkspace / fetchProject 等と同じく 404 / 401(未所属)も null に変換する。
+      if (e instanceof ApiError && (e.status === 404 || e.status === 401)) return null;
       throw e;
     }
   },
@@ -71,13 +72,13 @@ export async function updateAnnouncement(
   });
 }
 
-/** `DELETE .../announcements/:id` — Announcement + 関連 Delivery / BlogPost を削除。 */
+/** `DELETE .../announcements/:id` — Announcement + 関連 Delivery / BlogPost を削除(BE は 204 を返す)。 */
 export async function deleteAnnouncement(
   slug: string,
   projectId: string,
   id: string,
-): Promise<{ ok: true }> {
-  return apiFetch<{ ok: true }>(`${base(slug, projectId)}/${encodeURIComponent(id)}`, {
+): Promise<void> {
+  await apiFetch<void>(`${base(slug, projectId)}/${encodeURIComponent(id)}`, {
     method: 'DELETE',
   });
 }

@@ -126,5 +126,9 @@ export async function updateBlogPostAction(
   }
 
   revalidatePath(`/w/${slug}/projects/${projectId}/announcements/${announcementId}`);
+  // 公開ページ + sitemap も revalidate(タイトル / 本文 / slug の変更を反映)。
+  // 旧 slug の URL は dynamic ルートかつ no-store fetch のため、自然に新コンテンツへ追従する。
+  revalidatePath(`/p/${slug}/${projectId}/blog/${slugField}`);
+  revalidatePath('/sitemap.xml');
   return { ok: true, fields: { title, body, slug: slugField } };
 }

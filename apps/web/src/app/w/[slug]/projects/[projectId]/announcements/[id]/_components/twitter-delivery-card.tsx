@@ -78,14 +78,14 @@ export function TwitterDeliveryCard({
                 projectId={projectId}
                 announcementId={announcementId}
                 currentText={content.text}
-                disabled={delivery.status === 'SENT' || delivery.status === 'EXECUTING'}
+                disabled={delivery.status === 'SENT' || delivery.status === 'SCHEDULED'}
               />
               <ExecuteTwitterButton
                 slug={slug}
                 projectId={projectId}
                 announcementId={announcementId}
                 deliveryId={delivery.id}
-                disabled={delivery.status === 'SENT' || delivery.status === 'EXECUTING'}
+                disabled={delivery.status === 'SENT' || delivery.status === 'SCHEDULED'}
               />
             </div>
           )}

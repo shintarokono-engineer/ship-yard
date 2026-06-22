@@ -24,8 +24,10 @@ export async function deleteAnnouncementAction(
   projectId: string,
   id: string,
   _prev: DeleteAnnouncementFormState,
+  _formData: FormData,
 ): Promise<DeleteAnnouncementFormState> {
   void _prev;
+  void _formData;
   const { userId } = await auth();
   if (!userId) {
     return { ok: false, formError: '認証が必要です。再度サインインしてください。' };

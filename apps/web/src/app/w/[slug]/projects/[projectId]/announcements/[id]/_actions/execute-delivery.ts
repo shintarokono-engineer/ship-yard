@@ -4,6 +4,7 @@ import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
 
 import { executeDelivery } from '@/lib/api/announcements';
+import { fetchBlogPost } from '@/lib/api/blog-posts';
 import { ApiError, extractValidationMessages } from '@/lib/api/errors';
 
 export interface ExecuteDeliveryFormState {
@@ -35,8 +36,9 @@ export async function executeDeliveryAction(
     return { ok: false, formError: '認証が必要です。再度サインインしてください。' };
   }
 
+  let result;
   try {
-    await executeDelivery(slug, projectId, id, deliveryId);
+    result = await executeDelivery(slug, projectId, id, deliveryId);
   } catch (e) {
     if (e instanceof ApiError) {
       const msgs = extractValidationMessages(e.body);
@@ -66,5 +68,22 @@ export async function executeDeliveryAction(
 
   revalidatePath(`/w/${slug}/projects/${projectId}/announcements/${id}`);
   revalidatePath(`/w/${slug}/projects/${projectId}/announcements`);
+
+  // BLOG Delivery が SENT になった場合は公開ページ + sitemap も revalidate(初回公開の即時反映)。
+  // BlogPost.slug は response に含まれないため、blogPostId から fetchBlogPost で引く。
+  const executedBlog = result.deliveries.find(
+    (d) => d.id === deliveryId && d.channel === 'BLOG' && d.status === 'SENT',
+  );
+  if (executedBlog) {
+    const content = executedBlog.content as { blogPostId?: unknown };
+    if (typeof content?.blogPostId === 'string') {
+      const post = await fetchBlogPost(slug, projectId, content.blogPostId);
+      if (post) {
+        revalidatePath(`/p/${slug}/${projectId}/blog/${post.slug}`);
+      }
+    }
+    revalidatePath('/sitemap.xml');
+  }
+
   return { ok: true };
 }

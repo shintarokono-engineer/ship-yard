@@ -7,6 +7,15 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { UpdateBlogPostDto } from './dto/update-blog-post.dto';
 
 /**
+ * sitemap 用 `listPublic()` の最大返却件数(F10、ADR-014)。
+ *
+ * sitemap.xml プロトコルの 50,000 件上限を踏まえつつ、運用初期の現実値として 5,000 を採用。
+ * 5,000 件は 1 テナント = 平均 10 記事公開で 500 テナントの規模を想定。これを超えるなら
+ * sitemap index に分割するなどの構造変更を検討する(本定数を緩めるのは応急対応)。
+ */
+const PUBLIC_BLOG_POST_LIST_LIMIT = 5000;
+
+/**
  * BlogPost(ADR-014)の永続化を担う Service。
  *
  * `/workspaces/:slug/...` ルートは ALS のテナントコンテキストを持たないため、`tenantId` は
@@ -71,12 +80,13 @@ export class BlogPostService {
    *
    * - `publishedAt = null`(下書き)は除外
    * - 内部フィールド(`tenantId` / `body` 等)は `select` で除外、URL 組立に必要な最小情報のみ返す
-   * - 件数上限は当面なし(運用初期の規模を想定)。爆発時は LIMIT を追加する。
+   * - `take: PUBLIC_BLOG_POST_LIST_LIMIT` で DoS 対策(上限を超えたら sitemap index 化を検討)
    */
   async listPublic() {
     return this.prisma.blogPost.findMany({
       where: { publishedAt: { not: null } },
       orderBy: { publishedAt: 'desc' },
+      take: PUBLIC_BLOG_POST_LIST_LIMIT,
       select: {
         slug: true,
         projectId: true,

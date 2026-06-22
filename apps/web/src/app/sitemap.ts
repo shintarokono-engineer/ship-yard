@@ -10,7 +10,7 @@ import { getSiteUrl } from '@/lib/site-url';
  * 未認証で公開されるページのみ列挙する:
  *  - マーケティング LP(`/`)
  *  - 公開済みランディングページ(`/p/{slug}/{projectId}`)
- *  - 公開済みブログ記事(`/p/blogs/{slug}/{projectId}/{postSlug}`、ADR-014)
+ *  - 公開済みブログ記事(`/p/{slug}/{projectId}/blog/{postSlug}`、ADR-014)
  *
  * API 失敗時は該当パートを空配列にフォールバックして、sitemap 自体(最低限 `/`)を壊さない。
  */
@@ -39,7 +39,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   for (const post of publishedBlogs) {
     entries.push({
-      url: `${base}/p/blogs/${post.slug}/${post.projectId}/${post.postSlug}`,
+      url: `${base}/p/${post.slug}/${post.projectId}/blog/${post.postSlug}`,
       lastModified: post.publishedAt ? new Date(post.publishedAt) : undefined,
       changeFrequency: 'monthly',
       priority: 0.6,

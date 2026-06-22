@@ -8,7 +8,6 @@ import { fetchBlogPost } from '@/lib/api/blog-posts';
 import {
   ANNOUNCEMENT_STATUS_META,
   isWriterRole,
-  type BlogDeliveryContent,
   type BlogPost,
 } from '@/lib/api/types';
 import { fetchProject, fetchUsage, fetchWorkspace } from '@/lib/api/workspaces';
@@ -50,11 +49,11 @@ export default async function AnnouncementDetailPage({
   const blogDelivery = announcement.deliveries.find((d) => d.channel === 'BLOG');
 
   // BlogPost は Delivery.content.blogPostId から fetch する(BE 側で別 entity)。
-  // 既存テンプレートと違い fetchBlogPost には id が必要なので、Delivery が無い場合はスキップ。
+  // Json から取り出すため型ガード(`typeof === 'string'`)が主役、`as` キャストは使わない。
   let blogPost: BlogPost | null = null;
   if (blogDelivery) {
-    const content = blogDelivery.content as BlogDeliveryContent;
-    if (typeof content?.blogPostId === 'string') {
+    const content = blogDelivery.content as Record<string, unknown>;
+    if (typeof content.blogPostId === 'string') {
       blogPost = await fetchBlogPost(slug, projectId, content.blogPostId);
     }
   }

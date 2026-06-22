@@ -867,8 +867,13 @@ export type AnnouncementStatus = (typeof ANNOUNCEMENT_STATUSES)[number];
 export const DELIVERY_CHANNELS = ['TWITTER', 'BLOG'] as const;
 export type DeliveryChannel = (typeof DELIVERY_CHANNELS)[number];
 
-/** Delivery の配信状態(`DeliveryStatus` enum と同期、ADR-014)。 */
-export const DELIVERY_STATUSES = ['DRAFT', 'EXECUTING', 'SENT', 'FAILED'] as const;
+/**
+ * Delivery の配信状態(`DeliveryStatus` enum と同期、ADR-014、packages/db/prisma/schema.prisma)。
+ *
+ * SCHEDULED は MVP では UI から触れないが、enum 値として schema に存在するため網羅する
+ * (v1.x で予約投稿対応時に UI を追加する想定)。
+ */
+export const DELIVERY_STATUSES = ['DRAFT', 'SCHEDULED', 'SENT', 'FAILED'] as const;
 export type DeliveryStatus = (typeof DELIVERY_STATUSES)[number];
 
 /** Announcement.status の表示メタ(UI Badge 用、ADR-014)。 */
@@ -897,8 +902,8 @@ export const DELIVERY_STATUS_META: Record<
   { label: string; badgeVariant: BadgeVariant; badgeClassName?: string }
 > = {
   DRAFT: { label: '下書き', badgeVariant: 'secondary' },
-  EXECUTING: {
-    label: '配信中',
+  SCHEDULED: {
+    label: '予約済み',
     badgeVariant: 'outline',
     badgeClassName: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
   },

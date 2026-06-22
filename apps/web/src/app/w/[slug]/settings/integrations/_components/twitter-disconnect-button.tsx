@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useMemo, useState } from 'react';
+import { useActionState, useEffect, useMemo, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,13 @@ export function TwitterDisconnectButton({
     boundAction,
     INITIAL_DISCONNECT_TWITTER_FORM_STATE,
   );
+
+  // 切断成功時は Dialog を自動 close(リスト行は revalidate で消えるが、UI 確定のため明示)。
+  useEffect(() => {
+    if (state.ok && !pending) {
+      setOpen(false);
+    }
+  }, [state.ok, pending]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

@@ -47,7 +47,7 @@ import {
  * - BlogPost(タイトル / 本文 / slug / publishedAt)を表示
  * - 「編集」 Dialog で `updateBlogPostAction` を呼び BlogPost を上書き
  * - 「公開する」ボタンで `executeDeliveryAction` を呼び `publishedAt = now()`
- * - 公開済みなら `/p/blogs/:slug/:projectId/:postSlug` への「公開ページを開く」リンクを表示
+ * - 公開済みなら `/p/:slug/:projectId/blog/:postSlug` への「公開ページを開く」リンクを表示
  */
 export function BlogDeliveryCard({
   slug,
@@ -94,7 +94,7 @@ export function BlogDeliveryCard({
                   projectId={projectId}
                   announcementId={announcementId}
                   deliveryId={delivery.id}
-                  disabled={delivery.status === 'EXECUTING'}
+                  disabled={delivery.status === 'SCHEDULED'}
                 />
               )}
             </div>
@@ -124,9 +124,9 @@ export function BlogDeliveryCard({
             <p className="flex items-center gap-2">
               公開日時 {formatDateTime(blogPost.publishedAt!)}
               <a
-                href={`/p/blogs/${slug}/${projectId}/${blogPost.slug}`}
+                href={`/p/${slug}/${projectId}/blog/${blogPost.slug}`}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="text-primary inline-flex items-center gap-1 underline underline-offset-2"
               >
                 公開ページを開く
@@ -323,7 +323,7 @@ function ExecuteBlogButton({
         <DialogHeader>
           <DialogTitle>ブログを公開しますか?</DialogTitle>
           <DialogDescription>
-            記事の `publishedAt` をセットし、公開 URL (`/p/blogs/{'{'}slug{'}'}/{'{'}projectId{'}'}/{'{'}postSlug{'}'}`) からアクセスできるようにします。
+            この記事を公開します。公開後は外部ユーザーからもアクセス可能になります。
           </DialogDescription>
         </DialogHeader>
 

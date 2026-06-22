@@ -92,7 +92,9 @@ export function GenerateAnnouncementDialog({
           <DialogTitle>多チャネル告知文を AI で生成</DialogTitle>
           <DialogDescription>
             X (Twitter) とブログ向けの文面を 1 回の生成で用意します。
-            {hasExistingDeliveries && '既存の文面は上書きされます(BlogPost の slug は維持)。'}
+            {hasExistingDeliveries && (
+              <> 既存の文面は上書きされます(BlogPost の slug は維持)。</>
+            )}
           </DialogDescription>
         </DialogHeader>
 
