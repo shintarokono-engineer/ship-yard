@@ -14,11 +14,11 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 
+import { disconnectTwitterAction } from '../_actions/disconnect-twitter';
 import {
-  disconnectTwitterAction,
   INITIAL_DISCONNECT_TWITTER_FORM_STATE,
   type DisconnectTwitterFormState,
-} from '../_actions/disconnect-twitter';
+} from '../_shared/disconnect-twitter-form';
 
 /** Twitter アカウント切断ボタン + 確認 Dialog(ADR-014、OWNER / ADMIN のみ)。 */
 export function TwitterDisconnectButton({

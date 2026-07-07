@@ -1,5 +1,4 @@
-import { Controller, Delete, Get, Param, Res, UseGuards } from '@nestjs/common';
-import type { Response } from 'express';
+import { Controller, Delete, Get, Param, UseGuards } from '@nestjs/common';
 
 import { ClerkAuthGuard } from '../../auth/clerk-auth.guard';
 import { CurrentWorkspace } from '../../auth/current-workspace.decorator';
@@ -13,7 +12,7 @@ import { TwitterClientService } from './twitter-client.service';
 /**
  * Twitter (X) アカウント連携 API(ADR-014 §3)。
  *
- * - GET authorize    : OAuth 開始(OWNER / ADMIN のみ)。X の認可 URL に 302 リダイレクト
+ * - GET authorize    : OAuth 開始(OWNER / ADMIN のみ)。X の認可 URL を JSON で返す
  * - GET (list)       : 連携アカウント一覧(テナントメンバーなら誰でも、token は返さない)
  * - DELETE :accountId: 切断(OWNER / ADMIN)。X 側 revoke + ローカル DB 削除
  *
@@ -31,8 +30,12 @@ export class IntegrationsTwitterController {
 
   /**
    * GET /workspaces/:slug/integrations/twitter/authorize
-   * X の認可 URL を生成し、ユーザーをリダイレクトする。
+   * X の認可 URL を生成して JSON で返す。呼び出し側(Server Action)が `redirect(url)` する設計。
    * Clerk 認証 + WorkspaceGuard を通った後、ADMIN_ROLES のみ実行可能。
+   *
+   * 302 リダイレクトを返さない理由:ブラウザからの `<a href>` 直接遷移では Authorization ヘッダーが
+   * 送られず 401 になる。Server Action 経由で Bearer JWT を付けて叩き、レスポンスの URL を
+   * FE 側で `redirect()` する方式(BFF プロキシパターン)に統一(ADR-014 §API 設計 の余地に記載)。
    */
   @Get('authorize')
   @UseGuards(WorkspaceGuard)
@@ -40,8 +43,7 @@ export class IntegrationsTwitterController {
   async authorize(
     @CurrentWorkspace() ws: WorkspaceAccess,
     @Param('slug') slug: string,
-    @Res() res: Response,
-  ): Promise<void> {
+  ): Promise<{ url: string }> {
     // `WorkspaceAccess` に slug が含まれないため URL から `@Param('slug')` で取得する。
     // `WorkspaceGuard` は URL の `:slug` から tenant を解決して `ws.tenantId` をセットしているので、
     // ここで取り出す `slug` は guard が認可済みの tenant の slug と必ず一致する。
@@ -51,7 +53,7 @@ export class IntegrationsTwitterController {
       userId: ws.userId,
       returnSlug: slug,
     });
-    res.redirect(302, url);
+    return { url };
   }
 
   /**

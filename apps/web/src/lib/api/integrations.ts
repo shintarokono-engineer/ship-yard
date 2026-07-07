@@ -6,35 +6,23 @@ import type { TwitterAccount } from './types';
  *
  * BE 側 `IntegrationsTwitterController`(`/workspaces/:slug/integrations/twitter`)に対応。
  *
- * - 認可開始(`GET /authorize`)は X の認可画面に 302 リダイレクトするため、SSR から fetch ではなく
- *   `<a href={twitterAuthorizeUrl(slug)}>` でブラウザ遷移させる。
+ * - 認可開始(`GET /authorize`)は BE が X の認可 URL を JSON で返す設計。ブラウザから `<a href>` で
+ *   直接叩くと Authorization ヘッダーが送られず 401 になるため、Server Action 経由で Bearer JWT を
+ *   付けて叩き、返ってきた URL を `redirect()` で辿る(BFF プロキシパターン、ADR-014 §API 設計)。
  * - list / disconnect は通常の JSON API。
  */
 
 const base = (slug: string) => `/workspaces/${encodeURIComponent(slug)}/integrations/twitter`;
 
 /**
- * Twitter OAuth 開始 URL(BE が X の認可画面へ 302 リダイレクトする)。
+ * `GET /workspaces/:slug/integrations/twitter/authorize` — Twitter OAuth 開始 URL を取得する。
  *
- * fetch ではブラウザに渡せないので、設定画面の「X を連携」リンクの href として使う。
- * Server / Client 双方から呼び得るため、ブラウザに露出する `NEXT_PUBLIC_API_URL` を読む。
- * (将来 BFF プロキシ `/api/integrations/twitter/authorize` 経由に変えれば `API_URL` で済む)
- *
- * 環境変数未設定時は **`null` を返す**(throw しない)。呼び出し側で null をハンドリングして
- * 「設定が見つかりません」と提示するか、リンク自体を disable する。
+ * BE が state + PKCE verifier を Redis に保存した上で、X の認可 URL(`https://twitter.com/i/oauth2/authorize?...`)
+ * を JSON で返す。呼び出し側は Server Action 内で `redirect(res.url)` して X 認可画面に遷移させる。
+ * 403(OWNER/ADMIN 以外) / 503(env 未設定)は `ApiError` として throw される。
  */
-export function twitterAuthorizeUrl(slug: string): string | null {
-  const publicBase = process.env.NEXT_PUBLIC_API_URL;
-  if (!publicBase) {
-    if (process.env.NODE_ENV !== 'production') {
-      // ローカル / プレビューで設定漏れを発見しやすくする(本番は CSP / 監視で別途検知)。
-      console.warn(
-        '[twitterAuthorizeUrl] NEXT_PUBLIC_API_URL is not set. apps/web/.env.local を確認してください。',
-      );
-    }
-    return null;
-  }
-  return `${publicBase}${base(slug)}/authorize`;
+export async function initiateTwitterAuthorize(slug: string): Promise<{ url: string }> {
+  return apiFetch<{ url: string }>(`${base(slug)}/authorize`);
 }
 
 /** `GET /workspaces/:slug/integrations/twitter` — 連携アカウント一覧(token は含まない)。 */

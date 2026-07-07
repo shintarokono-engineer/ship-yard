@@ -1,20 +1,22 @@
 import { notFound } from 'next/navigation';
 import { Twitter } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { listTwitterAccounts, twitterAuthorizeUrl } from '@/lib/api/integrations';
+import { listTwitterAccounts } from '@/lib/api/integrations';
 import { isAdminRole } from '@/lib/api/types';
 import { fetchWorkspace } from '@/lib/api/workspaces';
 import { formatDateTime } from '@/lib/format';
 
+import { TwitterConnectButton } from './_components/twitter-connect-button';
 import { TwitterDisconnectButton } from './_components/twitter-disconnect-button';
 
 /**
  * `/w/{slug}/settings/integrations` — 外部サービス連携設定(ADR-014)。
  *
  * MVP では Twitter (X) のみ。連携の追加 / 切断は OWNER / ADMIN のみ実行可、一覧表示は所属メンバー全員可。
- * 連携追加は BE の `GET /authorize` を踏み台にして X の認可画面へ 302 リダイレクトする(ブラウザ遷移)。
+ * 連携追加は Server Action `initiateTwitterOAuthAction` 経由で BE の `/authorize` を Bearer JWT 付きで
+ * 叩き、返ってきた X 認可 URL に `redirect()` する(ブラウザから `<a href>` で BE 直叩きすると
+ * Authorization ヘッダが送られず 401 になるため BFF プロキシパターンを採用)。
  */
 export default async function IntegrationsPage({
   params,
@@ -29,8 +31,6 @@ export default async function IntegrationsPage({
   if (!workspace) notFound();
 
   const canManage = isAdminRole(workspace.role);
-  // NEXT_PUBLIC_API_URL 未設定時は null。 OWNER/ADMIN にだけ「連携不可」 と提示する。
-  const authorizeUrl = canManage ? twitterAuthorizeUrl(slug) : null;
 
   return (
     <div className="space-y-4">
@@ -40,19 +40,7 @@ export default async function IntegrationsPage({
             <span className="flex items-center gap-2">
               <Twitter className="text-primary size-4" aria-hidden="true" />X (Twitter) 連携
             </span>
-            {canManage && authorizeUrl && (
-              <Button asChild variant="outline" size="sm">
-                {/* 外部(X)へのリダイレクトを伴うため `rel="noopener noreferrer"` を付与。 */}
-                <a href={authorizeUrl} rel="noopener noreferrer">
-                  X アカウントを連携
-                </a>
-              </Button>
-            )}
-            {canManage && !authorizeUrl && (
-              <span className="text-destructive text-xs">
-                連携 URL を組み立てられませんでした(管理者設定を確認してください)
-              </span>
-            )}
+            {canManage && <TwitterConnectButton slug={slug} />}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
