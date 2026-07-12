@@ -42,4 +42,8 @@ coverage/
 # Claude Code (personal local overrides / skill outputs / actual MCP config)
 .claude/settings.local.json
 .claude/output/
+.claude/worktrees/
 .mcp.json
+
+# Editor workspace files
+ship-yard.code-workspace
