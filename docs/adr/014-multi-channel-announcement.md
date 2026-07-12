@@ -2,7 +2,33 @@
 
 ## ステータス
 
-提案(2026-05-28、ブレストフェーズ — 詳細設計は継続中)
+**MVP 実装完了**(2026-06-13 BE / 2026-06-22 FE / 2026-07-12 Web Intent 方式に暫定移行)
+
+### 2026-07-12 追記:Twitter は Web Intent 方式に暫定移行
+
+MVP 動作確認中に X API v2 の Free tier(2025 年前半に大幅制限)で **HTTP 402 CreditsDepleted** が発生し、実投稿が不可能であることが判明。Basic プラン($200/月)への即時アップグレードは公開前フェーズでコスト過大と判断し、以下の暫定方針に変更:
+
+**MVP(現在)**:
+- Twitter Delivery は **Web Intent 方式**(`https://twitter.com/intent/tweet?text=...` を FE で新規タブ表示、ユーザーが X 側で送信 → Shipyard で「送信完了」ボタンを押して SENT マーク)
+- X API 呼び出し / OAuth 連携基盤(`TwitterAccount` / `TokenEncryption` / `TwitterAuthService` / `TwitterClientService`)は削除
+- `apps/api/src/integrations/twitter/` / `apps/api/src/common/crypto/` / `apps/web/src/app/w/[slug]/settings/integrations/` を全削除
+- schema から `TwitterAccount` model 削除(migration `20260712060000_remove_twitter_account`)
+- Upstash Redis / TWITTER_TOKEN_ENCRYPTION_KEY / TWITTER_CLIENT_* / TWITTER_REDIRECT_URI env も不要化
+
+**v1.x で API 版に戻す時**:
+- 予約投稿 / スレッド投稿 / 投稿ステータス自動検知 / 効果計測(Twitter Insights API)を実装するタイミングで、Basic プラン($200/月)を契約 + OAuth 基盤を再実装
+- 本 ADR の §決定「Twitter OAuth + API を採る根拠」 は v1.x の方針として維持
+
+**この決定の Trade-off**:
+- ✅ X API 料金・審査リスク完全ゼロ、投稿数無制限
+- ✅ MVP 公開時の月額固定コスト削減(¥30,000/月 削減)
+- ❌ 送信完了の自動検知不可(ユーザー自己申告)
+- ❌ 予約投稿・スレッド投稿の MVP 提供不可
+- ❌ v1.x で戻す時に OAuth 基盤を再実装するコスト
+
+### 2026-06 まで(元のステータス)
+
+提案(2026-05-28、ブレストフェーズ)→ Day 56-57 BE / Day 58-59 FE 実装完了
 
 ## 背景・問題
 

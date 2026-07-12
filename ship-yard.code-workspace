@@ -1,0 +1,14 @@
+{
+  "folders": [
+	{
+		"path": "."
+	},
+	{
+		"path": ".claude/worktrees/day47-validation-diagnosis-pages"
+	},
+	{
+		"path": ".claude/worktrees/adr-014-multi-channel"
+	}
+],
+  "settings": {},
+}

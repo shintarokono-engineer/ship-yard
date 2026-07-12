@@ -26,12 +26,10 @@ import { clerkClientProvider } from './auth/clerk-client.provider';
 import { BillingService } from './billing/billing.service';
 import { ChecklistController } from './checklist/checklist.controller';
 import { ChecklistService } from './checklist/checklist.service';
-import { CryptoModule } from './common/crypto/crypto.module';
 import { DocumentsController } from './documents/documents.controller';
 import { DocumentsService } from './documents/documents.service';
 import { IdeaValidationController } from './idea-validation/idea-validation.controller';
 import { IdeaValidationService } from './idea-validation/idea-validation.service';
-import { IntegrationsTwitterModule } from './integrations/twitter/integrations-twitter.module';
 import { InvitationsController } from './invitations/invitations.controller';
 import { InvitationsService } from './invitations/invitations.service';
 import { PublicInvitationsController } from './invitations/public-invitations.controller';
@@ -65,8 +63,6 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     AnthropicModule,
     OpenAIModule,
     MailModule,
-    CryptoModule,
-    IntegrationsTwitterModule,
     // BlogPostModule は自己完結のため Module 分離(controllers / providers / exports)。
     // 一方 AnnouncementService / AnnouncementGenService / AnnouncementController は AppModule に
     // 直登録(AIUsageService が AppModule の直 provider のため、別 Module で wrap すると DI スコープ

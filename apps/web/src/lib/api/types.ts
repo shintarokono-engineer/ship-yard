@@ -1008,13 +1008,3 @@ export interface PublicBlogPost {
   tenant: { slug: string };
 }
 
-/** 連携済 Twitter アカウント(`GET /workspaces/:slug/integrations/twitter`、token は含まない)。 */
-export interface TwitterAccount {
-  id: string;
-  handle: string;
-  xUserId: string;
-  connectedById: string;
-  expiresAt: string;
-  createdAt: string;
-  scopes: string[];
-}

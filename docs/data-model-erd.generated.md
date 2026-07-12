@@ -330,18 +330,6 @@ FAILED FAILED
     DateTime updatedAt 
     }
   
-
-  "TwitterAccount" {
-    String id "🗝️"
-    String xUserId 
-    String handle 
-    String accessToken 
-    String refreshToken 
-    DateTime expiresAt 
-    String scopes 
-    DateTime createdAt 
-    }
-  
     "Tenant" |o--|| "Plan" : "enum:plan"
     "Tenant" }o--|| "User" : "owner"
     "TenantMember" |o--|| "Role" : "enum:role"
@@ -392,6 +380,4 @@ FAILED FAILED
     "BlogPost" }o--|| "Tenant" : "tenant"
     "BlogPost" }o--|| "Project" : "project"
     "BlogPost" |o--|o "Delivery" : "delivery"
-    "TwitterAccount" }o--|| "Tenant" : "tenant"
-    "TwitterAccount" }o--|| "User" : "connectedBy"
 ```

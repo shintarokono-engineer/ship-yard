@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 import {
   AnnouncementStatus,
@@ -11,10 +11,6 @@ import {
 
 import { AIUsageService } from '../ai/ai-usage.service';
 import { dayjs } from '../common/time';
-import {
-  TwitterApiError,
-  TwitterClientService,
-} from '../integrations/twitter/twitter-client.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AnnouncementGenService } from './announcement-gen.service';
 import { ANNOUNCEMENT_CHANNELS } from './announcement-types';
@@ -44,7 +40,6 @@ export class AnnouncementService {
     private readonly prisma: PrismaService,
     private readonly aiUsage: AIUsageService,
     private readonly gen: AnnouncementGenService,
-    private readonly twitterClient: TwitterClientService,
   ) {}
 
   /** Announcement を新規作成する(status = DRAFT、Delivery 0 件)。 */
@@ -336,8 +331,9 @@ export class AnnouncementService {
   }
 
   /**
-   * Delivery 実行(MVP は同期即時)。Twitter = POST tweet / Blog = publishedAt セット(ADR-014 §3)。
-   * 失敗時は Delivery.status = FAILED + error にユーザー向け文言を保存し、上位に例外を再 throw。
+   * Delivery 実行(ADR-014 §3、MVP)。
+   * - TWITTER: Web Intent で X の投稿画面を FE が開き、ユーザーの「送信完了」で SENT マーク
+   * - BLOG: BlogPost.publishedAt をセットして公開
    */
   async executeDelivery(args: {
     tenantId: string;
@@ -357,50 +353,18 @@ export class AnnouncementService {
     }
 
     if (delivery.channel === DeliveryChannel.TWITTER) {
-      const content = delivery.content as unknown as TwitterDeliveryContent;
-      // TODO(v1.x): 複数アカウント連携時に「どのアカウントから投稿するか」 を UI から選択できるようにする。
-      // MVP では最古アカウント固定(連携順 = 利用順の暗黙ルール)。
-      const account = await this.prisma.twitterAccount.findFirst({
-        where: { tenantId: args.tenantId },
-        orderBy: { createdAt: 'asc' },
+      // ADR-014(MVP)は Web Intent 方式:BE は X API を叩かず、FE で X の投稿画面が開かれた前提で
+      // ユーザーの「送信完了」ボタンを起点に SENT マークするだけ。externalRef は tweet id を取得できない。
+      await this.prisma.delivery.update({
+        where: { id: delivery.id },
+        data: {
+          status: DeliveryStatus.SENT,
+          sentAt: dayjs.utc().toDate(),
+          externalRef: null,
+          executedById: args.userId,
+          error: null,
+        },
       });
-      if (!account) {
-        await this.prisma.delivery.update({
-          where: { id: delivery.id },
-          data: {
-            status: DeliveryStatus.FAILED,
-            error: 'X アカウントが連携されていません。設定画面から連携してください。',
-          },
-        });
-        throw new ForbiddenException('X アカウントが連携されていません。');
-      }
-      try {
-        const result = await this.twitterClient.postTweet(account, content.text);
-        await this.prisma.delivery.update({
-          where: { id: delivery.id },
-          data: {
-            status: DeliveryStatus.SENT,
-            sentAt: dayjs.utc().toDate(),
-            externalRef: result.tweetId,
-            executedById: args.userId,
-            error: null,
-          },
-        });
-      } catch (err) {
-        const message =
-          err instanceof TwitterApiError
-            ? err.userMessage
-            : 'X 投稿で予期しないエラーが発生しました。';
-        await this.prisma.delivery.update({
-          where: { id: delivery.id },
-          data: {
-            status: DeliveryStatus.FAILED,
-            error: message,
-            executedById: args.userId,
-          },
-        });
-        throw err;
-      }
     } else if (delivery.channel === DeliveryChannel.BLOG) {
       const content = delivery.content as unknown as BlogDeliveryContent;
       // Json 型から取り出した blogPostId は型レベルで信頼できないため、

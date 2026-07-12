@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState, useEffect, useMemo, useState } from 'react';
-import { Pencil, Send, Twitter } from 'lucide-react';
+import { CheckCircle2, ExternalLink, Pencil, Twitter } from 'lucide-react';
 
 import { FormField } from '@/app/w/[slug]/_shared/form-field';
 import { Badge } from '@/components/ui/badge';
@@ -36,13 +36,15 @@ import {
   type UpdateAnnouncementFormState,
 } from '../_shared/update-announcement-form';
 
+/** X の投稿画面(Web Intent)を新規タブで開く URL。 */
+function twitterIntentUrl(text: string): string {
+  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+}
+
 /**
- * Twitter Delivery 表示 + 編集 + 投稿実行カード(ADR-014)。
- *
- * - content.text を表示
- * - 「編集」 Dialog で `updateAnnouncementAction('twitter', ...)` を呼び content を上書き
- * - 「X に投稿」ボタンで `executeDeliveryAction` を呼び実投稿(MVP は同期即時)
- * - 投稿後の状態(SENT / FAILED)と sentAt / externalRef / error を表示
+ * Twitter Delivery カード(ADR-014 MVP:Web Intent 方式)。
+ * - 「X で投稿」ボタン → 新規タブで X の投稿画面を開く
+ * - 「送信完了」ボタン → BE を叩いて Delivery.status = SENT にマーク
  */
 export function TwitterDeliveryCard({
   slug,
@@ -59,6 +61,7 @@ export function TwitterDeliveryCard({
 }) {
   const content = delivery.content as TwitterDeliveryContent;
   const stMeta = DELIVERY_STATUS_META[delivery.status];
+  const isSent = delivery.status === 'SENT';
 
   return (
     <Card>
@@ -78,15 +81,28 @@ export function TwitterDeliveryCard({
                 projectId={projectId}
                 announcementId={announcementId}
                 currentText={content.text}
-                disabled={delivery.status === 'SENT' || delivery.status === 'SCHEDULED'}
+                disabled={isSent}
               />
-              <ExecuteTwitterButton
-                slug={slug}
-                projectId={projectId}
-                announcementId={announcementId}
-                deliveryId={delivery.id}
-                disabled={delivery.status === 'SENT' || delivery.status === 'SCHEDULED'}
-              />
+              {!isSent && (
+                <>
+                  <Button asChild variant="outline" size="sm" className="gap-1.5">
+                    <a
+                      href={twitterIntentUrl(content.text)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink className="size-3.5" aria-hidden="true" />
+                      X で投稿する
+                    </a>
+                  </Button>
+                  <MarkSentButton
+                    slug={slug}
+                    projectId={projectId}
+                    announcementId={announcementId}
+                    deliveryId={delivery.id}
+                  />
+                </>
+              )}
             </div>
           )}
         </CardTitle>
@@ -97,15 +113,7 @@ export function TwitterDeliveryCard({
           <p className="tabular-nums">
             {content.text.length} / {TWITTER_TEXT_MAX} 文字
           </p>
-          {delivery.sentAt && <p>投稿日時 {formatDateTime(delivery.sentAt)}</p>}
-          {delivery.externalRef && (
-            <p>
-              ツイート ID:{' '}
-              <code className="rounded bg-black/5 px-1 dark:bg-white/10">
-                {delivery.externalRef}
-              </code>
-            </p>
-          )}
+          {delivery.sentAt && <p>送信完了 {formatDateTime(delivery.sentAt)}</p>}
           {delivery.error && (
             <p
               role="alert"
@@ -220,18 +228,20 @@ function EditTwitterContentDialog({
   );
 }
 
-function ExecuteTwitterButton({
+/**
+ * X 側で送信完了したことをユーザーが手動確認するボタン(Web Intent 方式)。
+ * BE は X API を叩かず、Delivery.status を SENT にマークするだけ。
+ */
+function MarkSentButton({
   slug,
   projectId,
   announcementId,
   deliveryId,
-  disabled,
 }: {
   slug: string;
   projectId: string;
   announcementId: string;
   deliveryId: string;
-  disabled: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const boundAction = useMemo(
@@ -252,16 +262,16 @@ function ExecuteTwitterButton({
   return (
     <Dialog open={open} onOpenChange={(next) => !pending && setOpen(next)}>
       <DialogTrigger asChild>
-        <Button size="sm" disabled={disabled} className="gap-1.5">
-          <Send className="size-3.5" aria-hidden="true" />
-          X に投稿
+        <Button size="sm" className="gap-1.5">
+          <CheckCircle2 className="size-3.5" aria-hidden="true" />
+          送信完了
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>X に投稿しますか?</DialogTitle>
+          <DialogTitle>X で送信完了しましたか?</DialogTitle>
           <DialogDescription>
-            連携済みの X アカウントから投稿します。投稿後は取り消せません。
+            X の投稿画面で「ツイートする」を押した後にクリックしてください。この配信を「送信済み」としてマークします。
           </DialogDescription>
         </DialogHeader>
 
@@ -281,10 +291,10 @@ function ExecuteTwitterButton({
               onClick={() => setOpen(false)}
               disabled={pending}
             >
-              キャンセル
+              まだ
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? '投稿中...' : '投稿する'}
+              {pending ? '記録中...' : '送信完了とする'}
             </Button>
           </DialogFooter>
         </form>

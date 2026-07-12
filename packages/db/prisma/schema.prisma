@@ -222,10 +222,9 @@ model User {
   invitations              InvitationToken[]
   ragQaSessions            RagQaSession[]
   serviceScores            ServiceScore[]
-  ideaValidations          IdeaValidation[]
-  announcementsCreated     Announcement[]
-  deliveriesExecuted       Delivery[]
-  twitterAccountsConnected TwitterAccount[]
+  ideaValidations      IdeaValidation[]
+  announcementsCreated Announcement[]
+  deliveriesExecuted   Delivery[]
 }
 
 /// ワークスペース(テナント)。マルチテナント分離の基本単位(ADR-002)。
@@ -254,10 +253,9 @@ model Tenant {
   landingPages    LandingPage[]
   serviceScores   ServiceScore[]
   ideaValidations IdeaValidation[]
-  announcements   Announcement[]
-  deliveries      Delivery[]
-  blogPosts       BlogPost[]
-  twitterAccounts TwitterAccount[]
+  announcements Announcement[]
+  deliveries    Delivery[]
+  blogPosts     BlogPost[]
 
   @@index([slug])
 }
@@ -807,33 +805,3 @@ model BlogPost {
   @@index([tenantId, projectId, publishedAt])
 }
 
-/// Twitter (X) アカウント連携情報(ADR-014)。テナント単位で複数アカウント連携を許容。
-/// accessToken / refreshToken はアプリ層 AES-256-GCM で暗号化してから保存(`iv||tag||ciphertext` の base64url)。
-/// master key は AWS Secrets Manager 管理(env `TWITTER_TOKEN_ENCRYPTION_KEY`)。
-model TwitterAccount {
-  /// 内部 ID
-  id            String   @id @default(cuid())
-  /// 所属テナント(マルチテナント分離キー、必須)
-  tenantId      String
-  /// 連携実行者(`TenantMember.userId`、監査用、配信実行権限とは独立)
-  connectedById String
-  /// X 側 user id
-  xUserId       String
-  /// @handle(表示用)
-  handle        String
-  /// 暗号化済 access_token(base64url(iv||tag||ciphertext))
-  accessToken   String
-  /// 暗号化済 refresh_token
-  refreshToken  String
-  /// access_token の有効期限
-  expiresAt     DateTime
-  /// 付与された scope(tweet.read / tweet.write / users.read / offline.access)
-  scopes        String[]
-  createdAt     DateTime @default(now())
-
-  tenant      Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  connectedBy User   @relation(fields: [connectedById], references: [id])
-
-  @@unique([tenantId, xUserId])
-  @@index([tenantId])
-}
