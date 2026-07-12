@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useActionState, useCallback, useMemo, useState } from 'react';
 
-import { getLpBlockKey } from '@/components/lp-blocks/lp-block-key';
 import { LpRenderer } from '@/components/lp-blocks/lp-renderer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -74,8 +73,12 @@ export function LpEditor({
 
         <div className="space-y-4">
           {blocks.map((block, i) => (
+            // 編集 UI では key を編集対象フィールドから合成してはいけない(打鍵ごとに key が変わり
+            // カードが remount → 入力欄からフォーカスが外れる)。v1 は追加/削除/並び替えが無く配列の
+            // 位置が安定なので、type + index の安定 key を使う。getLpBlockKey は読み取り専用の
+            // LpRenderer 専用に留める。
             <BlockCardEditor
-              key={getLpBlockKey(block)}
+              key={`${block.type}-${i}`}
               block={block}
               index={i}
               disabled={pending}

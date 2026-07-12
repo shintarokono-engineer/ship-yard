@@ -30,10 +30,13 @@ export default async function ChecklistPage({
 }) {
   const { slug, projectId } = await params;
 
-  const workspace = await fetchWorkspace(slug);
+  // workspace / project はどちらも route params のみで引け 404 で null を返すため並列化する。
+  // items / usage は project 不在時に 404 を throw するので、notFound ガード後にまとめて取得する。
+  const [workspace, project] = await Promise.all([
+    fetchWorkspace(slug),
+    fetchProject(slug, projectId),
+  ]);
   if (!workspace) notFound();
-
-  const project = await fetchProject(slug, projectId);
   if (!project) notFound();
 
   const [items, usage] = await Promise.all([listChecklist(slug, projectId), fetchUsage(slug)]);

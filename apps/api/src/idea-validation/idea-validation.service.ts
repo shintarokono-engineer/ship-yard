@@ -77,7 +77,9 @@ export class IdeaValidationService {
     plan: Plan;
     instructions?: string;
   }): Promise<{ validation: IdeaValidation; output: ValidationOutput }> {
-    // 1. プラン quota チェック
+    // 1. プラン quota チェック(グローバルクレジット上限 + 本機能固有の月次回数上限、ADR-012)。
+    //    他機能でクレジットを使い切っていれば検証も止める(landing-page 等と対称にする)。
+    await this.aiUsage.assertWithinPlanCredits({ id: input.tenantId, plan: input.plan });
     await this.aiUsage.assertWithinValidationQuota({ id: input.tenantId, plan: input.plan });
 
     // 2. Project + 詳細情報フィールドを取得

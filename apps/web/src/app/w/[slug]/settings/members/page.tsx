@@ -53,7 +53,8 @@ const INVITATION_STATUS_META: Record<
 export default async function MembersPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
-  const workspace = await fetchWorkspace(slug);
+  // currentUser() は workspace に依存しない(Clerk セッション由来)ので fetchWorkspace と並列化する。
+  const [workspace, me] = await Promise.all([fetchWorkspace(slug), currentUser()]);
   if (!workspace) {
     notFound();
   }
@@ -62,7 +63,6 @@ export default async function MembersPage({ params }: { params: Promise<{ slug: 
   // ADR-012: 招待機能(メンバー追加)は Team プラン限定。
   // Pro / Free では BE 側で 403 を返すため、UI も同じ条件でガードして無用な API 呼び出しを避ける。
   const isTeamPlan = workspace.plan === 'TEAM';
-  const me = await currentUser();
   const myEmail = me?.primaryEmailAddress?.emailAddress?.toLowerCase() ?? null;
 
   // 招待一覧は ADMIN かつ Team プランのみ取得(非 ADMIN・非 Team は 403)。並列実行のため

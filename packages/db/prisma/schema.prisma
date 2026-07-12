@@ -693,7 +693,7 @@ model InvitationToken {
   email       String
   /// 招待時に付与するロール(OWNER 以外を選択可)
   role        Role      @default(DEVELOPER)
-  /// 招待リンク用トークン(URL に埋め込む、ユニーク、暗号学的乱数を推奨)
+  /// 招待リンク用トークンの SHA-256 ハッシュ(生トークンは URL/メールのみ、DB 非保存。ユニーク)
   token       String    @unique
   /// 有効期限(発行から 7 日)
   expiresAt   DateTime

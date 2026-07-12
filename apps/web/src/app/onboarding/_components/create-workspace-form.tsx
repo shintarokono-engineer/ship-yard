@@ -26,6 +26,9 @@ export function CreateWorkspaceForm() {
   const [nameLength, setNameLength] = useState(initialName.length);
   const [slugLength, setSlugLength] = useState(initialSlug.length);
 
+  const nameErrors = state.fieldErrors?.name;
+  const slugErrors = state.fieldErrors?.slug;
+
   return (
     <form action={formAction} className="space-y-4">
       <FormField
@@ -33,12 +36,15 @@ export function CreateWorkspaceForm() {
         label="ワークスペース名"
         required
         counter={{ current: nameLength, max: NAME_MAX_LENGTH }}
-        errors={state.fieldErrors?.name}
+        errors={nameErrors}
       >
         <Input
           id="name"
           name="name"
           required
+          aria-required="true"
+          aria-invalid={nameErrors && nameErrors.length > 0 ? 'true' : undefined}
+          aria-describedby={nameErrors && nameErrors.length > 0 ? 'name-error' : undefined}
           maxLength={NAME_MAX_LENGTH}
           defaultValue={initialName}
           placeholder="例: My Team"
@@ -51,13 +57,15 @@ export function CreateWorkspaceForm() {
         id="slug"
         label="URL(任意)"
         counter={{ current: slugLength, max: SLUG_MAX_LENGTH }}
-        errors={state.fieldErrors?.slug}
+        errors={slugErrors}
       >
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground text-sm">shipyard.app/w/</span>
           <Input
             id="slug"
             name="slug"
+            aria-invalid={slugErrors && slugErrors.length > 0 ? 'true' : undefined}
+            aria-describedby={slugErrors && slugErrors.length > 0 ? 'slug-error' : undefined}
             maxLength={SLUG_MAX_LENGTH}
             defaultValue={initialSlug}
             placeholder="my-team(空欄ならワークスペース名から自動生成)"

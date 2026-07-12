@@ -6,6 +6,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { LpBlock } from './lp-blocks';
 
 /**
+ * `listPublished`(sitemap 用)で 1 回に返す公開 LP の上限件数。
+ * 未認証・ページングなしの全件取得が無制限に肥大化するのを防ぐ上限(sitemap 仕様上限 50,000 URL 内)。
+ * MVP 規模では到達しない想定。超える規模になったら cursor ページング + sitemap index に移行する(v1.x)。
+ */
+const SITEMAP_MAX_PUBLISHED_LANDING_PAGES = 10_000;
+
+/**
  * `LandingPage`(ADR-009)の永続化を担う Service。
  *
  * `/workspaces/:slug/...` ルートは ALS のテナントコンテキストを持たないため、`tenantId` は
@@ -115,6 +122,7 @@ export class LandingPageService {
       where: { publishedAt: { not: null } },
       select: { projectId: true, publishedAt: true, tenant: { select: { slug: true } } },
       orderBy: { publishedAt: 'desc' },
+      take: SITEMAP_MAX_PUBLISHED_LANDING_PAGES,
     });
   }
 }

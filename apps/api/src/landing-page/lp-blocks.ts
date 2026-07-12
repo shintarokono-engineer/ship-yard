@@ -240,13 +240,16 @@ export function parseLpBlocks(raw: unknown): LpBlock[] {
       }
       case 'footer': {
         // footer のリンクは Tool スキーマ上 `items` 配列に入る(input_schema の description 参照)。
+        const copyright = asString(b.copyright);
         const links = asArray(b.items)
           .map((it) => {
             const o = (typeof it === 'object' && it !== null ? it : {}) as Record<string, unknown>;
             return { label: asString(o.label), href: asString(o.href) };
           })
           .filter((it) => it.label.length > 0);
-        result.push({ type: 'footer', copyright: asString(b.copyright), links });
+        // 他ブロック同様、実体の無い(copyright も links も空)footer は push しない。
+        if (!copyright && links.length === 0) break;
+        result.push({ type: 'footer', copyright, links });
         break;
       }
       default:

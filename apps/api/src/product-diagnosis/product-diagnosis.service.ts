@@ -74,6 +74,9 @@ export class ProductDiagnosisService {
     instructions?: string;
   }): Promise<{ score: ServiceScore; output: DiagnosisOutput }> {
     // 1. プラン quota チェック(Free フォールバック 403 / Pro/Team 月次上限)
+    //    グローバルクレジット上限(ADR-012)+ 本機能固有の月次回数上限の両方を AI 呼び出し前に確認する。
+    //    他機能でクレジットを使い切っていれば診断も止める(landing-page 等と対称にする)。
+    await this.aiUsage.assertWithinPlanCredits({ id: input.tenantId, plan: input.plan });
     await this.aiUsage.assertWithinDiagnosisQuota({ id: input.tenantId, plan: input.plan });
 
     // 2. Project + 関連データ収集

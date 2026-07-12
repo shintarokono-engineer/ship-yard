@@ -18,10 +18,10 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  asTwitterDeliveryContent,
   DELIVERY_STATUS_META,
   TWITTER_TEXT_MAX,
   type Delivery,
-  type TwitterDeliveryContent,
 } from '@/lib/api/types';
 import { formatDateTime } from '@/lib/format';
 
@@ -59,7 +59,7 @@ export function TwitterDeliveryCard({
   delivery: Delivery;
   canWrite: boolean;
 }) {
-  const content = delivery.content as TwitterDeliveryContent;
+  const content = asTwitterDeliveryContent(delivery.content);
   const stMeta = DELIVERY_STATUS_META[delivery.status];
   const isSent = delivery.status === 'SENT';
 

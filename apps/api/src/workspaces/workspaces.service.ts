@@ -2,7 +2,7 @@ import { randomBytes } from 'crypto';
 
 import { ConflictException, ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common';
 
-import { Plan, Role } from '@shipyard/db';
+import { isPrismaError, Plan, PrismaErrorCode, Role } from '@shipyard/db';
 
 import { BillingService } from '../billing/billing.service';
 import { CLERK_CLIENT, type ClerkClient } from '../auth/clerk-client.provider';
@@ -76,26 +76,38 @@ export class WorkspacesService {
       ? await this.requireSlugAvailable(dto.slug)
       : await this.generateUniqueSlug(dto.name);
 
-    // Tenant + TenantMember(OWNER)を原子化(両方 DB クエリのみ、外部 I/O なし)
-    const tenant = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.tenant.create({
-        data: {
-          slug,
-          name: dto.name,
-          ownerId: user.id,
-          plan: Plan.FREE,
-        },
-        select: { id: true, slug: true, name: true, plan: true },
+    // Tenant + TenantMember(OWNER)を原子化(両方 DB クエリのみ、外部 I/O なし)。
+    // requireSlugAvailable → create の間に同一 slug が割り込む TOCTOU があるため、
+    // @@unique(slug) 違反(P2002)は 500 ではなく 409 に変換する(最終ガードは DB 制約)。
+    let tenant: { id: string; slug: string; name: string; plan: Plan };
+    try {
+      tenant = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.tenant.create({
+          data: {
+            slug,
+            name: dto.name,
+            ownerId: user.id,
+            plan: Plan.FREE,
+          },
+          select: { id: true, slug: true, name: true, plan: true },
+        });
+        await tx.tenantMember.create({
+          data: {
+            tenantId: created.id,
+            userId: user.id,
+            role: Role.OWNER,
+          },
+        });
+        return created;
       });
-      await tx.tenantMember.create({
-        data: {
-          tenantId: created.id,
-          userId: user.id,
-          role: Role.OWNER,
-        },
-      });
-      return created;
-    });
+    } catch (err) {
+      if (isPrismaError(err, PrismaErrorCode.UNIQUE_VIOLATION)) {
+        throw new ConflictException(
+          'このワークスペース URL は既に使用されています。別の slug を指定してください。',
+        );
+      }
+      throw err;
+    }
 
     // Stripe Customer + 7 日 Pro トライアル Subscription を初期化(ADR-012)。
     // 失敗してもベストエフォート(Tenant.plan は FREE のまま、UI から手動アップグレードで復旧可能)。

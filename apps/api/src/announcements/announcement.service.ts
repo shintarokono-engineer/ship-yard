@@ -12,6 +12,7 @@ import {
 import { AIUsageService } from '../ai/ai-usage.service';
 import { dayjs } from '../common/time';
 import { PrismaService } from '../prisma/prisma.service';
+import { ProjectsService } from '../projects/projects.service';
 import { AnnouncementGenService } from './announcement-gen.service';
 import { ANNOUNCEMENT_CHANNELS } from './announcement-types';
 import type {
@@ -40,6 +41,7 @@ export class AnnouncementService {
     private readonly prisma: PrismaService,
     private readonly aiUsage: AIUsageService,
     private readonly gen: AnnouncementGenService,
+    private readonly projects: ProjectsService,
   ) {}
 
   /** Announcement を新規作成する(status = DRAFT、Delivery 0 件)。 */
@@ -49,6 +51,9 @@ export class AnnouncementService {
     userId: string,
     dto: CreateAnnouncementDto,
   ) {
+    // projectId が当該テナントに属することを検証(FK は Project.id 単独参照のため、
+    // 検証なしだと他テナントの projectId を指す行を作成できてしまう。checklist.service と同じ規律)。
+    await this.projects.assertExists(tenantId, projectId);
     return this.prisma.announcement.create({
       data: {
         tenantId,
@@ -146,13 +151,16 @@ export class AnnouncementService {
     plan: Plan;
     dto: GenerateAnnouncementDto;
   }) {
+    // グローバルクレジット上限(ADR-012)+ 本機能固有の月次回数上限の両方を AI 呼び出し前に確認する
+    // (landing-page / diagnosis 等と対称にする)。
+    await this.aiUsage.assertWithinPlanCredits({ id: args.tenantId, plan: args.plan });
     await this.aiUsage.assertWithinAnnouncementQuota({
       id: args.tenantId,
       plan: args.plan,
     });
 
     const announcement = await this.getDetail(args.tenantId, args.projectId, args.id);
-    const project = await this.prisma.project.findFirstOrThrow({
+    const project = await this.prisma.project.findFirst({
       where: { id: args.projectId, tenantId: args.tenantId },
       select: {
         name: true,
@@ -165,6 +173,10 @@ export class AnnouncementService {
         pricingModel: true,
       },
     });
+    if (!project) {
+      // Prisma の P2025 を素通しすると global filter 不在のため 500 になる。明示的に 404 を返す。
+      throw new NotFoundException('プロジェクトが見つかりません。');
+    }
 
     // 最新 LP の hero(参考トーン)
     const lp = await this.prisma.landingPage.findFirst({
@@ -352,11 +364,16 @@ export class AnnouncementService {
       throw new NotFoundException('指定された配信が見つかりません。');
     }
 
+    // 既に送信済みなら no-op(二重クリックで sentAt / publishedAt が上書きされ続けるのを防ぐ)。
+    if (delivery.status === DeliveryStatus.SENT) {
+      return this.getDetail(args.tenantId, args.projectId, args.announcementId);
+    }
+
     if (delivery.channel === DeliveryChannel.TWITTER) {
       // ADR-014(MVP)は Web Intent 方式:BE は X API を叩かず、FE で X の投稿画面が開かれた前提で
       // ユーザーの「送信完了」ボタンを起点に SENT マークするだけ。externalRef は tweet id を取得できない。
       await this.prisma.delivery.update({
-        where: { id: delivery.id },
+        where: { id: delivery.id, tenantId: args.tenantId },
         data: {
           status: DeliveryStatus.SENT,
           sentAt: dayjs.utc().toDate(),
@@ -378,7 +395,7 @@ export class AnnouncementService {
         data: { publishedAt: dayjs.utc().toDate() },
       });
       await this.prisma.delivery.update({
-        where: { id: delivery.id },
+        where: { id: delivery.id, tenantId: args.tenantId },
         data: {
           status: DeliveryStatus.SENT,
           sentAt: dayjs.utc().toDate(),

@@ -19,12 +19,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  asBlogDeliveryContent,
   BLOG_BODY_MAX,
   BLOG_BODY_MIN,
   BLOG_SLUG_MAX,
   BLOG_TITLE_MAX,
   DELIVERY_STATUS_META,
-  type BlogDeliveryContent,
   type BlogPost,
   type Delivery,
 } from '@/lib/api/types';
@@ -65,9 +65,10 @@ export function BlogDeliveryCard({
   blogPost: BlogPost;
   canWrite: boolean;
 }) {
-  const content = delivery.content as BlogDeliveryContent;
+  const content = asBlogDeliveryContent(delivery.content);
   const stMeta = DELIVERY_STATUS_META[delivery.status];
-  const isPublished = blogPost.publishedAt !== null;
+  const publishedAt = blogPost.publishedAt;
+  const isPublished = publishedAt !== null;
 
   return (
     <Card>
@@ -120,9 +121,9 @@ export function BlogDeliveryCard({
           <p>
             slug: <code className="rounded bg-black/5 px-1 dark:bg-white/10">{blogPost.slug}</code>
           </p>
-          {isPublished ? (
+          {publishedAt !== null ? (
             <p className="flex items-center gap-2">
-              公開日時 {formatDateTime(blogPost.publishedAt!)}
+              公開日時 {formatDateTime(publishedAt)}
               <a
                 href={`/p/${slug}/${projectId}/blog/${blogPost.slug}`}
                 target="_blank"

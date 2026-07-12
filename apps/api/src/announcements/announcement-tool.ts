@@ -1,6 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 
 import {
+  BLOG_BODY_MAX,
   BLOG_BODY_MIN,
   BLOG_SUMMARY_MAX,
   BLOG_TITLE_MAX,
@@ -45,6 +46,7 @@ export const SUBMIT_ANNOUNCEMENT_DRAFTS_TOOL: Anthropic.Messages.Tool = {
           body: {
             type: 'string',
             minLength: BLOG_BODY_MIN,
+            maxLength: BLOG_BODY_MAX,
             description:
               'Markdown 本文。h2 / h3 見出し構造、リード → 機能 → CTA、画像はプレースホルダ ![alt](TODO)。',
           },
@@ -95,9 +97,9 @@ export function parseAnnouncementDrafts(input: unknown): AnnouncementDrafts {
       `blog.title length ${blog.title.length} out of range [1, ${BLOG_TITLE_MAX}] (ANNOUNCEMENT_GEN)`,
     );
   }
-  if (blog.body.length < BLOG_BODY_MIN) {
+  if (blog.body.length < BLOG_BODY_MIN || blog.body.length > BLOG_BODY_MAX) {
     throw new Error(
-      `blog.body length ${blog.body.length} below min ${BLOG_BODY_MIN} (ANNOUNCEMENT_GEN)`,
+      `blog.body length ${blog.body.length} out of range [${BLOG_BODY_MIN}, ${BLOG_BODY_MAX}] (ANNOUNCEMENT_GEN)`,
     );
   }
   if (blog.summary.length > BLOG_SUMMARY_MAX) {

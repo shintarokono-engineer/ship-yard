@@ -13,6 +13,20 @@ export const WRITER_ROLES: readonly Role[] = [Role.OWNER, Role.ADMIN, Role.DEVEL
 /** メンバー管理・ロール変更・リソース削除など「管理操作」ができるロール(schema: ADMIN 以上)。 */
 export const ADMIN_ROLES: readonly Role[] = [Role.OWNER, Role.ADMIN];
 
+/**
+ * 招待付与 / メンバーのロール変更で選択できるロール(OWNER 以外)。
+ * OWNER は元々 1 人のみで所有権譲渡は別 API のため、これらの経路では構造的に除外する。
+ * DTO の `@IsIn` と `(typeof NON_OWNER_ROLES)[number]` 型推論に使うため `as const` タプルで公開する。
+ * `Role` enum に新規ロールを追加した際はここも更新すること(SSoT)。
+ */
+export const NON_OWNER_ROLES = [
+  Role.ADMIN,
+  Role.DEVELOPER,
+  Role.REVIEWER,
+  Role.TESTER,
+  Role.VIEWER,
+] as const;
+
 /** `@Roles()` がハンドラ/コントローラに書き込むメタデータのキー。`WorkspaceGuard` が読む。 */
 export const ROLES_KEY = 'shipyard:roles';
 

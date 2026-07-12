@@ -11,13 +11,18 @@ import { getTenantId } from './tenant-context';
  *  - 作成(create / createMany): data に tenantId を追加
  *  - 更新・削除(update* / delete* / upsert): where に tenantId を追加(+ upsert は create にも)
  *
- * 対象モデル: Project / ChecklistItem / ProjectDocument / AIUsage / InvitationToken
+ * 対象モデル: tenantId カラムを持つ全業務テーブル(下記 Set を SSoT とする)。
+ *   ADR-009/013/014 で追加した LandingPage / ServiceScore / IdeaValidation /
+ *   RagQaSession / RagQaMessage / Announcement / Delivery / BlogPost も含む。
  * 対象外: User / WebhookEvent(テナントを持たない)
  * 別扱い: TenantMember / Subscription(複合 PK / 1:1。Service 層で明示的に tenantId を渡す)
  *
  * tenantId が ALS に無い場合(テナント未確定のリクエスト・マイグレーションスクリプト等)は
  * 注入せずそのまま流す(呼び出し側の責任)。Prisma 6 の extendedWhereUnique が GA なので
  * findUnique / update / delete の where にも非ユニークフィールド(tenantId)を足せる。
+ *
+ * 注意: schema に tenantId 付きモデルを追加したら、必ず本 Set にも追加すること
+ * (自動注入の網羅性はこの Set が唯一の担保。取りこぼすと安全既定が効かない)。
  */
 
 const TENANT_SCOPED_MODELS = new Set<string>([
@@ -26,6 +31,14 @@ const TENANT_SCOPED_MODELS = new Set<string>([
   'ProjectDocument',
   'AIUsage',
   'InvitationToken',
+  'LandingPage',
+  'ServiceScore',
+  'IdeaValidation',
+  'RagQaSession',
+  'RagQaMessage',
+  'Announcement',
+  'Delivery',
+  'BlogPost',
 ]);
 
 type AnyArgs = Record<string, unknown> & {

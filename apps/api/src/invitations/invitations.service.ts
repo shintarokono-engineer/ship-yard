@@ -1,4 +1,4 @@
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 
 import {
   ConflictException,
@@ -37,6 +37,17 @@ interface InvitationStatusInput {
   acceptedAt: Date | null;
   revokedAt: Date | null;
   expiresAt: Date;
+}
+
+/**
+ * 招待トークンを SHA-256 でハッシュ化して DB 照合用の値にする。
+ *
+ * 生トークン(URL に埋め込む値)は DB に保存せず、本ハッシュのみを `InvitationToken.token` に格納する。
+ * これにより DB 漏洩時にトークンからの直接なりすまし(パスワードリセットトークン相当の資産)を防ぐ。
+ * 生トークンは暗号学的乱数(高エントロピー)なので、salt 無しの単純ハッシュで十分(総当たり不能)。
+ */
+function hashInvitationToken(rawToken: string): string {
+  return createHash('sha256').update(rawToken).digest('hex');
 }
 
 /** 4 状態を一意に決定する(優先順: REVOKED > ACCEPTED > EXPIRED > PENDING)。 */
@@ -146,7 +157,8 @@ export class InvitationsService {
   ): Promise<CreateInvitationResult> {
     const inviter = await this.requireUser(inviterUserId);
 
-    const token = randomBytes(INVITATION_TOKEN_BYTES).toString('base64url');
+    // 生トークンはメールリンク用にのみ使い、DB にはハッシュを保存する。
+    const rawToken = randomBytes(INVITATION_TOKEN_BYTES).toString('base64url');
     const expiresAt = dayjs.utc().add(INVITATION_VALIDITY_DAYS, 'day').toDate();
 
     const invitation = await this.prisma.invitationToken.create({
@@ -154,14 +166,14 @@ export class InvitationsService {
         tenantId,
         email: dto.email,
         role: dto.role,
-        token,
+        token: hashInvitationToken(rawToken),
         expiresAt,
         invitedById: inviterUserId,
       },
       select: { id: true, email: true, role: true, expiresAt: true },
     });
 
-    return this.sendAndWrap(invitation, token, workspaceName, dto.email, dto.role, inviter);
+    return this.sendAndWrap(invitation, rawToken, workspaceName, dto.email, dto.role, inviter);
   }
 
   async accept(token: string, clerkUserId: string): Promise<AcceptInvitationResult> {
@@ -178,7 +190,7 @@ export class InvitationsService {
     }
 
     const invitation = await this.prisma.invitationToken.findUnique({
-      where: { token },
+      where: { token: hashInvitationToken(token) },
       select: {
         id: true,
         tenantId: true,
@@ -192,16 +204,18 @@ export class InvitationsService {
     });
     if (!invitation) throw new NotFoundException();
 
+    // 判定順は computeInvitationStatus の優先順(REVOKED > ACCEPTED > EXPIRED)に揃える。
+    // 受諾済み招待は expiresAt が過去でも 409(既に受諾済み)を返すべきで、先に expired を見ると 410 に誤判定する。
     if (invitation.revokedAt) {
       throw new GoneException('Invitation has been revoked. Ask the inviter to send a new one.');
     }
 
-    if (invitation.expiresAt.getTime() < Date.now()) {
-      throw new GoneException('Invitation has expired. Ask the inviter to resend.');
-    }
-
     if (invitation.acceptedAt) {
       throw new ConflictException('Invitation has already been accepted.');
+    }
+
+    if (invitation.expiresAt.getTime() < Date.now()) {
+      throw new GoneException('Invitation has expired. Ask the inviter to resend.');
     }
 
     // 招待先 email と承諾ユーザーの email が一致するかを検証(ケース insensitive)
@@ -245,7 +259,7 @@ export class InvitationsService {
   /** GET /invitations/:token(未認証可)。期限切れ・取り消し済みも詳細を返し、status で弁別する。 */
   async findDetail(token: string): Promise<InvitationDetail> {
     const invitation = await this.prisma.invitationToken.findUnique({
-      where: { token },
+      where: { token: hashInvitationToken(token) },
       select: {
         email: true,
         role: true,
@@ -347,7 +361,7 @@ export class InvitationsService {
       throw new ConflictException('Cannot resend a revoked invitation. Create a new one instead.');
     }
 
-    const token = randomBytes(INVITATION_TOKEN_BYTES).toString('base64url');
+    const rawToken = randomBytes(INVITATION_TOKEN_BYTES).toString('base64url');
     const expiresAt = dayjs.utc().add(INVITATION_VALIDITY_DAYS, 'day').toDate();
 
     // 既存を revoke + 新規発行をトランザクション化(両方 DB クエリのみ、外部 I/O なし)
@@ -361,7 +375,7 @@ export class InvitationsService {
           tenantId,
           email: existing.email,
           role: existing.role,
-          token,
+          token: hashInvitationToken(rawToken),
           expiresAt,
           invitedById: actorUserId,
         },
@@ -371,7 +385,7 @@ export class InvitationsService {
 
     return this.sendAndWrap(
       invitation,
-      token,
+      rawToken,
       workspaceName,
       existing.email,
       existing.role,

@@ -76,7 +76,8 @@ export class RefineDocController {
     const refined = await this.refineDoc.refine({
       original: { type: original.type, title: original.title, content: original.content },
       goal,
-      references: rag.hits.map((hit) => ({ title: hit.title, content: hit.content })),
+      // RagSearchHit extends RagReference なので rag.hits をそのまま references に渡せる(draft-gen と対称)。
+      references: rag.hits,
     });
 
     // append-only で新版作成(Day 10 の edit 仕組みに乗せる)。embedAfterWrite が自動で走る。

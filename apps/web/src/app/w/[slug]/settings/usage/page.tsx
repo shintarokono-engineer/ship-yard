@@ -4,7 +4,7 @@ import { Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FEATURE_META, type MonthlyUsageSummary, type Plan } from '@/lib/api/types';
+import { FEATURE_META, PLAN_META, type MonthlyUsageSummary } from '@/lib/api/types';
 import { fetchUsage } from '@/lib/api/workspaces';
 import { formatYearMonth } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -34,12 +34,6 @@ export default async function UsagePage({ params }: { params: Promise<{ slug: st
 }
 
 /** プランの表示ラベル(Plan enum)。 */
-const PLAN_LABELS: Record<Plan, string> = {
-  FREE: 'Free',
-  PRO: 'Pro',
-  TEAM: 'Team',
-};
-
 /** 当月のクレジット消費サマリ(ADR-012)。FREE は AI 停止状態、Pro/Team はクレジット進捗。 */
 function UsageSummaryCard({
   usage,
@@ -65,7 +59,7 @@ function UsageSummaryCard({
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">現在のプラン</span>
           <Badge variant="outline" className="font-mono">
-            {PLAN_LABELS[plan]}
+            {PLAN_META[plan].label}
           </Badge>
         </div>
 

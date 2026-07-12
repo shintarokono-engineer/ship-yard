@@ -201,7 +201,7 @@ export class RagQaService {
         },
       }),
       this.prisma.ragQaSession.update({
-        where: { id: input.sessionId },
+        where: { id: input.sessionId, tenantId: input.tenantId },
         data: { updatedAt: new Date() },
       }),
     ]);

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 
-import { EMBEDDING_MODEL } from './ai.constants';
+import { AI_MAX_RETRIES, EMBEDDING_MODEL, OPENAI_REQUEST_TIMEOUT_MS } from './ai.constants';
 
 /** 1 回の embedding 呼び出しの結果 + 使用トークン数(AIUsage 記録用)。 */
 export interface EmbedResult {
@@ -35,7 +35,11 @@ export class OpenAIService {
   private readonly client: OpenAI;
 
   constructor(private readonly config: ConfigService) {
-    this.client = new OpenAI({ apiKey: this.config.getOrThrow<string>('OPENAI_API_KEY') });
+    this.client = new OpenAI({
+      apiKey: this.config.getOrThrow<string>('OPENAI_API_KEY'),
+      timeout: OPENAI_REQUEST_TIMEOUT_MS,
+      maxRetries: AI_MAX_RETRIES,
+    });
   }
 
   /**

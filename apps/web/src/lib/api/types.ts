@@ -946,6 +946,28 @@ export interface BlogDeliveryContent {
   summary: string;
 }
 
+/**
+ * `Delivery.content`(Prisma Json 由来で型を信頼できない)を BLOG ペイロードとして実行時 narrow する。
+ * 欠落 / 型違いのフィールドは空文字にフォールバックし、`as` 盲キャストを避ける(page.tsx の方針と統一)。
+ */
+export function asBlogDeliveryContent(
+  content: TwitterDeliveryContent | BlogDeliveryContent | Record<string, unknown>,
+): BlogDeliveryContent {
+  const c = content as Partial<BlogDeliveryContent>;
+  return {
+    blogPostId: typeof c.blogPostId === 'string' ? c.blogPostId : '',
+    summary: typeof c.summary === 'string' ? c.summary : '',
+  };
+}
+
+/** `Delivery.content` を TWITTER ペイロードとして実行時 narrow する(`asBlogDeliveryContent` と同方針)。 */
+export function asTwitterDeliveryContent(
+  content: TwitterDeliveryContent | BlogDeliveryContent | Record<string, unknown>,
+): TwitterDeliveryContent {
+  const c = content as Partial<TwitterDeliveryContent>;
+  return { text: typeof c.text === 'string' ? c.text : '' };
+}
+
 /** Delivery 1 件(channel ごとに content の shape が異なる、TWITTER / BLOG)。 */
 export interface Delivery {
   id: string;

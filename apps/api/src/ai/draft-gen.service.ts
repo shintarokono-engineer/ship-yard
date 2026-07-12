@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { DocType } from '@shipyard/db';
 
 import { AnthropicService } from './anthropic.service';
-import { AI_MODEL_SONNET, type DocKind } from './ai.constants';
+import { AI_MODEL_SONNET, DRAFT_GEN_MAX_TOKENS, type DocKind } from './ai.constants';
 import { AIBadResponseError } from './ai-error';
 import { formatReferenceSection, type RagReference } from './format-reference';
 import { AI_PERSONA_INTRO } from './prompts';
@@ -102,7 +102,7 @@ export class DraftGenService {
     // 【Anthropic API 呼び出し】Sonnet 4 にメッセージを送り、Tool Use で構造化出力を受け取る。
     const res = await this.anthropic.client.messages.create({
       model: AI_MODEL_SONNET,
-      max_tokens: 4096,
+      max_tokens: DRAFT_GEN_MAX_TOKENS,
       system: systemPrompt,
       tools: [SUBMIT_DOCUMENT_TOOL],
       tool_choice: { type: 'tool', name: SUBMIT_DOCUMENT_TOOL.name },

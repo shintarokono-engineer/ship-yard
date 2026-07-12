@@ -31,10 +31,12 @@ export default async function LandingPagePreviewPage({
 }) {
   const { slug, projectId } = await params;
 
-  const workspace = await fetchWorkspace(slug);
+  // workspace / project はどちらも 404 で null を返すため並列化する。
+  const [workspace, project] = await Promise.all([
+    fetchWorkspace(slug),
+    fetchProject(slug, projectId),
+  ]);
   if (!workspace) notFound();
-
-  const project = await fetchProject(slug, projectId);
   if (!project) notFound();
 
   // プロジェクト存在は上で確認済みのため、ここでの null は「LP 未生成」を意味する。

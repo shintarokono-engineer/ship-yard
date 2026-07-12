@@ -23,12 +23,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { NON_OWNER_ROLES, ROLE_LABELS } from '@/lib/api/types';
+import { NON_OWNER_ROLES, ROLE_LABELS, type NonOwnerRole } from '@/lib/api/types';
 
 import { createInvitationAction, type InvitationFormState } from '../_actions/create-invitation';
 import { INITIAL_INVITATION_FORM_STATE } from '../_shared/invitation-form';
 
-const DEFAULT_ROLE = 'DEVELOPER';
+// 型注釈でタイポ(存在しないロール)を型検査で弾く。
+const DEFAULT_ROLE: NonOwnerRole = 'DEVELOPER';
 
 /**
  * 招待発行ボタン + ダイアログ。

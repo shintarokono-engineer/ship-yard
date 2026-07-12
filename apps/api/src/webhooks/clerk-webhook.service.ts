@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { WebhookEvent } from '@clerk/backend';
 
-import { type Prisma, WebhookStatus } from '@shipyard/db';
+import { type Prisma, Role, WebhookStatus } from '@shipyard/db';
 
+import { BillingService } from '../billing/billing.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 /**
@@ -21,7 +22,10 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ClerkWebhookService {
   private readonly logger = new Logger(ClerkWebhookService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly billing: BillingService,
+  ) {}
 
   /** 検証済みの Clerk Webhook イベントを処理する(冪等)。 */
   async process(event: WebhookEvent, svixMessageId: string): Promise<void> {
@@ -137,17 +141,69 @@ export class ClerkWebhookService {
     });
   }
 
-  /** `user.deleted` を論理削除に変換。レコード未存在は no-op。 */
+  /**
+   * `user.deleted` を論理削除に変換。レコード未存在は no-op。
+   *
+   * 併せて、削除ユーザーの `TenantMember`(非 OWNER)を撤去し、影響テナントの Stripe seat 数を
+   * 同期する(`MembersService.remove` と同じ Saga)。これをやらないと Clerk 側で消えたアカウント分も
+   * メンバー一覧に残り続け、座席課金され続ける。
+   * OWNER の membership は `Tenant.ownerId` 不変条件を壊すため撤去せず、要手動対応として error ログを残す
+   * (所有権譲渡 API 実装までの暫定。物理削除しないことでテナントの orphan 化を防ぐ)。
+   */
   private async softDeleteUser(data: DeletedUserWebhookData): Promise<void> {
     const clerkUserId = data.id;
     if (!clerkUserId) {
       this.logger.warn('Clerk user.deleted payload missing data.id; skipping');
       return;
     }
+
+    const user = await this.prisma.user.findUnique({
+      where: { clerkUserId },
+      select: { id: true },
+    });
+
     await this.prisma.user.updateMany({
       where: { clerkUserId, deletedAt: null },
       data: { deletedAt: new Date() },
     });
+
+    if (!user) return;
+
+    const memberships = await this.prisma.tenantMember.findMany({
+      where: { userId: user.id },
+      select: { tenantId: true, role: true },
+    });
+
+    const removableTenantIds: string[] = [];
+    for (const m of memberships) {
+      if (m.role === Role.OWNER) {
+        this.logger.error(
+          `Deleted Clerk user ${clerkUserId} is OWNER of tenant ${m.tenantId}; ` +
+            `membership left intact (ownership transfer required). Manual intervention needed.`,
+        );
+        continue;
+      }
+      removableTenantIds.push(m.tenantId);
+    }
+
+    if (removableTenantIds.length === 0) return;
+
+    await this.prisma.tenantMember.deleteMany({
+      where: { userId: user.id, role: { not: Role.OWNER } },
+    });
+
+    // ADR-012 第 1 層 Saga:DB commit 後に影響テナントの Stripe Subscription Quantity を同期。
+    // 失敗しても Webhook 自体は成功扱いにする(第 3 層 reconciliation バッチが翌日補正、v1.x)。
+    for (const tenantId of removableTenantIds) {
+      try {
+        await this.billing.syncSubscriptionQuantity(tenantId);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        this.logger.error(
+          `Stripe seat sync failed after Clerk user delete (tenant=${tenantId}): ${msg}`,
+        );
+      }
+    }
   }
 }
 

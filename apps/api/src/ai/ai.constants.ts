@@ -5,6 +5,9 @@
 
 import { DocType, Feature, Plan } from '@shipyard/db';
 
+// モデル ID の命名不揃い(Sonnet は日付サフィックスなしのエイリアス、Haiku は固定版)は意図的:
+// Sonnet はマイナー改訂を自動追従するエイリアス運用、Haiku は再現性重視で版固定。料金/挙動更新時はここだけ直す。
+
 /** 品質要件が高い場面(競合調査 / ドキュメント生成 / RAG QA)で使う Claude モデル(ADR-005)。 */
 export const AI_MODEL_SONNET = 'claude-sonnet-4-6';
 
@@ -13,6 +16,19 @@ export const AI_MODEL_HAIKU = 'claude-haiku-4-5-20251001';
 
 /** RAG 用の埋め込みモデル(text-embedding-3-small、1536 次元、ADR-005)。 */
 export const EMBEDDING_MODEL = 'text-embedding-3-small';
+
+/**
+ * Anthropic API リクエストのタイムアウト(ms)。SDK 既定(約 10 分)だとプロバイダ障害時に
+ * 同期ハンドラが長時間張り付くため明示的に上限を設ける。PRODUCT_DIAGNOSIS / IDEA_VALIDATION は
+ * Web Search Tool(最大 5 回)で長時間化しうるため、切り詰めすぎて正常系を落とさないよう 180 秒に取る。
+ */
+export const ANTHROPIC_REQUEST_TIMEOUT_MS = 180_000;
+
+/** OpenAI(embedding 専用)のタイムアウト(ms)。埋め込みは軽量なので短めで十分。 */
+export const OPENAI_REQUEST_TIMEOUT_MS = 30_000;
+
+/** AI プロバイダ呼び出しのリトライ回数(SDK 既定と同値だが明示する)。 */
+export const AI_MAX_RETRIES = 2;
 
 /**
  * モデル別の AI クレジット重み付け(ADR-012)。
@@ -207,6 +223,12 @@ export const WEB_SEARCH_TOOL_NAME = 'web_search';
  * Anthropic の Web Search は $10 / 1000 searches なので、5 回でも 1 回あたり最大 $0.05 ≒ 7.5 円。
  */
 export const WEB_SEARCH_MAX_USES = 5;
+
+/** DRAFT_GEN(ドキュメント初稿生成)の Anthropic API `max_tokens`。README 全文 + Tool Use 余裕 ≒ 4096。 */
+export const DRAFT_GEN_MAX_TOKENS = 4096;
+
+/** REFINE_DOC(ドキュメント推敲)の Anthropic API `max_tokens`。推敲後本文 + Tool Use 余裕 ≒ 4096。 */
+export const REFINE_DOC_MAX_TOKENS = 4096;
 
 /** ANNOUNCEMENT_GEN の Anthropic API `max_tokens`(Twitter 100 tok + Blog 2500 tok + 余裕、ADR-014)。 */
 export const ANNOUNCEMENT_GEN_MAX_TOKENS = 3072;

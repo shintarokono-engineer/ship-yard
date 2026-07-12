@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useMemo, useState } from 'react';
+import { useActionState, useMemo, useState } from 'react';
 import { Pencil } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -69,9 +69,13 @@ export function EditChecklistItemDialog({
     INITIAL_CHECKLIST_FORM_STATE,
   );
 
-  useEffect(() => {
-    if (state.ok) setOpen(false);
-  }, [state]);
+  // Server Action 成功時にダイアログを閉じる。Effect ではなく render 中の prevState 比較で行う
+  // (React 公式推奨。他ダイアログ(edit-project-dialog / announcements 系)と統一)。
+  const [prevState, setPrevState] = useState(state);
+  if (state !== prevState) {
+    setPrevState(state);
+    if (state.ok && !pending) setOpen(false);
+  }
 
   const initialTitle = state.fields?.title ?? item.title;
   const initialDescription = state.fields?.description ?? item.description ?? '';

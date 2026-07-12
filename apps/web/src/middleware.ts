@@ -39,9 +39,8 @@ export default clerkMiddleware(async (auth, req) => {
 
 export const config = {
   matcher: [
-    // _next 配下と静的ファイル(拡張子付き)を除外
+    // _next 配下と静的ファイル(拡張子付き)を除外(上のパターンが /api も含めてカバーする)。
+    // apps/web は Route Handler(app/**/route.ts)を持たないため Clerk テンプレの `/(api|trpc)(.*)` は削除。
     '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // ただし API ルートは常に middleware を通す
-    '/(api|trpc)(.*)',
   ],
 };
