@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useMemo, useState } from 'react';
+import { useActionState, useMemo, useState } from 'react';
 import { Pencil } from 'lucide-react';
 
 import { FormField } from '@/app/w/[slug]/_shared/form-field';
@@ -47,11 +47,11 @@ export function EditAnnouncementTitleDialog({
   const titleRaw = state.fields?.title ?? currentTitle;
   const [titleLength, setTitleLength] = useState(titleRaw.length);
 
-  useEffect(() => {
-    if (state.ok && !pending) {
-      setOpen(false);
-    }
-  }, [state.ok, pending]);
+  const [prevState, setPrevState] = useState(state);
+  if (state !== prevState) {
+    setPrevState(state);
+    if (state.ok && !pending) setOpen(false);
+  }
 
   return (
     <Dialog

@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useMemo, useState } from 'react';
+import { useActionState, useMemo, useState } from 'react';
 import { Pencil } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -36,11 +36,13 @@ export function EditProjectDialog({ slug, project }: { slug: string; project: Pr
     INITIAL_PROJECT_FORM_STATE,
   );
 
-  // 成功で自動 close。依存配列は state(reference)を見る — `state.ok` の値で見ると、
-  // 2 回目以降の連続編集成功で `true → true` となり useEffect が再発火しないため。
-  useEffect(() => {
+  // 成功時に render 中で prev-state 比較して setOpen(false)。
+  // 2 回目以降の連続編集でも state reference が変わるため確実に発火する。
+  const [prevState, setPrevState] = useState(state);
+  if (state !== prevState) {
+    setPrevState(state);
     if (state.ok) setOpen(false);
-  }, [state]);
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

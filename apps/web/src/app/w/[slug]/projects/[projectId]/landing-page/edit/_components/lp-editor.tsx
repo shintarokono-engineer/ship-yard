@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useActionState, useCallback, useMemo, useState } from 'react';
 
+import { getLpBlockKey } from '@/components/lp-blocks/lp-block-key';
 import { LpRenderer } from '@/components/lp-blocks/lp-renderer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -74,7 +75,7 @@ export function LpEditor({
         <div className="space-y-4">
           {blocks.map((block, i) => (
             <BlockCardEditor
-              key={`${block.type}-${i}`}
+              key={getLpBlockKey(block)}
               block={block}
               index={i}
               disabled={pending}

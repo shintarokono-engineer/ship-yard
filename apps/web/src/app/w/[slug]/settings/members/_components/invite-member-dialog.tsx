@@ -44,9 +44,16 @@ export function InviteMemberDialog({ slug }: { slug: string }) {
     INITIAL_INVITATION_FORM_STATE,
   );
 
+  // setOpen(false) は render 中に prev-state 比較で発火(react-doctor 準拠)。
+  // toast 表示は副作用のため useEffect で継続(同じ state 変化を検知)。
+  const [prevState, setPrevState] = useState(state);
+  if (state !== prevState) {
+    setPrevState(state);
+    if (state.ok) setOpen(false);
+  }
+
   useEffect(() => {
     if (!state.ok) return;
-    setOpen(false);
     if (state.mailSent) {
       toast.success(`${state.invitedEmail ?? ''} に招待メールを送信しました。`);
     } else {

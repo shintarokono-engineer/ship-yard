@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useMemo, useState } from 'react';
+import { useActionState, useMemo, useState } from 'react';
 import { CheckCircle2, ExternalLink, Pencil, Twitter } from 'lucide-react';
 
 import { FormField } from '@/app/w/[slug]/_shared/form-field';
@@ -153,11 +153,12 @@ function EditTwitterContentDialog({
   const textRaw = state.fields?.twitterText ?? currentText;
   const [textLength, setTextLength] = useState(textRaw.length);
 
-  useEffect(() => {
-    if (state.ok && !pending) {
-      setOpen(false);
-    }
-  }, [state.ok, pending]);
+  // 成功時に render 中の prev-state 比較で setOpen(false)(useEffect の再発火経路を避ける)。
+  const [prevState, setPrevState] = useState(state);
+  if (state !== prevState) {
+    setPrevState(state);
+    if (state.ok && !pending) setOpen(false);
+  }
 
   return (
     <Dialog
@@ -253,11 +254,12 @@ function MarkSentButton({
     INITIAL_EXECUTE_DELIVERY_FORM_STATE,
   );
 
-  useEffect(() => {
-    if (state.ok && !pending) {
-      setOpen(false);
-    }
-  }, [state.ok, pending]);
+  // 成功時に render 中の prev-state 比較で setOpen(false)(useEffect の再発火経路を避ける)。
+  const [prevState, setPrevState] = useState(state);
+  if (state !== prevState) {
+    setPrevState(state);
+    if (state.ok && !pending) setOpen(false);
+  }
 
   return (
     <Dialog open={open} onOpenChange={(next) => !pending && setOpen(next)}>

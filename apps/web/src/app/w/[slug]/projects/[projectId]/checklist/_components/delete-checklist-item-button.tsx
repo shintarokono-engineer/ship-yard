@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useMemo, useState } from 'react';
+import { useActionState, useMemo, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -48,11 +48,12 @@ export function DeleteChecklistItemButton({
     INITIAL_STATE,
   );
 
-  // 削除成功で自動 close。Project 系は Action 側で redirect するため close 不要だったが、
-  // Checklist 削除はページに残るので自前で閉じる必要がある。
-  useEffect(() => {
+  // 削除成功で自動 close(render 中の prev-state 比較で state 変化時に setOpen(false))。
+  const [prevState, setPrevState] = useState(state);
+  if (state !== prevState) {
+    setPrevState(state);
     if (state.ok) setOpen(false);
-  }, [state]);
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

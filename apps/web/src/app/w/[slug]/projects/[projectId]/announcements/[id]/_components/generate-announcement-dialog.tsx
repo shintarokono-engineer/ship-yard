@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState, useEffect, useMemo, useState } from 'react';
+import { useActionState, useMemo, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 
 import { FormField } from '@/app/w/[slug]/_shared/form-field';
@@ -65,11 +65,11 @@ export function GenerateAnnouncementDialog({
   const topicRaw = state.fields?.topic ?? '';
   const [topicLength, setTopicLength] = useState(topicRaw.length);
 
-  useEffect(() => {
-    if (state.ok && !pending) {
-      setOpen(false);
-    }
-  }, [state.ok, pending]);
+  const [prevState, setPrevState] = useState(state);
+  if (state !== prevState) {
+    setPrevState(state);
+    if (state.ok && !pending) setOpen(false);
+  }
 
   const buttonLabel = hasExistingDeliveries ? 'AI で再生成' : 'AI で文面を生成';
 
