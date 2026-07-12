@@ -22,7 +22,7 @@ export function SuggestionsList<A extends string>({
 
   return (
     <ol className="space-y-4">
-      {suggestions.map((s, i) => {
+      {suggestions.map((s) => {
         const priorityMeta = SUGGESTION_PRIORITY_META[s.priority];
         const variant =
           priorityMeta.tone === 'negative'
@@ -31,7 +31,10 @@ export function SuggestionsList<A extends string>({
               ? 'secondary'
               : 'outline';
         return (
-          <li key={i} className="bg-card text-card-foreground space-y-2 rounded-md border p-4">
+          <li
+            key={`${s.axis}-${s.title}`}
+            className="bg-card text-card-foreground space-y-2 rounded-md border p-4"
+          >
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={variant}>{priorityMeta.label}</Badge>
               <span className="text-muted-foreground text-xs">{axisLabel[s.axis]}</span>

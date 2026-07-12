@@ -1,8 +1,7 @@
 'use client';
 
 import { MessageCirclePlus } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useActionState, useEffect, useMemo, useState } from 'react';
+import { useActionState, useMemo, useState } from 'react';
 
 import { FormField } from '@/app/w/[slug]/_shared/form-field';
 import { Button } from '@/components/ui/button';
@@ -17,20 +16,18 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 
-import { createSessionAction, type CreateSessionFormState } from '../_actions/create-session';
+import { createSessionAction } from '../_actions/create-session';
 import {
   INITIAL_CREATE_SESSION_FORM_STATE,
   SESSION_TITLE_MAX_LENGTH,
+  type CreateSessionFormState,
 } from '../_shared/start-session-form';
 
 /**
  * RAG_QA(壁打ち)セッションを新規作成する Dialog。
- *
- * 作成は AI 呼び出しを伴わない軽い操作なので、成功時は Dialog を閉じず
- * そのままチャット画面(`/rag-qa/{sessionId}`)へ遷移する。
+ * 作成成功時は Server Action 内 redirect でチャット画面(`/rag-qa/{sessionId}`)に遷移する。
  */
 export function StartSessionDialog({ slug, projectId }: { slug: string; projectId: string }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const boundAction = useMemo(
     () => createSessionAction.bind(null, slug, projectId),
@@ -41,13 +38,6 @@ export function StartSessionDialog({ slug, projectId }: { slug: string; projectI
     INITIAL_CREATE_SESSION_FORM_STATE,
   );
   const [titleLength, setTitleLength] = useState(state.title?.length ?? 0);
-
-  // 成功時は作成されたセッションのチャット画面へ遷移する。
-  useEffect(() => {
-    if (state.ok && state.createdSessionId) {
-      router.push(`/w/${slug}/projects/${projectId}/rag-qa/${state.createdSessionId}`);
-    }
-  }, [state, router, slug, projectId]);
 
   return (
     <Dialog

@@ -30,8 +30,11 @@ export function FeaturesBlockView({
           </h2>
         )}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {block.items.map((item, i) => (
-            <div key={i} className="bg-card flex flex-col gap-3 rounded-xl border p-6">
+          {block.items.map((item) => (
+            <div
+              key={`${item.title}-${item.icon ?? ''}`}
+              className="bg-card flex flex-col gap-3 rounded-xl border p-6"
+            >
               <span
                 className={cn(
                   'flex size-11 items-center justify-center rounded-lg text-xl',

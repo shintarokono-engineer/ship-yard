@@ -1,13 +1,12 @@
 'use server';
 
+import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 
 import { createPortalSession } from '@/lib/api/billing';
 import { ApiError } from '@/lib/api/errors';
 
 import type { PortalSessionFormState } from './_shared/portal-session-form';
-
-export type { PortalSessionFormState } from './_shared/portal-session-form';
 
 /**
  * Stripe Customer Portal Session を作成して URL に redirect する Server Action。
@@ -23,6 +22,11 @@ export async function openPortalSessionAction(
 ): Promise<PortalSessionFormState> {
   void _prev;
   void _formData;
+
+  const { userId } = await auth();
+  if (!userId) {
+    return { ok: false, error: '認証が必要です。再度サインインしてください。' };
+  }
 
   let url: string;
   try {

@@ -17,8 +17,11 @@ export function StatsBlockView({
   return (
     <section className="bg-background px-6 py-16">
       <div className="mx-auto flex max-w-4xl flex-wrap justify-center gap-x-16 gap-y-10">
-        {block.items.map((item, i) => (
-          <div key={i} className="flex flex-col items-center gap-1 text-center">
+        {block.items.map((item) => (
+          <div
+            key={`${item.label}-${item.value}`}
+            className="flex flex-col items-center gap-1 text-center"
+          >
             <span
               className={cn(
                 'text-4xl font-bold tracking-tight sm:text-5xl',

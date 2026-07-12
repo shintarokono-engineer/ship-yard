@@ -34,9 +34,11 @@ export default function SignOutCleanupPage() {
     //    `includes('clerk')` だと第三者ライブラリや将来の Shipyard 命名(例:`workspace_clerk_config`)
     //    を巻き込みうるため、prefix に絞る。
     try {
-      Object.keys(localStorage)
-        .filter((k) => k.startsWith('__clerk') || k.startsWith('clerk_'))
-        .forEach((k) => localStorage.removeItem(k));
+      for (const k of Object.keys(localStorage)) {
+        if (k.startsWith('__clerk') || k.startsWith('clerk_')) {
+          localStorage.removeItem(k);
+        }
+      }
     } catch {
       // プライベートモード等のアクセス制限は無視(次のステップに進む)
     }

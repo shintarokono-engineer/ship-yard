@@ -10,9 +10,9 @@ export function FooterBlockView({ block }: { block: FooterBlock }) {
         {block.copyright && <span>{block.copyright}</span>}
         {block.links.length > 0 && (
           <nav className="flex flex-wrap justify-center gap-4">
-            {block.links.map((link, i) => (
+            {block.links.map((link) => (
               <a
-                key={i}
+                key={`${link.href}-${link.label}`}
                 href={safeHref(link.href)}
                 className="hover:text-foreground transition-colors"
               >

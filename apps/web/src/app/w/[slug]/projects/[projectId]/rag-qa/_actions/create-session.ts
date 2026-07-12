@@ -2,6 +2,7 @@
 
 import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 import { classifyAiApiError } from '@/app/w/[slug]/_shared/ai-form';
 import { ApiError } from '@/lib/api/errors';
@@ -12,14 +13,10 @@ import {
   type CreateSessionFormState,
 } from '../_shared/start-session-form';
 
-export type { CreateSessionFormState } from '../_shared/start-session-form';
-
 /**
  * RAG_QA(プロジェクト壁打ち)セッションを作成する Server Action。
- *
- * 成功時はセッション一覧を revalidate し、`createdSessionId` を返す
- * (Dialog 側がチャット画面 `/rag-qa/{sessionId}` へ遷移する)。AI 呼び出しは無いので
- * Free 上限には関与しない。
+ * 成功時はチャット画面 `/rag-qa/{sessionId}` へ redirect(useEffect + router.push の flash 回避)。
+ * AI 呼び出しは無いので Free 上限には関与しない。
  */
 export async function createSessionAction(
   slug: string,
@@ -39,10 +36,10 @@ export async function createSessionAction(
     return { ok: false, fieldError: parsed.fieldError, title: parsed.title };
   }
 
+  let sessionId: string;
   try {
     const session = await createRagQaSession(slug, projectId, { title: parsed.title });
-    revalidatePath(`/w/${slug}/projects/${projectId}/rag-qa`);
-    return { ok: true, createdSessionId: session.id, title: parsed.title };
+    sessionId = session.id;
   } catch (e) {
     if (e instanceof ApiError) {
       // classifyAiApiError は AI 機能向けヘルパーだが、ApiError → 種別の分類ロジック自体は汎用。
@@ -73,4 +70,7 @@ export async function createSessionAction(
     }
     throw e;
   }
+
+  revalidatePath(`/w/${slug}/projects/${projectId}/rag-qa`);
+  redirect(`/w/${slug}/projects/${projectId}/rag-qa/${sessionId}`);
 }

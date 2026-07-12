@@ -44,7 +44,6 @@ export type {
   Announcement,
   Delivery,
   BlogPost,
-  TwitterAccount,
 } from '@prisma/client';
 
 // マルチテナントのリクエストコンテキスト(ADR-002)

@@ -14,8 +14,6 @@ export interface CreateSessionFormState {
   fieldError?: string;
   /** フォーム全体のエラー(認証 / 権限 / サーバー)。 */
   formError?: string;
-  /** 成功時に作成されたセッション ID(チャット画面への遷移に使う)。 */
-  createdSessionId?: string;
   /** 再表示用の入力値。 */
   title?: string;
 }

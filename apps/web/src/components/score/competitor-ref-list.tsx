@@ -19,11 +19,14 @@ export function CompetitorRefList({ competitorRefs }: { competitorRefs: Competit
 
   return (
     <ul className="space-y-3">
-      {competitorRefs.map((ref, i) => {
+      {competitorRefs.map((ref) => {
         const href = safeHref(ref.url);
         const isExternal = href.startsWith('http://') || href.startsWith('https://');
         return (
-          <li key={i} className="bg-card text-card-foreground space-y-1.5 rounded-md border p-4">
+          <li
+            key={`${ref.name}-${ref.url}`}
+            className="bg-card text-card-foreground space-y-1.5 rounded-md border p-4"
+          >
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
               <h4 className="text-foreground text-base font-semibold">{ref.name}</h4>
               {isExternal ? (
