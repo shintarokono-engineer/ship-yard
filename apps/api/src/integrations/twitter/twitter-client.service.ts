@@ -29,13 +29,21 @@ export interface PostTweetResult {
  * - `TOKEN_EXPIRED`: refresh も失敗、再連携が必要
  * - `SUSPENDED`: アカウント凍結 / 権限不足
  * - `RATE_LIMIT`: 429、`retryAfterSeconds` があれば文言に反映
+ * - `PAYMENT_REQUIRED`: 402、X API プラン制限超過(Free tier クレジット枯渇 / Basic 以上への移行が必要)
  * - `SERVER`: 5xx 等の一時障害
  * - `NETWORK`: fetch 自体が throw
  * - `UNKNOWN`: 想定外
  */
 export class TwitterApiError extends Error {
   constructor(
-    public readonly kind: 'TOKEN_EXPIRED' | 'SUSPENDED' | 'RATE_LIMIT' | 'SERVER' | 'NETWORK' | 'UNKNOWN',
+    public readonly kind:
+      | 'TOKEN_EXPIRED'
+      | 'SUSPENDED'
+      | 'RATE_LIMIT'
+      | 'PAYMENT_REQUIRED'
+      | 'SERVER'
+      | 'NETWORK'
+      | 'UNKNOWN',
     public readonly userMessage: string,
     public readonly retryAfterSeconds?: number,
   ) {
@@ -185,10 +193,33 @@ export class TwitterClientService {
       );
     }
     if (!res.ok) {
-      // 5xx 系の原因(メンテ / payload バリデーション / 内部障害)を識別するため body も含めて warn 出力。
-      // X が返す JSON が長くなることを想定して先頭 200 字に切り詰める。
-      const responseBody = (await res.text()).slice(0, 200);
+      // 原因(プラン制限 / メンテ / payload バリデーション)を識別するため body も含めて warn 出力。
+      // X が返す JSON が長くなることを想定して先頭 500 字に切り詰める。
+      const responseBody = (await res.text()).slice(0, 500);
       this.logger.warn(`Twitter post failed: ${res.status} ${responseBody}`);
+
+      // 402 PaymentRequired:X API v2 のプラン制限(2025 年以降の Free tier では投稿クレジット枯渇が
+      // 典型)。管理者は Basic 以上へアップグレードするまで恒久的に投稿できない = 「再実行してくれ」は
+      // 誤誘導になるため、専用種別 + プラン確認文言に分ける。
+      if (res.status === 402) {
+        let title = '';
+        try {
+          title = (JSON.parse(responseBody) as { title?: string }).title ?? '';
+        } catch {
+          // JSON parse に失敗した場合は汎用 402 として扱う(下記の fallthrough)。
+        }
+        if (title === 'CreditsDepleted') {
+          throw new TwitterApiError(
+            'PAYMENT_REQUIRED',
+            'X API のクレジットが不足しています。管理者は X Developer Portal で有料プラン(Basic 以上)へのアップグレードを確認してください。',
+          );
+        }
+        throw new TwitterApiError(
+          'PAYMENT_REQUIRED',
+          'X API の利用制限に達しました。管理者は X 開発者ポータルのプラン設定を確認してください。',
+        );
+      }
+
       throw new TwitterApiError('SERVER', 'X 側で一時的な障害が発生しています。再実行してください。');
     }
     const json = (await res.json()) as { data: { id: string } };
