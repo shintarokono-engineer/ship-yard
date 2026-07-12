@@ -15,6 +15,22 @@ type PublicBlogPostParams = Promise<{ slug: string; projectId: string; postSlug:
 const DESCRIPTION_MAX = 120;
 
 /**
+ * Next.js 15 App Router の Dynamic Route params は **URL encoded のまま渡される**ため、
+ * BlogPost.slug に日本語などの非 ASCII を含むと `fetchPublicBlogPost` 内の `encodeURIComponent` と
+ * 組み合わせて double-encode されて BE で 404 になる。呼び出し前に必ず decode する。
+ *
+ * ASCII 文字だけの param(cuid など)は decode 前後で同一のため副作用なし。
+ */
+function decodeParam(raw: string): string {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    // 稀に不正な percent-encoding を含む URL が来た場合の防御(そのまま返す)。
+    return raw;
+  }
+}
+
+/**
  * BlogPost.body(Markdown)から OG / SEO 用の description を抽出する。
  * Markdown 記号(# > * ` _ -)を除去し、空白を 1 文字に正規化、先頭 120 字でカット。
  * BlogPost には `summary` カラムを持たないため、本文先頭からの抜粋で代用する。
@@ -33,7 +49,10 @@ export async function generateMetadata({
 }: {
   params: PublicBlogPostParams;
 }): Promise<Metadata> {
-  const { slug, projectId, postSlug } = await params;
+  const raw = await params;
+  const slug = decodeParam(raw.slug);
+  const projectId = decodeParam(raw.projectId);
+  const postSlug = decodeParam(raw.postSlug);
   const post = await fetchPublicBlogPost(slug, projectId, postSlug);
   if (!post) {
     return { title: 'ページが見つかりません' };
@@ -59,14 +78,18 @@ export default async function PublicBlogPostPage({
 }: {
   params: PublicBlogPostParams;
 }) {
-  const { slug, projectId, postSlug } = await params;
+  const raw = await params;
+  const slug = decodeParam(raw.slug);
+  const projectId = decodeParam(raw.projectId);
+  const postSlug = decodeParam(raw.postSlug);
   const post = await fetchPublicBlogPost(slug, projectId, postSlug);
   if (!post) notFound();
 
   // 構造化データ(BlogPosting)。description は generateMetadata と同じ純粋関数を再利用。
+  // canonical URL は decode 後 → encodeURIComponent で再 encode(NFC 正規化された安全な URL)。
   const siteUrl = getSiteUrl();
   const description = extractDescription(post.body);
-  const canonicalUrl = `${siteUrl}/p/${slug}/${projectId}/blog/${postSlug}`;
+  const canonicalUrl = `${siteUrl}/p/${encodeURIComponent(slug)}/${encodeURIComponent(projectId)}/blog/${encodeURIComponent(postSlug)}`;
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',

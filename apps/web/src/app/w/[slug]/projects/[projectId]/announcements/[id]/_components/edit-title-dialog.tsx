@@ -17,11 +17,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { ANNOUNCEMENT_TITLE_MAX } from '@/lib/api/types';
 
+import { updateAnnouncementAction } from '../_actions/update-announcement';
 import {
-  updateAnnouncementAction,
   INITIAL_UPDATE_ANNOUNCEMENT_FORM_STATE,
   type UpdateAnnouncementFormState,
-} from '../_actions/update-announcement';
+} from '../_shared/update-announcement-form';
 
 /** Announcement のタイトル(内部管理用)編集 Dialog(ADR-014)。 */
 export function EditAnnouncementTitleDialog({

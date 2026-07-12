@@ -7,12 +7,7 @@ import { executeDelivery } from '@/lib/api/announcements';
 import { fetchBlogPost } from '@/lib/api/blog-posts';
 import { ApiError, extractValidationMessages } from '@/lib/api/errors';
 
-export interface ExecuteDeliveryFormState {
-  ok: boolean;
-  formError?: string;
-}
-
-export const INITIAL_EXECUTE_DELIVERY_FORM_STATE: ExecuteDeliveryFormState = { ok: false };
+import type { ExecuteDeliveryFormState } from '../_shared/execute-delivery-form';
 
 /**
  * Delivery を実行する Server Action(ADR-014 §3、MVP は同期即時)。

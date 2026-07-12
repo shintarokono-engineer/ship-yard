@@ -7,12 +7,7 @@ import { redirect } from 'next/navigation';
 import { deleteAnnouncement } from '@/lib/api/announcements';
 import { ApiError } from '@/lib/api/errors';
 
-export interface DeleteAnnouncementFormState {
-  ok: boolean;
-  formError?: string;
-}
-
-export const INITIAL_DELETE_ANNOUNCEMENT_FORM_STATE: DeleteAnnouncementFormState = { ok: false };
+import type { DeleteAnnouncementFormState } from '../_shared/delete-announcement-form';
 
 /**
  * Announcement を削除する Server Action(ADR-014)。

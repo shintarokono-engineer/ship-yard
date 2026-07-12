@@ -12,18 +12,7 @@ import {
   BLOG_TITLE_MAX,
 } from '@/lib/api/types';
 
-export interface UpdateBlogPostFormState {
-  ok: boolean;
-  fieldErrors?: {
-    title?: string[];
-    body?: string[];
-    slug?: string[];
-  };
-  formError?: string;
-  fields?: { title?: string; body?: string; slug?: string };
-}
-
-export const INITIAL_UPDATE_BLOG_POST_FORM_STATE: UpdateBlogPostFormState = { ok: false };
+import type { UpdateBlogPostFormState } from '../_shared/update-blog-post-form';
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 

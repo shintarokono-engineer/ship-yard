@@ -25,11 +25,11 @@ import {
   type MonthlyUsageSummary,
 } from '@/lib/api/types';
 
+import { generateAnnouncementAction } from '../_actions/generate-announcement';
 import {
-  generateAnnouncementAction,
   INITIAL_GENERATE_ANNOUNCEMENT_FORM_STATE,
   type GenerateAnnouncementFormState,
-} from '../_actions/generate-announcement';
+} from '../_shared/generate-announcement-form';
 
 /**
  * ANNOUNCEMENT_GEN(多チャネル告知文の AI 生成)を起動する Dialog(ADR-014)。

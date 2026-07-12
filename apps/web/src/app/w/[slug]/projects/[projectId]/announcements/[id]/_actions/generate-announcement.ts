@@ -12,17 +12,7 @@ import {
   type DeliveryChannel,
 } from '@/lib/api/types';
 
-export interface GenerateAnnouncementFormState {
-  ok: boolean;
-  fieldErrors?: { topic?: string[]; channels?: string[] };
-  formError?: string;
-  quotaExceeded?: boolean;
-  fields?: { topic?: string; channels?: DeliveryChannel[] };
-}
-
-export const INITIAL_GENERATE_ANNOUNCEMENT_FORM_STATE: GenerateAnnouncementFormState = {
-  ok: false,
-};
+import type { GenerateAnnouncementFormState } from '../_shared/generate-announcement-form';
 
 /**
  * Announcement の多チャネル文面を Sonnet 4 + Tool Use で生成する Server Action(ADR-014)。

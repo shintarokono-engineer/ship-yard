@@ -10,14 +10,7 @@ import {
   TWITTER_TEXT_MAX,
 } from '@/lib/api/types';
 
-export interface UpdateAnnouncementFormState {
-  ok: boolean;
-  fieldErrors?: { title?: string[]; twitterText?: string[] };
-  formError?: string;
-  fields?: { title?: string; twitterText?: string };
-}
-
-export const INITIAL_UPDATE_ANNOUNCEMENT_FORM_STATE: UpdateAnnouncementFormState = { ok: false };
+import type { UpdateAnnouncementFormState } from '../_shared/update-announcement-form';
 
 /**
  * Announcement のタイトル / Twitter Delivery content を編集する Server Action(ADR-014)。

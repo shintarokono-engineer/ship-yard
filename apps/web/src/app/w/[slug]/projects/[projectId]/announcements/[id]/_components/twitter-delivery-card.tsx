@@ -25,16 +25,16 @@ import {
 } from '@/lib/api/types';
 import { formatDateTime } from '@/lib/format';
 
+import { executeDeliveryAction } from '../_actions/execute-delivery';
+import { updateAnnouncementAction } from '../_actions/update-announcement';
 import {
-  executeDeliveryAction,
   INITIAL_EXECUTE_DELIVERY_FORM_STATE,
   type ExecuteDeliveryFormState,
-} from '../_actions/execute-delivery';
+} from '../_shared/execute-delivery-form';
 import {
-  updateAnnouncementAction,
   INITIAL_UPDATE_ANNOUNCEMENT_FORM_STATE,
   type UpdateAnnouncementFormState,
-} from '../_actions/update-announcement';
+} from '../_shared/update-announcement-form';
 
 /**
  * Twitter Delivery 表示 + 編集 + 投稿実行カード(ADR-014)。

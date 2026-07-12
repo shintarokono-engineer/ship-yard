@@ -14,11 +14,11 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 
+import { deleteAnnouncementAction } from '../_actions/delete-announcement';
 import {
-  deleteAnnouncementAction,
   INITIAL_DELETE_ANNOUNCEMENT_FORM_STATE,
   type DeleteAnnouncementFormState,
-} from '../_actions/delete-announcement';
+} from '../_shared/delete-announcement-form';
 
 /**
  * Announcement 削除ボタン + 確認 Dialog(ADR-014)。

@@ -8,14 +8,7 @@ import { createAnnouncement } from '@/lib/api/announcements';
 import { ApiError, extractValidationMessages } from '@/lib/api/errors';
 import { ANNOUNCEMENT_TITLE_MAX } from '@/lib/api/types';
 
-export interface CreateAnnouncementFormState {
-  ok: boolean;
-  fieldErrors?: { title?: string[] };
-  formError?: string;
-  fields?: { title?: string };
-}
-
-export const INITIAL_CREATE_ANNOUNCEMENT_FORM_STATE: CreateAnnouncementFormState = { ok: false };
+import type { CreateAnnouncementFormState } from '../_shared/create-announcement-form';
 
 /**
  * Announcement(ADR-014)新規作成 Server Action。

@@ -17,11 +17,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { ANNOUNCEMENT_TITLE_MAX } from '@/lib/api/types';
 
+import { createAnnouncementAction } from '../_actions/create-announcement';
 import {
-  createAnnouncementAction,
   INITIAL_CREATE_ANNOUNCEMENT_FORM_STATE,
   type CreateAnnouncementFormState,
-} from '../_actions/create-announcement';
+} from '../_shared/create-announcement-form';
 
 /**
  * Announcement(ADR-014)新規作成 Dialog。

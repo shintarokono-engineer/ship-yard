@@ -30,16 +30,16 @@ import {
 } from '@/lib/api/types';
 import { formatDateTime } from '@/lib/format';
 
+import { executeDeliveryAction } from '../_actions/execute-delivery';
+import { updateBlogPostAction } from '../_actions/update-blog-post';
 import {
-  executeDeliveryAction,
   INITIAL_EXECUTE_DELIVERY_FORM_STATE,
   type ExecuteDeliveryFormState,
-} from '../_actions/execute-delivery';
+} from '../_shared/execute-delivery-form';
 import {
-  updateBlogPostAction,
   INITIAL_UPDATE_BLOG_POST_FORM_STATE,
   type UpdateBlogPostFormState,
-} from '../_actions/update-blog-post';
+} from '../_shared/update-blog-post-form';
 
 /**
  * Blog Delivery 表示 + 編集 + 公開実行カード(ADR-014)。
