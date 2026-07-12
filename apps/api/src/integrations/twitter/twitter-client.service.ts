@@ -193,20 +193,16 @@ export class TwitterClientService {
       );
     }
     if (!res.ok) {
-      // 原因(プラン制限 / メンテ / payload バリデーション)を識別するため body も含めて warn 出力。
       // X が返す JSON が長くなることを想定して先頭 500 字に切り詰める。
       const responseBody = (await res.text()).slice(0, 500);
       this.logger.warn(`Twitter post failed: ${res.status} ${responseBody}`);
 
-      // 402 PaymentRequired:X API v2 のプラン制限(2025 年以降の Free tier では投稿クレジット枯渇が
-      // 典型)。管理者は Basic 以上へアップグレードするまで恒久的に投稿できない = 「再実行してくれ」は
-      // 誤誘導になるため、専用種別 + プラン確認文言に分ける。
       if (res.status === 402) {
         let title = '';
         try {
           title = (JSON.parse(responseBody) as { title?: string }).title ?? '';
         } catch {
-          // JSON parse に失敗した場合は汎用 402 として扱う(下記の fallthrough)。
+          // JSON parse 失敗時は汎用 402 として fallthrough。
         }
         if (title === 'CreditsDepleted') {
           throw new TwitterApiError(

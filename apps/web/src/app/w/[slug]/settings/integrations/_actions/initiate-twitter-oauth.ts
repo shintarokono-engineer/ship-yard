@@ -10,18 +10,11 @@ import type { InitiateTwitterOAuthFormState } from '../_shared/initiate-twitter-
 
 /**
  * Twitter (X) OAuth 開始 Server Action(ADR-014)。
- *
  * BE `/authorize` を Bearer JWT 付きで叩き、返ってきた X 認可 URL に `redirect()` する。
- * ブラウザから `<a href>` で BE を直接叩くと Authorization ヘッダーが送られず 401 になるため、
- * Server Action 経由で Bearer JWT を付ける BFF プロキシパターン。
- *
- * Next.js 15 の `'use server'` は **async 関数のみ export 可能** なので、
- * 型 / 定数 は `../_shared/initiate-twitter-oauth-form` に分離してある(既存 README パターン踏襲)。
  *
  * エラー分岐:
  * - 401 / 403 → OWNER / ADMIN 以外による起動 or 認証切れ
  * - 503 → env(TWITTER_CLIENT_ID / SECRET / UPSTASH_*)未設定
- * - その他 → 汎用エラー文言
  */
 export async function initiateTwitterOAuthAction(
   slug: string,

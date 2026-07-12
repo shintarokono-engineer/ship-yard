@@ -30,12 +30,8 @@ export class IntegrationsTwitterController {
 
   /**
    * GET /workspaces/:slug/integrations/twitter/authorize
-   * X の認可 URL を生成して JSON で返す。呼び出し側(Server Action)が `redirect(url)` する設計。
+   * X の認可 URL を生成して JSON で返す。呼び出し側(Server Action)が `redirect(url)` する。
    * Clerk 認証 + WorkspaceGuard を通った後、ADMIN_ROLES のみ実行可能。
-   *
-   * 302 リダイレクトを返さない理由:ブラウザからの `<a href>` 直接遷移では Authorization ヘッダーが
-   * 送られず 401 になる。Server Action 経由で Bearer JWT を付けて叩き、レスポンスの URL を
-   * FE 側で `redirect()` する方式(BFF プロキシパターン)に統一(ADR-014 §API 設計 の余地に記載)。
    */
   @Get('authorize')
   @UseGuards(WorkspaceGuard)

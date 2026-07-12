@@ -1,6 +1,4 @@
-/**
- * Announcement 削除 Server Action の共有型・定数(ADR-014、Next.js 15 の 'use server' 制約対応)。
- */
+/** Announcement 削除 Server Action の共有型・定数(ADR-014)。 */
 
 export interface DeleteAnnouncementFormState {
   ok: boolean;

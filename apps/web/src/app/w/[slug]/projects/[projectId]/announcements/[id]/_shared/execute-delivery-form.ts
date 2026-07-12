@@ -1,6 +1,4 @@
-/**
- * Delivery 実行 Server Action の共有型・定数(ADR-014、Next.js 15 制約対応)。
- */
+/** Delivery 実行 Server Action の共有型・定数(ADR-014)。 */
 
 export interface ExecuteDeliveryFormState {
   ok: boolean;

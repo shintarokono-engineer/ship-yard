@@ -1,5 +1,5 @@
 /**
- * Announcement 更新 Server Action の共有型・定数(ADR-014、Next.js 15 の 'use server' 制約対応)。
+ * Announcement 更新 Server Action の共有型・定数(ADR-014)。
  * タイトル / Twitter content の 1 Action 2 用途に対応する fieldErrors + fields shape。
  */
 

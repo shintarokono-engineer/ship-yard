@@ -1,5 +1,5 @@
 /**
- * Announcement 多チャネル文面 AI 生成 Server Action の共有型・定数(ADR-014、Next.js 15 制約対応)。
+ * Announcement 多チャネル文面 AI 生成 Server Action の共有型・定数(ADR-014)。
  * quotaExceeded フラグで Pro 誘導 CTA を出す分岐に使う。
  */
 

@@ -12,11 +12,7 @@ import { TwitterDisconnectButton } from './_components/twitter-disconnect-button
 
 /**
  * `/w/{slug}/settings/integrations` — 外部サービス連携設定(ADR-014)。
- *
- * MVP では Twitter (X) のみ。連携の追加 / 切断は OWNER / ADMIN のみ実行可、一覧表示は所属メンバー全員可。
- * 連携追加は Server Action `initiateTwitterOAuthAction` 経由で BE の `/authorize` を Bearer JWT 付きで
- * 叩き、返ってきた X 認可 URL に `redirect()` する(ブラウザから `<a href>` で BE 直叩きすると
- * Authorization ヘッダが送られず 401 になるため BFF プロキシパターンを採用)。
+ * MVP では Twitter (X) のみ。連携の追加 / 切断は OWNER / ADMIN のみ、一覧は所属メンバー全員可。
  */
 export default async function IntegrationsPage({
   params,

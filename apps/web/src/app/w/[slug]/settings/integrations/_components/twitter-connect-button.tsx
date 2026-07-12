@@ -10,13 +10,7 @@ import {
   type InitiateTwitterOAuthFormState,
 } from '../_shared/initiate-twitter-oauth-form';
 
-/**
- * X アカウント連携開始ボタン(ADR-014)。
- *
- * form action で Server Action `initiateTwitterOAuthAction` を起動し、Bearer JWT 付きで BE を叩き
- * 返ってきた X 認可 URL に `redirect()` させる。ブラウザから `<a href>` で BE を直接叩くと
- * Authorization ヘッダーが送られず 401 になるため、この経路が必須。
- */
+/** X アカウント連携開始ボタン(ADR-014)。Server Action で BE `/authorize` を叩き X 認可 URL に redirect。 */
 export function TwitterConnectButton({ slug }: { slug: string }) {
   const boundAction = useMemo(() => initiateTwitterOAuthAction.bind(null, slug), [slug]);
   const [state, formAction, pending] = useActionState<

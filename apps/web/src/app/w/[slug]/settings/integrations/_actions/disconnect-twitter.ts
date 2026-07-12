@@ -10,12 +10,8 @@ import type { DisconnectTwitterFormState } from '../_shared/disconnect-twitter-f
 
 /**
  * Twitter (X) アカウント連携を切断する Server Action(ADR-014)。
- *
  * BE 側で X の revoke API を best-effort で呼び、ローカル DB の TwitterAccount を削除する。
- * 既に削除済みでも冪等に `{ ok: true }` が返るため、二度押し / race condition でも UI を壊さない。
- *
- * Next.js 15 の `'use server'` は **async 関数のみ export 可能** なので、
- * 型 / 定数は `../_shared/disconnect-twitter-form` に分離。
+ * 既に削除済みでも冪等に `{ ok: true }` が返る。
  */
 export async function disconnectTwitterAction(
   slug: string,

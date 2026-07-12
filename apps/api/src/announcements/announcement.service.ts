@@ -472,15 +472,10 @@ export class AnnouncementService {
 }
 
 /**
- * title を kebab-case slug に変換(BlogPost.slug の自動生成、ADR-014)。
- *
- * ASCII 英数字 + ハイフンのみ許容(update-blog-post DTO の pattern `^[a-z0-9]+(?:-[a-z0-9]+)*$`
- * と同期)。日本語などの非 ASCII 文字を含む title は結果が空文字になり、呼び出し側の
- * `|| 'post'` fallback + `findUniqueBlogSlug` で `post`, `post-2`, ... と自動連番になる。
- *
- * 以前は `\p{Letter}` で日本語も含めていたが、日本語 slug は (1) URL / SEO 弱い (2) BLOG_SLUG_MAX の
- * 60 文字を byte 数で計算すると余裕なし (3) update 画面の pattern validation で reject される
- * (自動生成だけ pass する矛盾)、の 3 点で問題があったため ASCII only に統一した。
+ * title を kebab-case slug に変換(ADR-014)。ASCII 英数字 + ハイフンのみ許容
+ * (update-blog-post DTO の pattern `^[a-z0-9]+(?:-[a-z0-9]+)*$` と同期)。
+ * 非 ASCII のみの title は空文字になり、呼び出し側の `|| 'post'` fallback + `findUniqueBlogSlug`
+ * で `post`, `post-2`, ... と自動連番される。
  */
 function slugify(input: string): string {
   return input
