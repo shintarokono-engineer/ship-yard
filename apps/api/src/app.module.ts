@@ -40,6 +40,7 @@ import { PublicLandingPageController } from './landing-page/public-landing-page.
 import { MailModule } from './mail/mail.module';
 import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
+import { OwnershipController } from './members/ownership.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProductDiagnosisController } from './product-diagnosis/product-diagnosis.controller';
 import { ProductDiagnosisService } from './product-diagnosis/product-diagnosis.service';
@@ -89,6 +90,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     InvitationsController,
     PublicInvitationsController,
     MembersController,
+    OwnershipController,
     AnnouncementController,
   ],
   providers: [

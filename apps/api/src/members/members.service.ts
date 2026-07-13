@@ -1,4 +1,10 @@
-import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { Role } from '@shipyard/db';
 
@@ -23,6 +29,14 @@ export interface UpdatedMember {
   userId: string;
   role: Role;
   joinedAt: Date;
+}
+
+/** `MembersService.transferOwnership` の戻り値(譲渡後の状態)。 */
+export interface TransferOwnershipResult {
+  /** 新しい OWNER の User ID。 */
+  newOwnerUserId: string;
+  /** 旧 OWNER(actor)の譲渡後の状態(ADMIN に降格)。 */
+  previousOwner: { userId: string; role: Role };
 }
 
 /** 一覧で表示する際のロール優先順(OWNER → ADMIN → ... の順)。フロント側ソート不要にする。 */
@@ -186,5 +200,63 @@ export class MembersService {
         `Stripe seat sync failed after member remove (tenant=${tenantId}): ${msg}`,
       );
     }
+  }
+
+  /**
+   * POST /workspaces/:slug/transfer-ownership — 所有権を別メンバーへ譲渡する(現 OWNER のみ)。
+   *
+   * 「OWNER は 1 テナントに 1 人(`Tenant.ownerId` が唯一の OWNER を指す)」という不変条件を守るため、
+   * 以下を単一トランザクションで原子的に行う:
+   *   1. `Tenant.ownerId` を対象 User に付け替え
+   *   2. 対象 TenantMember の role を OWNER に
+   *   3. 旧 OWNER(actor)の TenantMember の role を ADMIN に降格
+   *
+   * 認可・バリデーション:
+   * - actor が OWNER でなければ 403(controller の `@Roles(OWNER)` に加え多層で担保)
+   * - 対象 = 自分自身 → 400(既に OWNER)
+   * - 対象が当該テナントの有効メンバーでない(未存在 or 論理削除済み User) → 404(存在露呈しない)
+   *
+   * 課金: 対象・旧 OWNER とも既存メンバーのため seat 数は不変。`syncSubscriptionQuantity` は呼ばない。
+   */
+  async transferOwnership(
+    tenantId: string,
+    actor: { userId: string; role: Role },
+    targetUserId: string,
+  ): Promise<TransferOwnershipResult> {
+    if (actor.role !== Role.OWNER) {
+      throw new ForbiddenException('Only the workspace owner can transfer ownership.');
+    }
+    if (actor.userId === targetUserId) {
+      throw new BadRequestException('You are already the owner of this workspace.');
+    }
+
+    const target = await this.prisma.tenantMember.findUnique({
+      where: { tenantId_userId: { tenantId, userId: targetUserId } },
+      select: { user: { select: { deletedAt: true } } },
+    });
+    // 未所属・論理削除済みユーザーは 404(存在露呈しない)。
+    if (!target || target.user.deletedAt !== null) {
+      throw new NotFoundException();
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.tenant.update({
+        where: { id: tenantId },
+        data: { ownerId: targetUserId },
+      }),
+      this.prisma.tenantMember.update({
+        where: { tenantId_userId: { tenantId, userId: targetUserId } },
+        data: { role: Role.OWNER },
+      }),
+      this.prisma.tenantMember.update({
+        where: { tenantId_userId: { tenantId, userId: actor.userId } },
+        data: { role: Role.ADMIN },
+      }),
+    ]);
+
+    return {
+      newOwnerUserId: targetUserId,
+      previousOwner: { userId: actor.userId, role: Role.ADMIN },
+    };
   }
 }
