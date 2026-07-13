@@ -155,13 +155,48 @@ function asString(v: unknown): string {
   return typeof v === 'string' ? v.trim() : '';
 }
 
-function asOptionalString(v: unknown): string | undefined {
-  const s = asString(v);
-  return s.length > 0 ? s : undefined;
-}
-
 function asArray(v: unknown): unknown[] {
   return Array.isArray(v) ? v : [];
+}
+
+/**
+ * リンク href を安全化する(BE 側の多層防御、FE `safeHref` と同方針)。
+ * 相対パス(`/` / `#`)と http(s) / mailto は許可、危険スキーム(`javascript:` 等)は `#` に落とす。
+ * ブロック自体は落とさず href だけ無害化することで、FE と挙動を揃える。
+ */
+function sanitizeLpHref(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  if (trimmed.startsWith('/') || trimmed.startsWith('#')) return trimmed;
+  try {
+    const protocol = new URL(trimmed).protocol;
+    return ['http:', 'https:', 'mailto:'].includes(protocol) ? trimmed : '#';
+  } catch {
+    // スキームを持たない相対文字列。XSS にはならないため許可。
+    return trimmed;
+  }
+}
+
+/**
+ * 画像 URL(`<img src>`)を安全化する。相対パス(`/`)と http(s) のみ許可し、
+ * それ以外(`javascript:` / `data:` 等)は空文字(= 画像なし)に落とす。
+ */
+function sanitizeLpImageUrl(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  if (trimmed.startsWith('/')) return trimmed;
+  try {
+    const protocol = new URL(trimmed).protocol;
+    return ['http:', 'https:'].includes(protocol) ? trimmed : '';
+  } catch {
+    return '';
+  }
+}
+
+/** 画像 URL の任意フィールド用(空なら undefined)。 */
+function sanitizeLpOptionalImageUrl(v: unknown): string | undefined {
+  const s = sanitizeLpImageUrl(asString(v));
+  return s.length > 0 ? s : undefined;
 }
 
 /**
@@ -191,8 +226,8 @@ export function parseLpBlocks(raw: unknown): LpBlock[] {
           heading,
           sub: asString(b.sub),
           ctaText,
-          ctaHref,
-          image: asOptionalString(b.image),
+          ctaHref: sanitizeLpHref(ctaHref),
+          image: sanitizeLpOptionalImageUrl(b.image),
         });
         break;
       }
@@ -226,7 +261,7 @@ export function parseLpBlocks(raw: unknown): LpBlock[] {
           quote,
           name: asString(b.name),
           role: asString(b.role),
-          avatar: asOptionalString(b.avatar),
+          avatar: sanitizeLpOptionalImageUrl(b.avatar),
         });
         break;
       }
@@ -235,7 +270,7 @@ export function parseLpBlocks(raw: unknown): LpBlock[] {
         const buttonText = asString(b.buttonText);
         const buttonHref = asString(b.buttonHref);
         if (!heading || !buttonText || !buttonHref) break;
-        result.push({ type: 'cta', heading, buttonText, buttonHref });
+        result.push({ type: 'cta', heading, buttonText, buttonHref: sanitizeLpHref(buttonHref) });
         break;
       }
       case 'footer': {
@@ -244,7 +279,7 @@ export function parseLpBlocks(raw: unknown): LpBlock[] {
         const links = asArray(b.items)
           .map((it) => {
             const o = (typeof it === 'object' && it !== null ? it : {}) as Record<string, unknown>;
-            return { label: asString(o.label), href: asString(o.href) };
+            return { label: asString(o.label), href: sanitizeLpHref(asString(o.href)) };
           })
           .filter((it) => it.label.length > 0);
         // 他ブロック同様、実体の無い(copyright も links も空)footer は push しない。

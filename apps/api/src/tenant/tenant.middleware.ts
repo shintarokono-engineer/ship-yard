@@ -4,7 +4,14 @@ import type { NextFunction, Request, Response } from 'express';
 
 import { PrismaService } from '../prisma/prisma.service';
 
-/** apps/web の middleware が付与するヘッダー(ADR-003) */
+/**
+ * テナント解決ヘッダー(ADR-003)。
+ *
+ * 注: 現状 apps/web の API クライアント(`lib/api/client.ts`)はこのヘッダーを送っていない。
+ * `/w/{slug}` 配下の実ルートは `WorkspaceGuard` が URL の `:slug` からテナントを解決し、Service が
+ * 引数の tenantId を明示注入する経路が SSoT。本ミドルウェアの ALS 注入はヘッダーが来た場合の
+ * 二次的な経路(将来 ALS 前提コードを増やす際の布石)であり、現状の主経路ではない。
+ */
 const TENANT_SLUG_HEADER = 'x-tenant-slug';
 
 /**

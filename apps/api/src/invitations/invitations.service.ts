@@ -46,12 +46,12 @@ interface InvitationStatusInput {
  * これにより DB 漏洩時にトークンからの直接なりすまし(パスワードリセットトークン相当の資産)を防ぐ。
  * 生トークンは暗号学的乱数(高エントロピー)なので、salt 無しの単純ハッシュで十分(総当たり不能)。
  */
-function hashInvitationToken(rawToken: string): string {
+export function hashInvitationToken(rawToken: string): string {
   return createHash('sha256').update(rawToken).digest('hex');
 }
 
 /** 4 状態を一意に決定する(優先順: REVOKED > ACCEPTED > EXPIRED > PENDING)。 */
-function computeInvitationStatus(
+export function computeInvitationStatus(
   row: InvitationStatusInput,
   now: Date = new Date(),
 ): InvitationStatus {

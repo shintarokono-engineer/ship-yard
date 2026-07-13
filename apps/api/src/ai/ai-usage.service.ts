@@ -19,7 +19,7 @@ import {
 } from './ai.constants';
 
 /** トークン数からおおよその円コストを見積もる(`AIUsage.costJpy` は Decimal(10,4))。 */
-function estimateCostJpy(model: string, tokensIn: number, tokensOut: number): string {
+export function estimateCostJpy(model: string, tokensIn: number, tokensOut: number): string {
   const p = MODEL_PRICING_USD_PER_MTOK[model] ?? FALLBACK_PRICING_USD_PER_MTOK;
   const usd = (tokensIn / 1_000_000) * p.in + (tokensOut / 1_000_000) * p.out;
   return (usd * USD_PER_JPY).toFixed(4);
@@ -36,7 +36,7 @@ function estimateCostJpy(model: string, tokensIn: number, tokensOut: number): st
  * 実 API call 回数と一致させ、サービス側の AI 原価とプラン上限判定を整合させるため。
  * override 値も同様に turnCount で乗算する(2-step 機能の override 設定時に意図通り)。
  */
-function creditsForUsage(model: string, feature: Feature, turnCount = 1): number {
+export function creditsForUsage(model: string, feature: Feature, turnCount = 1): number {
   if (feature === Feature.OTHER) return 0;
   const override = FEATURE_CREDIT_OVERRIDES[feature];
   if (override !== undefined) return override * turnCount;
