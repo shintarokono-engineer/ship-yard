@@ -65,6 +65,15 @@ export interface RecordAIUsageInput {
   turnCount?: number;
 }
 
+/** `AIUsageService.reserveCredits` / `withCreditReservation` の入力。credits は model × feature × turnCount で確定。 */
+export interface ReserveCreditsInput {
+  userId: string;
+  model: string;
+  feature: Feature;
+  /** 1 機能で複数ターン API call する場合のターン数(デフォルト 1)。2-step 診断は 2。 */
+  turnCount?: number;
+}
+
 /** `AIUsageService.getMonthlySummary` の戻り値。設定画面の「利用状況」タブ用。 */
 export interface MonthlyUsageSummary {
   plan: Plan;
@@ -262,6 +271,110 @@ export class AIUsageService {
         credits: creditsForUsage(usage.model, usage.feature, usage.turnCount ?? 1),
       },
     });
+  }
+
+  /**
+   * AI クレジットを原子的に予約する(TOCTOU 回避、ADR-012)。AI 呼び出しの「前」に呼ぶ。
+   *
+   * `assertWithinPlanCredits`(チェック)と `record`(記録)の間に AI 呼び出し(数秒)が挟まると、
+   * 同一テナントの同時リクエストが両方とも古い used 値でチェックを通過し上限を超過しうる(TOCTOU)。
+   * これを防ぐため、`pg_advisory_xact_lock` でテナント単位に直列化した上で
+   * 「当月消費 + 本コールのクレジット ≦ 上限」を確認し、OK なら placeholder の AIUsage 行
+   * (tokens / costJpy = 0)を INSERT して予約 id を返す。予約行の credits が即座に used に反映されるため、
+   * 後続の同時リクエストは最新の used を見て正しく弾かれる。上限超過 / FREE は 403。
+   *
+   * 予約後は必ず `finalizeReservation`(成功時、tokens 確定)か `releaseReservation`(失敗時、取り消し)を
+   * 呼ぶこと(通常は `withCreditReservation` ラッパー経由で自動化)。
+   */
+  async reserveCredits(
+    tenant: { id: string; plan: Plan },
+    usage: ReserveCreditsInput,
+  ): Promise<string> {
+    if (tenant.plan === Plan.FREE) {
+      throw new ForbiddenException(
+        'このワークスペースの AI 機能は停止中です。Pro / Team プランへアップグレードしてください。',
+      );
+    }
+    const cost = creditsForUsage(usage.model, usage.feature, usage.turnCount ?? 1);
+    const limit = await this.getPlanCreditLimit(tenant);
+    const periodStart = startOfMonthUtc();
+
+    return this.prisma.$transaction(async (tx) => {
+      // 同一テナントの予約を直列化する(トランザクション終了時に自動解放)。tenantId を鍵にした排他ロック。
+      // eslint-disable-next-line shipyard/no-raw-sql-without-tenant-filter -- tenantId を鍵にした advisory lock で、データ行への query ではない
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${tenant.id})::bigint)`;
+      const agg = await tx.aIUsage.aggregate({
+        where: { tenantId: tenant.id, createdAt: { gte: periodStart } },
+        _sum: { credits: true },
+      });
+      const used = agg._sum.credits ?? 0;
+      if (used + cost > limit) {
+        throw new ForbiddenException(
+          `月次 AI クレジット上限(${limit})に達しました。来月の更新をお待ちください。`,
+        );
+      }
+      const row = await tx.aIUsage.create({
+        data: {
+          tenantId: tenant.id,
+          userId: usage.userId,
+          model: usage.model,
+          feature: usage.feature,
+          tokensIn: 0,
+          tokensOut: 0,
+          costJpy: '0',
+          credits: cost,
+        },
+        select: { id: true },
+      });
+      return row.id;
+    });
+  }
+
+  /** 予約した AIUsage 行に実際の tokens / costJpy を確定する(AI 成功後)。credits は予約時のまま。 */
+  async finalizeReservation(
+    reservationId: string,
+    tokens: { tokensIn: number; tokensOut: number },
+  ): Promise<void> {
+    const row = await this.prisma.aIUsage.findUnique({
+      where: { id: reservationId },
+      select: { model: true },
+    });
+    if (!row) return; // 予約が既に無ければ何もしない(release 済み等、防御的)。
+    await this.prisma.aIUsage.update({
+      where: { id: reservationId },
+      data: {
+        tokensIn: tokens.tokensIn,
+        tokensOut: tokens.tokensOut,
+        costJpy: estimateCostJpy(row.model, tokens.tokensIn, tokens.tokensOut),
+      },
+    });
+  }
+
+  /** 予約を取り消す(AI 呼び出し失敗時)。予約行を削除してクレジットを解放する。 */
+  async releaseReservation(reservationId: string): Promise<void> {
+    await this.prisma.aIUsage.deleteMany({ where: { id: reservationId } });
+  }
+
+  /**
+   * クレジット予約 → AI 実行 → 確定 / 失敗時解放 を 1 つにまとめるラッパー。
+   *
+   * `run` は AI 呼び出し(+ 必要な永続化)を行い、結果と実トークン数を返す。成功すれば tokens を確定、
+   * 例外なら予約を解放して re-throw する。各 AI フローの呼び出し側の try/catch 重複を無くす。
+   */
+  async withCreditReservation<T>(
+    tenant: { id: string; plan: Plan },
+    usage: ReserveCreditsInput,
+    run: () => Promise<{ value: T; tokensIn: number; tokensOut: number }>,
+  ): Promise<T> {
+    const reservationId = await this.reserveCredits(tenant, usage);
+    try {
+      const { value, tokensIn, tokensOut } = await run();
+      await this.finalizeReservation(reservationId, { tokensIn, tokensOut });
+      return value;
+    } catch (err) {
+      await this.releaseReservation(reservationId);
+      throw err;
+    }
   }
 
   /**

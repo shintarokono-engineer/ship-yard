@@ -9,16 +9,14 @@ import {
   type Plan,
 } from '@shipyard/db';
 
+import { AI_MODEL_SONNET } from '../ai/ai.constants';
 import { AIUsageService } from '../ai/ai-usage.service';
 import { dayjs } from '../common/time';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectsService } from '../projects/projects.service';
 import { AnnouncementGenService } from './announcement-gen.service';
 import { ANNOUNCEMENT_CHANNELS } from './announcement-types';
-import type {
-  BlogDeliveryContent,
-  TwitterDeliveryContent,
-} from './announcement-types';
+import type { BlogDeliveryContent, TwitterDeliveryContent } from './announcement-types';
 import type { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import type { GenerateAnnouncementDto } from './dto/generate-announcement.dto';
 import type { UpdateAnnouncementDto } from './dto/update-announcement.dto';
@@ -45,12 +43,7 @@ export class AnnouncementService {
   ) {}
 
   /** Announcement を新規作成する(status = DRAFT、Delivery 0 件)。 */
-  async create(
-    tenantId: string,
-    projectId: string,
-    userId: string,
-    dto: CreateAnnouncementDto,
-  ) {
+  async create(tenantId: string, projectId: string, userId: string, dto: CreateAnnouncementDto) {
     // projectId が当該テナントに属することを検証(FK は Project.id 単独参照のため、
     // 検証なしだと他テナントの projectId を指す行を作成できてしまう。checklist.service と同じ規律)。
     await this.projects.assertExists(tenantId, projectId);
@@ -97,12 +90,7 @@ export class AnnouncementService {
    * Announcement の更新(タイトル / Twitter Delivery 直接編集)。
    * Blog Delivery は `PATCH /blog-posts/:id` 経由のため本メソッドでは扱わない。
    */
-  async update(
-    tenantId: string,
-    projectId: string,
-    id: string,
-    dto: UpdateAnnouncementDto,
-  ) {
+  async update(tenantId: string, projectId: string, id: string, dto: UpdateAnnouncementDto) {
     const existing = await this.getDetail(tenantId, projectId, id);
     await this.prisma.$transaction(async (tx) => {
       if (dto.title !== undefined) {
@@ -112,9 +100,7 @@ export class AnnouncementService {
         });
       }
       if (dto.twitterContent) {
-        const twitter = existing.deliveries.find(
-          (d) => d.channel === DeliveryChannel.TWITTER,
-        );
+        const twitter = existing.deliveries.find((d) => d.channel === DeliveryChannel.TWITTER);
         if (twitter) {
           const payload: TwitterDeliveryContent = { text: dto.twitterContent.text };
           await tx.delivery.update({
@@ -151,195 +137,201 @@ export class AnnouncementService {
     plan: Plan;
     dto: GenerateAnnouncementDto;
   }) {
-    // グローバルクレジット上限(ADR-012)+ 本機能固有の月次回数上限の両方を AI 呼び出し前に確認する
-    // (landing-page / diagnosis 等と対称にする)。
-    await this.aiUsage.assertWithinPlanCredits({ id: args.tenantId, plan: args.plan });
+    // 本機能固有の月次回数上限を確認し、続いてクレジットを AI 呼び出しの「前」に原子的に予約する
+    // (TOCTOU 回避、ADR-012)。ANNOUNCEMENT_GEN は override で 4cr(FEATURE_CREDIT_OVERRIDES)。
+    // 以降で失敗したら catch で予約を解放し、失敗した生成でクレジットを消費しない。
     await this.aiUsage.assertWithinAnnouncementQuota({
       id: args.tenantId,
       plan: args.plan,
     });
-
-    const announcement = await this.getDetail(args.tenantId, args.projectId, args.id);
-    const project = await this.prisma.project.findFirst({
-      where: { id: args.projectId, tenantId: args.tenantId },
-      select: {
-        name: true,
-        description: true,
-        categoryDomain: true,
-        pricingTier: true,
-        targetUsers: true,
-        problemStatement: true,
-        proposedFeatures: true,
-        pricingModel: true,
-      },
-    });
-    if (!project) {
-      // Prisma の P2025 を素通しすると global filter 不在のため 500 になる。明示的に 404 を返す。
-      throw new NotFoundException('プロジェクトが見つかりません。');
-    }
-
-    // 最新 LP の hero(参考トーン)
-    const lp = await this.prisma.landingPage.findFirst({
-      where: { projectId: args.projectId, tenantId: args.tenantId },
-      select: { blocks: true },
-    });
-    const heroRaw = Array.isArray(lp?.blocks)
-      ? (lp!.blocks as Array<{ type: string; heading?: string; sub?: string }>).find(
-          (b) => b && typeof b === 'object' && b.type === 'hero',
-        )
-      : undefined;
-    const latestLpHero = heroRaw?.heading
-      ? { heading: heroRaw.heading, sub: heroRaw.sub }
-      : undefined;
-
-    // 最新 README 抜粋(参考機能)
-    const readme = await this.prisma.projectDocument.findFirst({
-      where: {
-        projectId: args.projectId,
-        tenantId: args.tenantId,
-        type: 'README',
-        deletedAt: null,
-      },
-      orderBy: { version: 'desc' },
-      select: { content: true },
-    });
-
-    const generated = await this.gen.generate({
-      topic: args.dto.topic,
-      project,
-      announcementTitle: announcement.title,
-      channels: args.dto.channels,
-      latestLpHero,
-      latestReadmeExcerpt: readme?.content?.slice(0, 300),
-    });
-
-    const channelsToWrite =
-      args.dto.channels && args.dto.channels.length > 0
-        ? args.dto.channels
-        : ANNOUNCEMENT_CHANNELS;
-
-    // Blog Delivery を扱う場合に備えて、トランザクション外で slug 候補を解決する
-    // (extended PrismaClient と tx の型が異なるため。@@unique 違反は最終的に DB が守る)。
-    const baseSlugForBlog = channelsToWrite.includes(DeliveryChannel.BLOG)
-      ? slugify(generated.drafts.blog.title)
-      : '';
-    const existingBlogDelivery = announcement.deliveries.find(
-      (d) => d.channel === DeliveryChannel.BLOG,
+    const reservationId = await this.aiUsage.reserveCredits(
+      { id: args.tenantId, plan: args.plan },
+      { userId: args.userId, model: AI_MODEL_SONNET, feature: Feature.ANNOUNCEMENT_GEN },
     );
-    const resolvedBlogSlug =
-      channelsToWrite.includes(DeliveryChannel.BLOG) && !existingBlogDelivery
-        ? await this.findUniqueBlogSlug(args.tenantId, args.projectId, baseSlugForBlog)
-        : null;
-
-    await this.prisma.$transaction(async (tx) => {
-      // Twitter Delivery を upsert
-      if (channelsToWrite.includes(DeliveryChannel.TWITTER)) {
-        const twitterPayload: TwitterDeliveryContent = {
-          text: generated.drafts.twitter.text,
-        };
-        await tx.delivery.upsert({
-          where: {
-            announcementId_channel: {
-              announcementId: args.id,
-              channel: DeliveryChannel.TWITTER,
-            },
-          },
-          create: {
-            tenantId: args.tenantId,
-            announcementId: args.id,
-            channel: DeliveryChannel.TWITTER,
-            status: DeliveryStatus.DRAFT,
-            content: toJson(twitterPayload),
-          },
-          update: {
-            content: toJson(twitterPayload),
-            status: DeliveryStatus.DRAFT,
-          },
-        });
+    try {
+      const announcement = await this.getDetail(args.tenantId, args.projectId, args.id);
+      const project = await this.prisma.project.findFirst({
+        where: { id: args.projectId, tenantId: args.tenantId },
+        select: {
+          name: true,
+          description: true,
+          categoryDomain: true,
+          pricingTier: true,
+          targetUsers: true,
+          problemStatement: true,
+          proposedFeatures: true,
+          pricingModel: true,
+        },
+      });
+      if (!project) {
+        // Prisma の P2025 を素通しすると global filter 不在のため 500 になる。明示的に 404 を返す。
+        throw new NotFoundException('プロジェクトが見つかりません。');
       }
 
-      // Blog Delivery + BlogPost を upsert(slug は title から派生、重複時はサフィックス)
-      if (channelsToWrite.includes(DeliveryChannel.BLOG)) {
-        const existingPost = existingBlogDelivery
-          ? await tx.blogPost.findUnique({
-              where: { deliveryId: existingBlogDelivery.id },
-            })
-          : null;
-        const post = existingPost
-          ? await tx.blogPost.update({
-              where: { id: existingPost.id },
-              data: {
-                title: generated.drafts.blog.title,
-                body: generated.drafts.blog.body,
-                // slug はユーザー編集を尊重するため再生成では更新しない
-              },
-            })
-          : await tx.blogPost.create({
-              data: {
-                tenantId: args.tenantId,
-                projectId: args.projectId,
-                slug: resolvedBlogSlug ?? (slugify(generated.drafts.blog.title) || 'post'),
-                title: generated.drafts.blog.title,
-                body: generated.drafts.blog.body,
-              },
-            });
+      // 最新 LP の hero(参考トーン)
+      const lp = await this.prisma.landingPage.findFirst({
+        where: { projectId: args.projectId, tenantId: args.tenantId },
+        select: { blocks: true },
+      });
+      const heroRaw = Array.isArray(lp?.blocks)
+        ? (lp!.blocks as Array<{ type: string; heading?: string; sub?: string }>).find(
+            (b) => b && typeof b === 'object' && b.type === 'hero',
+          )
+        : undefined;
+      const latestLpHero = heroRaw?.heading
+        ? { heading: heroRaw.heading, sub: heroRaw.sub }
+        : undefined;
 
-        const blogPayload: BlogDeliveryContent = {
-          blogPostId: post.id,
-          summary: generated.drafts.blog.summary,
-        };
-        await tx.delivery.upsert({
-          where: {
-            announcementId_channel: {
+      // 最新 README 抜粋(参考機能)
+      const readme = await this.prisma.projectDocument.findFirst({
+        where: {
+          projectId: args.projectId,
+          tenantId: args.tenantId,
+          type: 'README',
+          deletedAt: null,
+        },
+        orderBy: { version: 'desc' },
+        select: { content: true },
+      });
+
+      const generated = await this.gen.generate({
+        topic: args.dto.topic,
+        project,
+        announcementTitle: announcement.title,
+        channels: args.dto.channels,
+        latestLpHero,
+        latestReadmeExcerpt: readme?.content?.slice(0, 300),
+      });
+
+      const channelsToWrite =
+        args.dto.channels && args.dto.channels.length > 0
+          ? args.dto.channels
+          : ANNOUNCEMENT_CHANNELS;
+
+      // Blog Delivery を扱う場合に備えて、トランザクション外で slug 候補を解決する
+      // (extended PrismaClient と tx の型が異なるため。@@unique 違反は最終的に DB が守る)。
+      const baseSlugForBlog = channelsToWrite.includes(DeliveryChannel.BLOG)
+        ? slugify(generated.drafts.blog.title)
+        : '';
+      const existingBlogDelivery = announcement.deliveries.find(
+        (d) => d.channel === DeliveryChannel.BLOG,
+      );
+      const resolvedBlogSlug =
+        channelsToWrite.includes(DeliveryChannel.BLOG) && !existingBlogDelivery
+          ? await this.findUniqueBlogSlug(args.tenantId, args.projectId, baseSlugForBlog)
+          : null;
+
+      await this.prisma.$transaction(async (tx) => {
+        // Twitter Delivery を upsert
+        if (channelsToWrite.includes(DeliveryChannel.TWITTER)) {
+          const twitterPayload: TwitterDeliveryContent = {
+            text: generated.drafts.twitter.text,
+          };
+          await tx.delivery.upsert({
+            where: {
+              announcementId_channel: {
+                announcementId: args.id,
+                channel: DeliveryChannel.TWITTER,
+              },
+            },
+            create: {
+              tenantId: args.tenantId,
+              announcementId: args.id,
+              channel: DeliveryChannel.TWITTER,
+              status: DeliveryStatus.DRAFT,
+              content: toJson(twitterPayload),
+            },
+            update: {
+              content: toJson(twitterPayload),
+              status: DeliveryStatus.DRAFT,
+            },
+          });
+        }
+
+        // Blog Delivery + BlogPost を upsert(slug は title から派生、重複時はサフィックス)
+        if (channelsToWrite.includes(DeliveryChannel.BLOG)) {
+          const existingPost = existingBlogDelivery
+            ? await tx.blogPost.findUnique({
+                where: { deliveryId: existingBlogDelivery.id },
+              })
+            : null;
+          const post = existingPost
+            ? await tx.blogPost.update({
+                where: { id: existingPost.id },
+                data: {
+                  title: generated.drafts.blog.title,
+                  body: generated.drafts.blog.body,
+                  // slug はユーザー編集を尊重するため再生成では更新しない
+                },
+              })
+            : await tx.blogPost.create({
+                data: {
+                  tenantId: args.tenantId,
+                  projectId: args.projectId,
+                  slug: resolvedBlogSlug ?? (slugify(generated.drafts.blog.title) || 'post'),
+                  title: generated.drafts.blog.title,
+                  body: generated.drafts.blog.body,
+                },
+              });
+
+          const blogPayload: BlogDeliveryContent = {
+            blogPostId: post.id,
+            summary: generated.drafts.blog.summary,
+          };
+          await tx.delivery.upsert({
+            where: {
+              announcementId_channel: {
+                announcementId: args.id,
+                channel: DeliveryChannel.BLOG,
+              },
+            },
+            create: {
+              tenantId: args.tenantId,
               announcementId: args.id,
               channel: DeliveryChannel.BLOG,
+              status: DeliveryStatus.DRAFT,
+              content: toJson(blogPayload),
             },
-          },
-          create: {
-            tenantId: args.tenantId,
-            announcementId: args.id,
-            channel: DeliveryChannel.BLOG,
-            status: DeliveryStatus.DRAFT,
-            content: toJson(blogPayload),
-          },
-          update: {
-            content: toJson(blogPayload),
-            status: DeliveryStatus.DRAFT,
-          },
-        });
+            update: {
+              content: toJson(blogPayload),
+              status: DeliveryStatus.DRAFT,
+            },
+          });
 
-        // BlogPost と Delivery を `deliveryId` で紐付け(初回 create のときに必要)
-        await tx.blogPost.update({
-          where: { id: post.id },
-          data: {
-            delivery: {
-              connect: {
-                announcementId_channel: {
-                  announcementId: args.id,
-                  channel: DeliveryChannel.BLOG,
+          // BlogPost と Delivery を `deliveryId` で紐付け(初回 create のときに必要)
+          await tx.blogPost.update({
+            where: { id: post.id },
+            data: {
+              delivery: {
+                connect: {
+                  announcementId_channel: {
+                    announcementId: args.id,
+                    channel: DeliveryChannel.BLOG,
+                  },
                 },
               },
             },
-          },
+          });
+        }
+
+        await tx.announcement.update({
+          where: { id: args.id },
+          data: { status: AnnouncementStatus.READY },
         });
-      }
-
-      await tx.announcement.update({
-        where: { id: args.id },
-        data: { status: AnnouncementStatus.READY },
       });
-    });
 
-    await this.aiUsage.record({
-      tenantId: args.tenantId,
-      userId: args.userId,
-      model: generated.model,
-      feature: Feature.ANNOUNCEMENT_GEN,
-      tokensIn: generated.tokensIn,
-      tokensOut: generated.tokensOut,
-    });
+      // 予約したクレジット行に実トークン数を確定する(credits は予約時の 4cr のまま)。
+      await this.aiUsage.finalizeReservation(reservationId, {
+        tokensIn: generated.tokensIn,
+        tokensOut: generated.tokensOut,
+      });
 
-    return this.getDetail(args.tenantId, args.projectId, args.id);
+      return this.getDetail(args.tenantId, args.projectId, args.id);
+    } catch (err) {
+      // AI 呼び出し / 永続化のいずれかが失敗したら予約を解放する(失敗生成で課金しない)。
+      await this.aiUsage.releaseReservation(reservationId);
+      throw err;
+    }
   }
 
   /**
@@ -354,11 +346,7 @@ export class AnnouncementService {
     deliveryId: string;
     userId: string;
   }) {
-    const announcement = await this.getDetail(
-      args.tenantId,
-      args.projectId,
-      args.announcementId,
-    );
+    const announcement = await this.getDetail(args.tenantId, args.projectId, args.announcementId);
     const delivery = announcement.deliveries.find((d) => d.id === args.deliveryId);
     if (!delivery) {
       throw new NotFoundException('指定された配信が見つかりません。');

@@ -13,6 +13,7 @@ import {
 
 import { Feature } from '@shipyard/db';
 
+import { AI_MODEL_SONNET } from '../ai/ai.constants';
 import { AIUsageService } from '../ai/ai-usage.service';
 import { RagSearchService } from '../ai/rag-search.service';
 import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
@@ -143,53 +144,57 @@ export class LandingPageController {
   ) {
     const project = await this.projects.getOwnedOrThrow(ws.tenantId, projectId);
 
-    // Free プランの月次 AI 上限チェック(超過なら 403)。AI を呼ぶ前に。
-    await this.aiUsage.assertWithinPlanCredits({ id: ws.tenantId, plan: ws.plan });
-
     const instructions = dto.instructions?.trim() || undefined;
 
-    // RAG: 過去ドキュメントを意味検索して prompt に注入(ADR-005)。自プロジェクトは除外。
-    // 失敗してもメイン生成は止めない(RagSearchService 内部で握りつぶし)。
-    const searchQuery = [project.name, project.description ?? '', instructions ?? '']
-      .filter((s) => s && s.trim())
-      .join('\n');
-    const rag = await this.ragSearch.searchSimilar(ws.tenantId, searchQuery, {
-      excludeProjectId: project.id,
-    });
-
-    const generated = await this.lpGen.generate({
-      project: { name: project.name, description: project.description, status: project.status },
-      instructions,
-      references: rag.hits,
-    });
-
-    const landingPage = await this.landingPage.saveGenerated(
-      ws.tenantId,
-      project.id,
-      generated.blocks,
-    );
-
-    // AI 利用記録(課金・Free 上限判定の根拠なので取りこぼし禁止、ADR-005)。
+    // クレジットを AI 呼び出しの「前」に原子的に予約する(TOCTOU 回避、ADR-012)。
     // LP 生成は ADR-005 の DRAFT_GEN 定義(README / LP / 告知文)に含まれるため Feature.DRAFT_GEN。
-    if (rag.tokensIn > 0) {
-      await this.aiUsage.record({
-        tenantId: ws.tenantId,
-        userId: ws.userId,
-        model: rag.model,
-        feature: Feature.OTHER,
-        tokensIn: rag.tokensIn,
-        tokensOut: 0,
-      });
-    }
-    await this.aiUsage.record({
-      tenantId: ws.tenantId,
-      userId: ws.userId,
-      model: generated.model,
-      feature: Feature.DRAFT_GEN,
-      tokensIn: generated.tokensIn,
-      tokensOut: generated.tokensOut,
-    });
+    return this.aiUsage.withCreditReservation(
+      { id: ws.tenantId, plan: ws.plan },
+      { userId: ws.userId, model: AI_MODEL_SONNET, feature: Feature.DRAFT_GEN },
+      async () => {
+        // RAG: 過去ドキュメントを意味検索して prompt に注入(ADR-005)。自プロジェクトは除外。
+        // 失敗してもメイン生成は止めない(RagSearchService 内部で握りつぶし)。
+        const searchQuery = [project.name, project.description ?? '', instructions ?? '']
+          .filter((s) => s && s.trim())
+          .join('\n');
+        const rag = await this.ragSearch.searchSimilar(ws.tenantId, searchQuery, {
+          excludeProjectId: project.id,
+        });
 
-    return landingPage;
+        const generated = await this.lpGen.generate({
+          project: {
+            name: project.name,
+            description: project.description,
+            status: project.status,
+          },
+          instructions,
+          references: rag.hits,
+        });
+
+        const landingPage = await this.landingPage.saveGenerated(
+          ws.tenantId,
+          project.id,
+          generated.blocks,
+        );
+
+        // 検索 embedding は別 record(OTHER = 0cr、上限カウント対象外)。本生成分は予約行に確定する。
+        if (rag.tokensIn > 0) {
+          await this.aiUsage.record({
+            tenantId: ws.tenantId,
+            userId: ws.userId,
+            model: rag.model,
+            feature: Feature.OTHER,
+            tokensIn: rag.tokensIn,
+            tokensOut: 0,
+          });
+        }
+
+        return {
+          value: landingPage,
+          tokensIn: generated.tokensIn,
+          tokensOut: generated.tokensOut,
+        };
+      },
+    );
   }
 }

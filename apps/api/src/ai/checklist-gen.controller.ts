@@ -9,6 +9,7 @@ import { WorkspaceGuard } from '../auth/workspace.guard';
 import { ChecklistService } from '../checklist/checklist.service';
 import { ProjectsService } from '../projects/projects.service';
 import type { WorkspaceAccess } from '../workspaces/membership.service';
+import { AI_MODEL_HAIKU } from './ai.constants';
 import { AIUsageService } from './ai-usage.service';
 import { ChecklistGenService } from './checklist-gen.service';
 import { GenerateChecklistDto } from './dto/generate-checklist.dto';
@@ -51,58 +52,60 @@ export class ChecklistGenController {
   ) {
     const project = await this.projects.getOwnedOrThrow(ws.tenantId, projectId);
 
-    // Free プランの月次 AI 上限チェック(超過なら 403)。AI を呼ぶ前に。
-    await this.aiUsage.assertWithinPlanCredits({ id: ws.tenantId, plan: ws.plan });
-
     const instructions = dto.instructions?.trim() || undefined;
 
-    // RAG: 過去ドキュメントを意味検索して prompt に注入(ADR-005 の独自性コア)。
-    // クエリは「プロジェクト名 + 概要 + 追加指示」で構成。自プロジェクトのドキュメントは除外。
-    // 失敗してもメイン生成は止めない方針(RagSearchService 内部で握りつぶし → 空ヒット返す)。
-    const searchQuery = [project.name, project.description ?? '', instructions ?? '']
-      .filter((s) => s && s.trim())
-      .join('\n');
-    const rag = await this.ragSearch.searchSimilar(ws.tenantId, searchQuery, {
-      excludeProjectId: project.id,
-    });
+    // クレジットを AI 呼び出しの「前」に原子的に予約する(TOCTOU 回避、ADR-012)。
+    // 上限超過 / FREE は 403、AI 成功後に実トークンで確定、失敗時は自動で予約解放。
+    return this.aiUsage.withCreditReservation(
+      { id: ws.tenantId, plan: ws.plan },
+      { userId: ws.userId, model: AI_MODEL_HAIKU, feature: Feature.CHECKLIST_GEN },
+      async () => {
+        // RAG: 過去ドキュメントを意味検索して prompt に注入(ADR-005 の独自性コア)。
+        // クエリは「プロジェクト名 + 概要 + 追加指示」で構成。自プロジェクトのドキュメントは除外。
+        // 失敗してもメイン生成は止めない方針(RagSearchService 内部で握りつぶし → 空ヒット返す)。
+        const searchQuery = [project.name, project.description ?? '', instructions ?? '']
+          .filter((s) => s && s.trim())
+          .join('\n');
+        const rag = await this.ragSearch.searchSimilar(ws.tenantId, searchQuery, {
+          excludeProjectId: project.id,
+        });
 
-    // RagSearchHit extends RagReference なので rag.hits をそのまま references に渡せる。
-    const generated = await this.checklistGen.generate({
-      project: { name: project.name, description: project.description, status: project.status },
-      instructions,
-      categories: dto.categories,
-      references: rag.hits,
-    });
+        // RagSearchHit extends RagReference なので rag.hits をそのまま references に渡せる。
+        const generated = await this.checklistGen.generate({
+          project: {
+            name: project.name,
+            description: project.description,
+            status: project.status,
+          },
+          instructions,
+          categories: dto.categories,
+          references: rag.hits,
+        });
 
-    // position は既存項目の最大値 + 1 から振り直す(既存項目より後ろに並ぶ)。
-    // 既存件数 = `_count.checklist`(getOwnedOrThrow が DETAIL_SELECT で返す)。
-    const existing = project._count?.checklist ?? 0;
-    const items = await this.checklist.bulkCreate(ws.tenantId, project.id, generated.items, {
-      baseOffset: existing,
-    });
+        // position は既存項目の最大値 + 1 から振り直す(既存項目より後ろに並ぶ)。
+        const existing = project._count?.checklist ?? 0;
+        const items = await this.checklist.bulkCreate(ws.tenantId, project.id, generated.items, {
+          baseOffset: existing,
+        });
 
-    // AI 利用記録(課金・Free 上限判定の根拠なので取りこぼし禁止、ADR-005)
-    // 検索クエリの embedding と本生成は別 record(model が異なるため、単価計算が分岐する)。
-    // OTHER は assertWithinPlanCredits の上限カウントから除外される(ai-usage.service.ts 参照)。
-    if (rag.tokensIn > 0) {
-      await this.aiUsage.record({
-        tenantId: ws.tenantId,
-        userId: ws.userId,
-        model: rag.model,
-        feature: Feature.OTHER,
-        tokensIn: rag.tokensIn,
-        tokensOut: 0,
-      });
-    }
-    await this.aiUsage.record({
-      tenantId: ws.tenantId,
-      userId: ws.userId,
-      model: generated.model,
-      feature: Feature.CHECKLIST_GEN,
-      tokensIn: generated.tokensIn,
-      tokensOut: generated.tokensOut,
-    });
+        // 検索クエリの embedding は別 record(OTHER = 0cr、上限カウント対象外)。本生成分は予約行に確定する。
+        if (rag.tokensIn > 0) {
+          await this.aiUsage.record({
+            tenantId: ws.tenantId,
+            userId: ws.userId,
+            model: rag.model,
+            feature: Feature.OTHER,
+            tokensIn: rag.tokensIn,
+            tokensOut: 0,
+          });
+        }
 
-    return { items };
+        return {
+          value: { items },
+          tokensIn: generated.tokensIn,
+          tokensOut: generated.tokensOut,
+        };
+      },
+    );
   }
 }

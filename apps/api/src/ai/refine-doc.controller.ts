@@ -8,6 +8,7 @@ import { Roles, WRITER_ROLES } from '../auth/roles';
 import { WorkspaceGuard } from '../auth/workspace.guard';
 import { DocumentsService } from '../documents/documents.service';
 import type { WorkspaceAccess } from '../workspaces/membership.service';
+import { AI_MODEL_SONNET } from './ai.constants';
 import { AIUsageService } from './ai-usage.service';
 import { RefineDocumentDto } from './dto/refine-document.dto';
 import { RagSearchService } from './rag-search.service';
@@ -57,57 +58,54 @@ export class RefineDocController {
     // ここで projects.getOwnedOrThrow を呼ぶ必要はない(2 度クエリを飛ばさない)。
     const original = await this.documents.getOwnedOrThrow(ws.tenantId, projectId, documentId);
 
-    // Free プランの月次 AI 上限チェック(超過なら 403)。AI を呼ぶ前に。
-    await this.aiUsage.assertWithinPlanCredits({ id: ws.tenantId, plan: ws.plan });
-
     const goal = dto.goal?.trim() || undefined;
 
-    // RAG: 過去ドキュメントを意味検索して prompt に注入(ADR-005 の独自性コア)。
-    // クエリは「元タイトル + 元本文の冒頭 1000 文字 + goal」で構成(全文だと冒頭の章立てだけで類似度が決まる)。
-    // 自プロジェクトのドキュメントは除外。失敗してもメイン推敲は止めない(RagSearchService 内部で握りつぶし)。
-    const contentExcerpt = original.content.slice(0, 1000);
-    const searchQuery = [original.title, contentExcerpt, goal ?? '']
-      .filter((s) => s && s.trim())
-      .join('\n');
-    const rag = await this.ragSearch.searchSimilar(ws.tenantId, searchQuery, {
-      excludeProjectId: projectId,
-    });
+    // クレジットを AI 呼び出しの「前」に原子的に予約する(TOCTOU 回避、ADR-012)。
+    return this.aiUsage.withCreditReservation(
+      { id: ws.tenantId, plan: ws.plan },
+      { userId: ws.userId, model: AI_MODEL_SONNET, feature: Feature.REFINE_DOC },
+      async () => {
+        // RAG: 過去ドキュメントを意味検索して prompt に注入(ADR-005 の独自性コア)。
+        // クエリは「元タイトル + 元本文の冒頭 1000 文字 + goal」で構成。自プロジェクトは除外。
+        // 失敗してもメイン推敲は止めない(RagSearchService 内部で握りつぶし)。
+        const contentExcerpt = original.content.slice(0, 1000);
+        const searchQuery = [original.title, contentExcerpt, goal ?? '']
+          .filter((s) => s && s.trim())
+          .join('\n');
+        const rag = await this.ragSearch.searchSimilar(ws.tenantId, searchQuery, {
+          excludeProjectId: projectId,
+        });
 
-    const refined = await this.refineDoc.refine({
-      original: { type: original.type, title: original.title, content: original.content },
-      goal,
-      // RagSearchHit extends RagReference なので rag.hits をそのまま references に渡せる(draft-gen と対称)。
-      references: rag.hits,
-    });
+        const refined = await this.refineDoc.refine({
+          original: { type: original.type, title: original.title, content: original.content },
+          goal,
+          // RagSearchHit extends RagReference なので rag.hits をそのまま渡せる(draft-gen と対称)。
+          references: rag.hits,
+        });
 
-    // append-only で新版作成(Day 10 の edit 仕組みに乗せる)。embedAfterWrite が自動で走る。
-    // edit は patch: { title?, content? } を受けるので AI 経路から plain object を直接渡せる。
-    const newVersion = await this.documents.edit(ws.tenantId, projectId, documentId, ws.userId, {
-      title: refined.title,
-      content: refined.content,
-    });
+        // append-only で新版作成(Day 10 の edit 仕組みに乗せる)。embedAfterWrite が自動で走る。
+        const newVersion = await this.documents.edit(
+          ws.tenantId,
+          projectId,
+          documentId,
+          ws.userId,
+          { title: refined.title, content: refined.content },
+        );
 
-    // AI 利用記録(課金・Free 上限判定の根拠なので取りこぼし禁止、ADR-005)。
-    // OTHER は assertWithinPlanCredits の上限カウントから除外される(ai-usage.service.ts 参照)。
-    if (rag.tokensIn > 0) {
-      await this.aiUsage.record({
-        tenantId: ws.tenantId,
-        userId: ws.userId,
-        model: rag.model,
-        feature: Feature.OTHER,
-        tokensIn: rag.tokensIn,
-        tokensOut: 0,
-      });
-    }
-    await this.aiUsage.record({
-      tenantId: ws.tenantId,
-      userId: ws.userId,
-      model: refined.model,
-      feature: Feature.REFINE_DOC,
-      tokensIn: refined.tokensIn,
-      tokensOut: refined.tokensOut,
-    });
+        // 検索 embedding は別 record(OTHER = 0cr、上限カウント対象外)。本生成分は予約行に確定する。
+        if (rag.tokensIn > 0) {
+          await this.aiUsage.record({
+            tenantId: ws.tenantId,
+            userId: ws.userId,
+            model: rag.model,
+            feature: Feature.OTHER,
+            tokensIn: rag.tokensIn,
+            tokensOut: 0,
+          });
+        }
 
-    return newVersion;
+        return { value: newVersion, tokensIn: refined.tokensIn, tokensOut: refined.tokensOut };
+      },
+    );
   }
 }

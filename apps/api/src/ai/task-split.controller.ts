@@ -9,6 +9,7 @@ import { WorkspaceGuard } from '../auth/workspace.guard';
 import { ChecklistService } from '../checklist/checklist.service';
 import { ProjectsService } from '../projects/projects.service';
 import type { WorkspaceAccess } from '../workspaces/membership.service';
+import { AI_MODEL_HAIKU } from './ai.constants';
 import { AIUsageService } from './ai-usage.service';
 import { SplitTaskDto } from './dto/split-task.dto';
 import { RagSearchService } from './rag-search.service';
@@ -65,66 +66,71 @@ export class TaskSplitController {
     const project = await this.projects.getOwnedOrThrow(ws.tenantId, projectId);
     const parent = await this.checklist.getOwnedOrThrow(ws.tenantId, projectId, itemId);
 
-    // Free プランの月次 AI 上限チェック(超過なら 403)。AI を呼ぶ前に。
-    await this.aiUsage.assertWithinPlanCredits({ id: ws.tenantId, plan: ws.plan });
-
     const instructions = dto.instructions?.trim() || undefined;
 
-    // RAG: 過去ドキュメントを意味検索して prompt に注入(ADR-005 の独自性コア)。
-    // クエリは「プロジェクト名 + 親タスク title + 親タスク description」で構成。自プロジェクトは除外。
-    // 失敗してもメイン生成は止めない方針(RagSearchService 内部で握りつぶし → 空ヒット返す)。
-    const searchQuery = [project.name, parent.title, parent.description ?? '']
-      .filter((s) => s && s.trim())
-      .join('\n');
-    const rag = await this.ragSearch.searchSimilar(ws.tenantId, searchQuery, {
-      excludeProjectId: project.id,
-    });
+    // クレジットを AI 呼び出しの「前」に原子的に予約する(TOCTOU 回避、ADR-012)。
+    return this.aiUsage.withCreditReservation(
+      { id: ws.tenantId, plan: ws.plan },
+      { userId: ws.userId, model: AI_MODEL_HAIKU, feature: Feature.TASK_SPLIT },
+      async () => {
+        // RAG: 過去ドキュメントを意味検索して prompt に注入(ADR-005 の独自性コア)。
+        // クエリは「プロジェクト名 + 親タスク title + 親タスク description」で構成。自プロジェクトは除外。
+        // 失敗してもメイン生成は止めない方針(RagSearchService 内部で握りつぶし → 空ヒット返す)。
+        const searchQuery = [project.name, parent.title, parent.description ?? '']
+          .filter((s) => s && s.trim())
+          .join('\n');
+        const rag = await this.ragSearch.searchSimilar(ws.tenantId, searchQuery, {
+          excludeProjectId: project.id,
+        });
 
-    // RagSearchHit extends RagReference なので rag.hits をそのまま references に渡せる。
-    const generated = await this.taskSplit.split({
-      project: { name: project.name, description: project.description, status: project.status },
-      parent: { title: parent.title, description: parent.description, category: parent.category },
-      instructions,
-      references: rag.hits,
-    });
+        // RagSearchHit extends RagReference なので rag.hits をそのまま references に渡せる。
+        const generated = await this.taskSplit.split({
+          project: {
+            name: project.name,
+            description: project.description,
+            status: project.status,
+          },
+          parent: {
+            title: parent.title,
+            description: parent.description,
+            category: parent.category,
+          },
+          instructions,
+          references: rag.hits,
+        });
 
-    // 親 Category を全サブタスクに継承し、parentId で親 ChecklistItem に紐付けて bulkCreate。
-    // position は既存項目の最大値 + 1 から振り直す(末尾追加、親の直後ではない)。
-    // parentId のおかげで「これは何々の分解結果」が DB 上で追跡可能(UI 階層表示・cascade 削除の根拠)。
-    const existing = project._count?.checklist ?? 0;
-    const items = await this.checklist.bulkCreate(
-      ws.tenantId,
-      project.id,
-      generated.items.map((item) => ({
-        category: parent.category,
-        title: item.title,
-        description: item.description,
-      })),
-      { baseOffset: existing, parentId: parent.id },
+        // 親 Category を全サブタスクに継承し、parentId で親 ChecklistItem に紐付けて bulkCreate。
+        // position は既存項目の最大値 + 1 から振り直す(末尾追加、親の直後ではない)。
+        const existing = project._count?.checklist ?? 0;
+        const items = await this.checklist.bulkCreate(
+          ws.tenantId,
+          project.id,
+          generated.items.map((item) => ({
+            category: parent.category,
+            title: item.title,
+            description: item.description,
+          })),
+          { baseOffset: existing, parentId: parent.id },
+        );
+
+        // 検索 embedding は別 record(OTHER = 0cr、上限カウント対象外)。本生成分は予約行に確定する。
+        if (rag.tokensIn > 0) {
+          await this.aiUsage.record({
+            tenantId: ws.tenantId,
+            userId: ws.userId,
+            model: rag.model,
+            feature: Feature.OTHER,
+            tokensIn: rag.tokensIn,
+            tokensOut: 0,
+          });
+        }
+
+        return {
+          value: { items },
+          tokensIn: generated.tokensIn,
+          tokensOut: generated.tokensOut,
+        };
+      },
     );
-
-    // AI 利用記録(課金・Free 上限判定の根拠なので取りこぼし禁止、ADR-005)。
-    // 検索クエリの embedding と本生成は別 record(model が異なるため、単価計算が分岐する)。
-    // OTHER は assertWithinPlanCredits の上限カウントから除外される(ai-usage.service.ts 参照)。
-    if (rag.tokensIn > 0) {
-      await this.aiUsage.record({
-        tenantId: ws.tenantId,
-        userId: ws.userId,
-        model: rag.model,
-        feature: Feature.OTHER,
-        tokensIn: rag.tokensIn,
-        tokensOut: 0,
-      });
-    }
-    await this.aiUsage.record({
-      tenantId: ws.tenantId,
-      userId: ws.userId,
-      model: generated.model,
-      feature: Feature.TASK_SPLIT,
-      tokensIn: generated.tokensIn,
-      tokensOut: generated.tokensOut,
-    });
-
-    return { items };
   }
 }
