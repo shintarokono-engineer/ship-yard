@@ -11,6 +11,7 @@ import { createWorkspaceAction, type OnboardingFormState } from '../_actions/cre
 import {
   INITIAL_ONBOARDING_FORM_STATE,
   NAME_MAX_LENGTH,
+  parseOnboardingFormData,
   SLUG_MAX_LENGTH,
 } from '../_shared/onboarding-form';
 
@@ -26,11 +27,35 @@ export function CreateWorkspaceForm() {
   const [nameLength, setNameLength] = useState(initialName.length);
   const [slugLength, setSlugLength] = useState(initialSlug.length);
 
-  const nameErrors = state.fieldErrors?.name;
-  const slugErrors = state.fieldErrors?.slug;
+  // クライアント側の事前検証エラー。空送信など明らかに不正な入力を、Server Action へ
+  // dispatch せずにこの場で弾くために使う(サーバ往復を挟まないので `pending` が一瞬 true に
+  // なってボタン文言がちらつく現象を防ぐ)。null の間はサーバ側 `state.fieldErrors` を表示する。
+  const [clientFieldErrors, setClientFieldErrors] = useState<
+    OnboardingFormState['fieldErrors'] | null
+  >(null);
 
+  // 表示するエラーはクライアント検証を優先(不正入力を弾いた直後の表示)。
+  // 検証を通過して dispatch した後は null に戻し、サーバ側のエラー(409 slug 衝突等)を出す。
+  const displayErrors = clientFieldErrors ?? state.fieldErrors;
+  const nameErrors = displayErrors?.name;
+  const slugErrors = displayErrors?.slug;
+
+  // form の action。まず Server Action と同一の `parseOnboardingFormData` で検証し、
+  // 不正なら dispatch せずカスタム文言を表示(ちらつき防止)。妥当なら Server Action を dispatch。
+  function handleSubmit(formData: FormData) {
+    const parsed = parseOnboardingFormData(formData);
+    if (Object.keys(parsed.fieldErrors).length > 0 || !parsed.data) {
+      setClientFieldErrors(parsed.fieldErrors);
+      return;
+    }
+    setClientFieldErrors(null);
+    formAction(formData);
+  }
+
+  // noValidate: ブラウザ標準の required バリデーション(「このフィールドを入力してください。」)を
+  // 抑止し、クライアント/サーバ共通のカスタム文言(fieldErrors)で統一表示する。
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={handleSubmit} className="space-y-4" noValidate>
       <FormField
         id="name"
         label="ワークスペース名"

@@ -9,7 +9,8 @@ export default function SignUpPage() {
       <Link href="/" aria-label="Shipyard ホーム">
         <ShipyardWordmark />
       </Link>
-      <SignUp />
+      {/* サインアップ後も同様にフルロード遷移を挟んで白紙化を防ぐ(`/sign-in-complete` 参照)。 */}
+      <SignUp fallbackRedirectUrl="/sign-in-complete" />
     </main>
   );
 }

@@ -199,7 +199,9 @@ function EditBlogPostDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form action={formAction} className="space-y-4">
+        {/* noValidate: ブラウザ標準 required を抑止し Server Action のカスタム文言で統一(空は
+            update-blog-post が「タイトル/本文/slug を入力してください。」を返す)。 */}
+        <form action={formAction} className="space-y-4" noValidate>
           <FormField
             id="title"
             label="タイトル"

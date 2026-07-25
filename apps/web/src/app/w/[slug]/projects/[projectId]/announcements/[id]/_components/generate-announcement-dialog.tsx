@@ -98,7 +98,9 @@ export function GenerateAnnouncementDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form action={formAction} className="space-y-4">
+        {/* noValidate: ブラウザ標準 required を抑止し Server Action のカスタム文言で統一(空は
+            generate-announcement が「告知内容を入力してください。」を返す)。 */}
+        <form action={formAction} className="space-y-4" noValidate>
           <FormField
             id="topic"
             label="告知内容(何を伝えたいか)"
