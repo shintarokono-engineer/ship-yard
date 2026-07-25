@@ -93,10 +93,11 @@ flowchart TD
 
 ### 設計ポイント
 
-- InvitationToken は 7 日で有効期限切れ
+- InvitationToken は 7 日で有効期限切れ(トークンは SHA-256 ハッシュで保存、原文は発行時のみ露出)
 - 招待時にロールを指定(OWNER 以外を選択可)
 - 同じメールへの重複招待は既存トークンを更新
-- Free プランの 3 人制限はサーバ側で検証
+- メンバー招待・6 ロール等の「複数人で使う」機能は **Team プラン限定**(ADR-012)。Pro / トライアル / Free フォールバックはサーバ側で 403、UI もアップグレード誘導に切替
+- **所有権譲渡**は招待とは別 API(`POST /workspaces/:slug/transfer-ownership`、`@Roles(OWNER)`)。単一トランザクションで `Tenant.ownerId` 更新 + 対象 → OWNER + 現 OWNER → ADMIN を原子的に行い「OWNER は常に 1 人」を保つ。メンバー管理 API(`PATCH` / `DELETE /members/:userId`)は OWNER の変更・削除を全経路で禁止し、所有権の移動はこの譲渡 API のみに集約
 
 ## フロー4: 課金アップグレード(Stripe Checkout)
 

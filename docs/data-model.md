@@ -294,7 +294,9 @@ model Tenant {
   name        String
   /// 現在の課金プラン(Subscription と同期)
   plan        Plan     @default(FREE)
-  /// オーナー User ID。プラン変更・削除・所有権譲渡の権限を持つ
+  /// オーナー User ID。プラン変更・削除・所有権譲渡の権限を持つ。
+  /// 「OWNER は常に 1 人」は不変条件:メンバー管理 API は OWNER の変更・削除を全経路で禁止し、
+  /// 移動は `POST /workspaces/:slug/transfer-ownership`(単一 tx で ownerId 更新 + 対象→OWNER + 現 OWNER→ADMIN)のみで行う。
   ownerId     String
   /// ワークスペース作成日時
   createdAt   DateTime @default(now())

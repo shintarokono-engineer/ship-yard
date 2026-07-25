@@ -74,6 +74,20 @@ Free 1 user あたり AI コスト ~¥150/月(Haiku 20 回)。「ずっと無料
 - 月内使い切ったら AI 機能が一時停止、翌月リセットで復活
 - v1.x で**追加クレジット購入**(100 cr / ¥500)を提供
 
+### AI クレジットの原子的予約(TOCTOU 対策、2026-07-25 実装)
+
+上表「ズレが起こる経路」#5「AI リクエストの同時実行(check-then-act)」に対する具体実装。当初の実装は「①当月消費量を集計 → ②上限比較 → ③AI 呼び出し → ④`AIUsage` を後追い INSERT」の順で、①②と④の間に時間差(AI 呼び出しの数秒〜数十秒)があった。同一テナントが上限付近で並行リクエストを投げると、双方が①②時点では「残枠あり」と判定し、両方とも AI を実行して上限を超過できる(TOCTOU)。共有プールの Team では特に顕在化しやすい。
+
+**対策 = 予約(reservation)方式**(`apps/api/src/ai/ai-usage.service.ts`):
+
+1. **`reserveCredits(tenant, usage)`** — 単一トランザクション内で `SELECT pg_advisory_xact_lock(hashtext(tenantId)::bigint)` を取得し、当月消費量を集計 → `used + cost > limit` なら `ForbiddenException`、通れば `credits = cost`(`tokensIn/Out = 0`、`costJpy = '0'`)の**予約行**を INSERT して行 id を返す。advisory lock により同一テナントの予約は直列化され、後続リクエストは先行予約行を必ず観測する。
+2. **AI 呼び出し**は予約成功後に実行。
+3. **`finalizeReservation(id, { tokensIn, tokensOut })`** — 成功時に実トークン数と原価で予約行を更新。
+4. **`releaseReservation(id)`** — AI 失敗時に予約行を削除して枠を返す。
+5. **`withCreditReservation(tenant, usage, run)`** — 上記 1→2→3/4 を try/finally で束ねるラッパー。checklist-gen / task-split / draft-gen / refine-doc / rag-qa / landing-page / product-diagnosis / idea-validation / announcement の 9 フローが利用。
+
+advisory lock はトランザクション終了で自動解放される(`xact` スコープ)。データ行への query ではなく tenantId を鍵にしたロックのため、`shipyard/no-raw-sql-without-tenant-filter` は該当箇所で明示的に無効化しコメントで理由を残している。ユニットテストは `ai-usage.service.spec.ts` / `ai-usage.reservation.spec.ts`。
+
 ### 「Team 専用」になる機能(複数人で使うこと自体)
 
 ADR-004 では Team の差分が「共同編集・レビュー・監査ログ」のみだったが、本 ADR では**「複数人で使うこと」全体**が Team 専用になる:
