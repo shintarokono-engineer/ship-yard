@@ -174,11 +174,19 @@ export class BillingService {
 
     // 【Stripe API 呼び出し】Customer(= Shipyard のワークスペース 1 個)を Stripe 側に作成する。
     // email/name は表示用にオーナーの値を入れる。metadata.tenantId を持たせて Webhook 側から逆引きできるようにする。
-    const customer = await this.stripe.client.customers.create({
-      email: tenant.owner.email,
-      name: tenant.owner.name ?? tenant.name,
-      metadata: { [META_TENANT_ID]: tenant.id },
-    });
+    //
+    // idempotencyKey を tenant.id 基準で付与する。customers.create 成功後に下の subscription.create が
+    // 失敗すると「Stripe には Customer があるが DB に行が無い孤立状態」になり、再試行で Customer が
+    // 重複作成される。同じキーで再試行すれば Stripe が同一 Customer を返すため重複を防げる
+    // (Stripe の idempotency は 24h 有効。それ以内の再試行=現実的なほぼ全ケースをカバーする)。
+    const customer = await this.stripe.client.customers.create(
+      {
+        email: tenant.owner.email,
+        name: tenant.owner.name ?? tenant.name,
+        metadata: { [META_TENANT_ID]: tenant.id },
+      },
+      { idempotencyKey: `ensure-customer-${tenant.id}` },
+    );
     await this.prisma.subscription.create({
       data: {
         tenantId: tenant.id,
