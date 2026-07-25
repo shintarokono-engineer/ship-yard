@@ -27,10 +27,16 @@ resource "aws_ecr_repository" "this" {
 }
 
 # 未タグイメージ(古いビルドの中間レイヤ等)が溜まり続けるのを防ぐ。
+#
+# for_each には `aws_ecr_repository.this` ではなく `toset(local.ecr_repositories)` を
+# 渡す。リソースを直接渡すと、リポジトリ未作成の状態では key が apply 後にしか
+# 確定せず、Terraform が「for_each のキーが plan 時に決められない」として
+# plan / import / apply すべてを拒否する(Invalid for_each argument)。
+# キーは静的に決め、apply 後に確定する値は「値」側だけで参照する。
 resource "aws_ecr_lifecycle_policy" "this" {
-  for_each = aws_ecr_repository.this
+  for_each = toset(local.ecr_repositories)
 
-  repository = each.value.name
+  repository = aws_ecr_repository.this[each.key].name
 
   policy = jsonencode({
     rules = [
