@@ -841,6 +841,9 @@ aws apprunner describe-service \
 - [ ] README 生成(Haiku)が成功する
 - [ ] プロダクト診断 / アイデア検証(Sonnet + Web Search)が成功し、`competitorRefs` が入る
 - [ ] AI クレジットが消費され、利用状況の残数に反映される
+- [ ] **診断 / 検証の所要時間を実測して記録する**(ブラウザの DevTools → Network で該当リクエストの Time を見る)
+
+> ⚠ **これは単なる性能確認ではなく、設計判断のための計測です。** 診断 / 検証は Sonnet の 2-step + Web Search で数十秒かかり、`apps/web` には `maxDuration` の指定が無いため **Vercel の関数実行上限(プラン依存、Hobby は Pro より短い)に当たる可能性**があります。上限に近い、あるいはタイムアウトする場合は、`maxDuration` の引き上げか非同期化(キュー導入)の判断が必要です。判断基準は [`../architecture.md`](../architecture.md) の「非同期処理基盤(キュー)をいつ導入するか」トリガー 1 を参照。
 
 ### 11.3 メール
 
