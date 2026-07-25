@@ -12,6 +12,9 @@ locals {
   app_secret_keys = [
     "DATABASE_URL",
     "CLERK_SECRET_KEY",
+    # Clerk webhook(Svix)の署名検証キー。未設定だと `POST /webhooks/clerk` が 500 を
+    # 返し続け、Clerk → DB の User プロビジョニング(§9.10)が本番で機能しない。
+    "CLERK_WEBHOOK_SECRET",
     "STRIPE_SECRET_KEY",
     "STRIPE_WEBHOOK_SECRET",
     "STRIPE_PRICE_PRO",
