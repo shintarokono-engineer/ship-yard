@@ -302,10 +302,10 @@
 | BIL-15 | ◎ | OWNER、現在=FREE | プラン比較を確認 | Free/Pro/Team 3 枚。Free 強調 +「現在のプラン」バッジ、内容「¥0」「AI 機能は停止」「閲覧のみ可能」等 | OK |
 | BIL-16 | ◎ | OWNER、現在=PRO | プラン比較を確認 | Pro 強調 +「現在のプラン」。「¥1,480 / 月」「AI クレジット 300 / 月」「Sonnet/Haiku 自由切替」等 | OK |
 | BIL-17 | ◎ | OWNER、現在=TEAM | プラン比較を確認 | Team 強調 +「現在のプラン」。「¥2,800 / 人・月」「AI クレジット 800 / 人・月(共有プール)」「6 ロール」等 | OK |
-| BIL-18 | ◇ | OWNER | プラン比較カードの本文(ボタン以外)をクリック | カード自体はクリック不可の比較表示(遷移しない)。操作は Portal ボタンと Checkout ボタンのみ | |
-| BIL-22 | ◎ | OWNER、現在=FREE | プラン比較を確認 | Pro / Team カードに「Pro にアップグレード」「Team にアップグレード」ボタンが表示される(Free カードには出ない)。Portal カードの説明文が「プランの再開は下のプラン比較から選択してください。」に変わる | |
-| BIL-23 | ◎⚠外部 | OWNER、現在=FREE | 「Pro にアップグレード」を押す | ボタンが「決済ページへ移動中...」/aria-busy、成功で Stripe Checkout へ遷移。決済完了で `/w/{slug}?checkout=success` に戻り、プランが PRO + AI 機能が再開 | |
-| BIL-24 | ◎ | OWNER、現在=PRO または TEAM(TRIALING 含む) | プラン比較を確認 | アップグレードボタンは 1 つも出ない(プラン変更は Portal 経由)。Portal カードの説明文は「…プラン変更、解約はすべて Stripe のポータルから行います。」 | |
+| BIL-18 | ◇ | OWNER | プラン比較カードの本文(ボタン以外)をクリック | カード自体はクリック不可の比較表示(遷移しない)。操作は Portal ボタンと Checkout ボタンのみ | OK |
+| BIL-22 | ◎ | OWNER、現在=FREE | プラン比較を確認 | Pro / Team カードに「Pro にアップグレード」「Team にアップグレード」ボタンが表示される(Free カードには出ない)。Portal カードの説明文が「プランの再開は下のプラン比較から選択してください。」に変わる | OK |
+| BIL-23 | ◎⚠外部 | OWNER、現在=FREE | 「Pro にアップグレード」を押す | ボタンが「決済ページへ移動中...」/aria-busy、成功で Stripe Checkout へ遷移。決済完了で `/w/{slug}?checkout=success` に戻り、プランが PRO + AI 機能が再開 | OK(Stripe Checkout テストモード遷移まで確認・「PROプラン ¥1,480/月」定期購入画面。決済完了以降は⚠外部で未実施) |
+| BIL-24 | ◎ | OWNER、現在=PRO または TEAM(TRIALING 含む) | プラン比較を確認 | アップグレードボタンは 1 つも出ない(プラン変更は Portal 経由)。Portal カードの説明文は「…プラン変更、解約はすべて Stripe のポータルから行います。」 | OK |
 | BIL-25 | △ | 現在=FREE、Stripe 障害 / Price ID 未設定 | 「Pro にアップグレード」を押す | 赤 alert「決済ページの起動に失敗しました (HTTP {status})。時間をおいて再度お試しください。」(遷移しない) | |
 | BIL-26 | ◇ | 現在=FREE | Checkout 画面で決済せず戻る | `/w/{slug}?checkout=cancel` に戻り、プランは FREE のまま。再度ボタンを押せる | |
 | BIL-19 | △ | ADMIN、Pro/Free | `/settings/members` を開く | 「メンバー招待は Team プラン限定の機能です。」+「Team へアップグレード」(→ billing)。招待 UI は非表示 | |
