@@ -55,8 +55,13 @@
 - [ ] `STRIPE_PRICE_TEAM` = 1 で作成した Team Price ID(`price_xxx...`)
 - [ ] `STRIPE_SECRET_KEY` = 本番モード(`sk_live_...`)
 - [ ] `STRIPE_WEBHOOK_SECRET` = 本番 Webhook エンドポイントから取得した `whsec_...`
+- [ ] `CLERK_WEBHOOK_SECRET` = Clerk Dashboard の webhook エンドポイントから取得した Svix 署名シークレット
+      (未設定だと `POST /webhooks/clerk` が 500 を返し続け、`User` プロビジョニングが動かない)
 
 ローカル動作確認時は既存の `stripe listen` の `whsec_...` を使う(従来どおり)。
+
+Secrets Manager 側のキー構造は `infra/prod/secrets.tf` の `app_secret_keys`(計 10 キー)で管理し、
+値のみ apply 後に手動投入する。`apps/api/.env.example` にキーを追加したら `secrets.tf` も同時に更新すること。
 
 ## 3. DB Migration の適用
 
@@ -100,12 +105,24 @@ WHERE table_name = 'Subscription' AND column_name = 'quantity';
 - [ ] **Team プランで招待**:メンバー追加 → Stripe Quantity が +1、AI クレジット上限が +800 されること
 - [ ] **Team プランで退会**:メンバー削除 → Stripe Quantity が -1、AI クレジット上限が -800 されること
 - [ ] **トライアル終了(本番では検証困難)**:Stripe テストアカウントで `trial_period_days: 1` の Subscription を作成、1 日後に `customer.subscription.deleted` Webhook が来て Tenant.plan = FREE になることを stg で事前検証
+- [ ] **FREE からの新規契約(Checkout)**:上記でトライアルを終了させたテナントの Billing 画面で、
+      プラン比較カードに「Pro / Team にアップグレード」ボタンが出ること → 押下で Stripe Checkout に遷移 →
+      決済完了で `checkout.session.completed` → `Tenant.plan = PRO`(または TEAM)+ AI 機能が再開すること
+  - Portal はプラン変更ができない(Subscription が無いため)。この状態の課金導線は Checkout のみ
+- [ ] **トライアル中 / 有料中はアップグレードボタンが出ない**こと(Checkout 経由の二重契約防止)。
+      プラン変更・解約は Customer Portal 側で行えること
 
 ## 6. 既知の制約(MVP)
 
 - **第 3 層 reconciliation バッチは v1.x**:write 同期が失敗してログのみ残った場合、現状は手動 SQL で補正する必要がある。日次バッチは v1.x で実装予定
 - **トライアル通知メール無し**:7 日 / 1 日前のリマインダーは v1.x。トライアル終了は Stripe Email(本番アカウント設定)に任せる
 - **追加クレジット購入無し**:月内に 300 cr 使い切ったら「翌月の更新まで待つ」のみ。100 cr / ¥500 の追加購入は v1.x
+- **プラン変更の導線が状態で分かれる**:Subscription 有り = Customer Portal、無し(FREE)= Checkout ボタン。
+  Stripe Portal は Subscription を持たない顧客に新規契約させられないための構造的な使い分けで、統合は v1.x で再検討
+- **所有権譲渡の UI 無し**:`POST /workspaces/:slug/transfer-ownership` は実装済だが画面導線が無い(v1.x)。
+  メンバー画面では OWNER 行のロール変更・削除を一切禁止しているため所有権を誤って失う事故は起きないが、
+  **Team 契約で OWNER が離脱した場合は運用者が DB / API で手動対応する**
+- **ダークモード非対応**:`.dark` variant の CSS 変数はあるがテーマ切替 Provider が無く、アプリはライト固定(v1.x / F14)
 
 ## 7. ロールバック手順
 
