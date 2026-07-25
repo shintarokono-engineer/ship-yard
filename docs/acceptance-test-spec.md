@@ -267,10 +267,10 @@
 | BLOG-03 | ◎ | 公開記事の戻るリンク | リンクを押す | `/p/{slug}/{projectId}`(公開 LP)へ | |
 | BLOG-04 | △ | 記事が未公開(下書き) | 未ログインで公開 URL を開く | 404(下書きの存在を漏らさない) | |
 | BLOG-05 | △ | 存在しない postSlug/projectId/slug | 公開 URL 直打ち | 404(未公開・不在を区別せず一律) | |
-| BLOG-06 | ◇ | 本文に `[link](javascript:alert(1))`(要件確認) | 公開ページで当該リンクを確認 | `javascript:` が除去され無害なアンカーに、スクリプト非実行 | |
-| BLOG-07 | ◇ | 本文に `data:`/`vbscript:`/`file:` URL | 公開ページを開く | 危険スキームが空文字化され無害化 | |
-| BLOG-08 | ◇ | 本文に生の `<script>`/任意 HTML | 公開ページを開く | 任意 HTML は描画されずテキスト扱い | |
-| BLOG-09 | ◎ | 本文に GFM(表/打消し/タスク) | 公開ページを開く | テーブル・打消し線・チェックリストが整形表示 | |
+| BLOG-06 | ◇ | 本文に `[link](javascript:alert(1))`(要件確認) | 公開ページで当該リンクを確認 | `javascript:` が除去され無害なアンカーに、スクリプト非実行 | OK(javascript: href 消失・スクリプト非実行) |
+| BLOG-07 | ◇ | 本文に `data:`/`vbscript:`/`file:` URL | 公開ページを開く | 危険スキームが空文字化され無害化 | OK(javascript:/data: とも href に残らず無害化) |
+| BLOG-08 | ◇ | 本文に生の `<script>`/任意 HTML | 公開ページを開く | 任意 HTML は描画されずテキスト扱い | OK(script/img onerror は DOM から除去・非実行、生テキスト化) |
+| BLOG-09 | ◎ | 本文に GFM(表/打消し/タスク) | 公開ページを開く | テーブル・打消し線・チェックリストが整形表示 | OK | |
 | BLOG-10 | ◎ | 公開記事が 1 件以上 | `/sitemap.xml` を開く | 公開済みブログ URL が列挙(未公開は含まれない) | OK | |
 | BLOG-11 | ◎ | 本文/slug を編集し保存後 | 公開ページ(新 slug)を再読込 | 編集後の内容反映、sitemap にも新 slug 反映(revalidate 後) | |
 | BLOG-12 | ◇ | 公開後に slug 変更 | 旧 slug の公開 URL を開く | 旧 slug は 404、新 slug で表示(要件確認) | |
