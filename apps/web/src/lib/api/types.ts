@@ -73,6 +73,8 @@ export interface Workspace {
   name: string;
   plan: Plan;
   role: Role;
+  /** アクセス中ユーザー自身の内部 User ID(メンバー一覧の「自分」判定に使う、BE が解決して返す)。 */
+  userId: string;
 }
 
 /** `GET /workspaces`(自分の所属一覧)のレスポンス 1 件分。`joinedAt` 付き。 */

@@ -59,7 +59,11 @@ export class WorkspacesController {
   /**
    * GET /workspaces/:slug
    * - slug が存在しない / 現在のユーザーが TenantMember でない → 404(`WorkspaceGuard`、ADR-003)
-   * - 所属している → { id, slug, name, plan, role }
+   * - 所属している → { id, slug, name, plan, role, userId }
+   *
+   * `userId` は「現在アクセスしているユーザー自身の内部 User ID」。FE がメンバー一覧で「自分」を
+   * 判定する際に Clerk `currentUser()` + email 突合(外部 API 往復 + Webhook 遅延時の誤検出)を
+   * 使わずに済むよう、解決済みの内部 ID をここで返す。
    */
   @Get(':slug')
   @UseGuards(WorkspaceGuard)
@@ -70,6 +74,7 @@ export class WorkspacesController {
       name: ws.name,
       plan: ws.plan,
       role: ws.role,
+      userId: ws.userId,
     };
   }
 

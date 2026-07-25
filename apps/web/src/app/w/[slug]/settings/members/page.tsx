@@ -1,4 +1,3 @@
-import { currentUser } from '@clerk/nextjs/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -46,15 +45,14 @@ const INVITATION_STATUS_META: Record<
  *
  * - メンバー一覧は全 TenantMember 表示(BE が誰でも閲覧可)
  * - 招待発行 / 一覧 / 取消 / 再送は ADMIN_ROLES のみ表示(非 ADMIN が招待 API を叩くと 403)
- * - 各メンバーの「自分」判定は Clerk currentUser の primary email を `member.user.email` と
- *   ケース insensitive 比較。BE 側にも同じ判定(`actor.userId === target.userId`)があり
- *   矛盾しない。BE が真実の源、UI はあくまで誤操作防止のための表示分岐
+ * - 各メンバーの「自分」判定は `workspace.userId`(BE が解決したアクセス中ユーザーの内部 User ID)を
+ *   `member.userId` と直接突合する。BE 側の認可(`actor.userId === target.userId`)と同じ ID 基準で
+ *   一致する。旧実装の Clerk `currentUser()` + email 突合(外部 API 往復 + Webhook 遅延時の誤検出)を廃止。
  */
 export default async function MembersPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
-  // currentUser() は workspace に依存しない(Clerk セッション由来)ので fetchWorkspace と並列化する。
-  const [workspace, me] = await Promise.all([fetchWorkspace(slug), currentUser()]);
+  const workspace = await fetchWorkspace(slug);
   if (!workspace) {
     notFound();
   }
@@ -63,7 +61,6 @@ export default async function MembersPage({ params }: { params: Promise<{ slug: 
   // ADR-012: 招待機能(メンバー追加)は Team プラン限定。
   // Pro / Free では BE 側で 403 を返すため、UI も同じ条件でガードして無用な API 呼び出しを避ける。
   const isTeamPlan = workspace.plan === 'TEAM';
-  const myEmail = me?.primaryEmailAddress?.emailAddress?.toLowerCase() ?? null;
 
   // 招待一覧は ADMIN かつ Team プランのみ取得(非 ADMIN・非 Team は 403)。並列実行のため
   // Promise.all で投機的に走らせず、条件付きで取得することでエラー混入を防ぐ。
@@ -72,10 +69,8 @@ export default async function MembersPage({ params }: { params: Promise<{ slug: 
     isAdmin && isTeamPlan ? listInvitations(slug) : Promise.resolve<InvitationListItem[]>([]),
   ]);
 
-  const currentMember = myEmail
-    ? members.find((m) => m.user.email.toLowerCase() === myEmail)
-    : undefined;
-  const currentUserId = currentMember?.userId;
+  // BE が解決した内部 User ID。メンバー一覧の userId と同じ基準で「自分」を判定できる。
+  const currentUserId = workspace.userId;
 
   return (
     <div className="space-y-8">
