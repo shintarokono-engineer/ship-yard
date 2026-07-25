@@ -130,9 +130,9 @@ variable "enable_apprunner_service" {
 }
 
 variable "apprunner_cpu" {
-  description = "App Runner の CPU(1024 = 1 vCPU)"
+  description = "App Runner の CPU(1024 = 1 vCPU)。既定は 512(0.5 vCPU)= コスト最適化(docs/infrastructure-cost.md §3.2 A)。"
   type        = string
-  default     = "1024"
+  default     = "512"
 
   validation {
     condition     = contains(["256", "512", "1024", "2048", "4096"], var.apprunner_cpu)
@@ -141,9 +141,15 @@ variable "apprunner_cpu" {
 }
 
 variable "apprunner_memory" {
-  description = "App Runner のメモリ(2048 = 2 GB)"
+  description = <<-EOT
+    App Runner のメモリ(1024 = 1 GB)。**確保している限りアイドルでも課金される**ため、
+    ここがフロア費用に直結する(2GB → 1GB で月 $5 削減、docs/infrastructure-cost.md §3.2 A)。
+    既定は 0.5 vCPU / 1 GB の組み合わせ。MVP 規模の NestJS + Prisma を想定した値で、
+    起動失敗(OOM)や AI 生成時のメモリ逼迫が出たら 1024 / 2048(1 vCPU / 2 GB)へ戻すこと。
+    App Runner の CPU / メモリは有効な組み合わせが決まっている(0.5 vCPU は 1 GB のみ)。
+  EOT
   type        = string
-  default     = "2048"
+  default     = "1024"
 
   validation {
     condition     = contains(["512", "1024", "2048", "3072", "4096", "6144", "8192", "10240", "12288"], var.apprunner_memory)
@@ -173,9 +179,9 @@ variable "domain_name" {
 # --- 監視・予算(Day 39) ---
 
 variable "monthly_budget_usd" {
-  description = "AWS Budgets の月次予算(USD)。50/80/100% で通知する。"
+  description = "AWS Budgets の月次予算(USD)。実フロア(A 適用後で月 $36〜40、docs/infrastructure-cost.md §2.4)に対して余裕を持たせた値。80/100/120% で通知する。"
   type        = number
-  default     = 50
+  default     = 60
 }
 
 variable "budget_alert_email" {

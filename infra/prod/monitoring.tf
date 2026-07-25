@@ -78,12 +78,19 @@ resource "aws_budgets_budget" "monthly" {
   limit_unit   = "USD"
   time_unit    = "MONTHLY"
 
-  # 実績が 50 / 80 / 100%、または着地見込みが 100% を超えたらメール通知する。
+  # 実績が 80 / 100 / 120%、または着地見込みが 100% を超えたらメール通知する。
+  #
+  # 50% 閾値は使わない:固定フロア(月 $36〜48)が予算の半分を超えるため毎月必ず発火し、
+  # アラートが常態化して本当の異常に気付けなくなる(docs/infrastructure-cost.md §2.7)。
+  # 代わりに 120% を足して暴走(想定外リソースの起動等)を捕捉する。
+  #
+  # 注意:AWS Budgets は**クレジット適用後の実請求額**で判定されるため、初期クレジットが
+  # 残っている間は発火しない。クレジットで隠れている本来のコストは Cost Explorer 側で確認する。
   dynamic "notification" {
     for_each = [
-      { type = "ACTUAL", threshold = 50 },
       { type = "ACTUAL", threshold = 80 },
       { type = "ACTUAL", threshold = 100 },
+      { type = "ACTUAL", threshold = 120 },
       { type = "FORECASTED", threshold = 100 },
     ]
 
@@ -140,8 +147,14 @@ resource "aws_iam_role_policy" "flow_log" {
 }
 
 resource "aws_flow_log" "main" {
-  vpc_id          = aws_vpc.main.id
-  traffic_type    = "ALL"
+  vpc_id = aws_vpc.main.id
+
+  # REJECT のみを記録する(コスト最適化、docs/infrastructure-cost.md §3.2 A)。
+  # Flow Logs は CloudWatch Logs の取り込み量で課金されるため、ALL(正常通信も全量記録)
+  # だとトラフィックに比例して費用が増える。主用途である「SG / ルーティングの誤設定調査」
+  # は拒否ログで足りるため MVP では REJECT に絞る。正常通信の事後追跡が必要になったら
+  # ALL に戻す(監査要件が出た場合など)。
+  traffic_type    = "REJECT"
   log_destination = aws_cloudwatch_log_group.vpc_flow.arn
   iam_role_arn    = aws_iam_role.flow_log.arn
 
