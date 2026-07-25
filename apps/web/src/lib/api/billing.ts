@@ -2,7 +2,7 @@ import { cache } from 'react';
 
 import { apiFetch } from './client';
 import { ApiError } from './errors';
-import type { BillingDetail } from './types';
+import type { BillingDetail, PaidPlan } from './types';
 
 /**
  * `GET /workspaces/:slug/billing`(OWNER のみ閲覧可)。
@@ -32,5 +32,25 @@ export const fetchBilling = cache(async (slug: string): Promise<BillingDetail | 
 export async function createPortalSession(slug: string): Promise<{ url: string }> {
   return apiFetch<{ url: string }>(`/workspaces/${encodeURIComponent(slug)}/portal-session`, {
     method: 'POST',
+  });
+}
+
+/**
+ * `POST /workspaces/:slug/checkout-session`(OWNER のみ)。
+ *
+ * 指定した有料プランの Stripe Checkout Session を作成し、リダイレクト先 URL を返す。
+ * Server Action から呼び出し、返却 URL に `redirect()` する想定。
+ *
+ * **Subscription を持たないテナント専用**(トライアル終了 / 解約後の `plan = FREE`)。
+ * 有効な Subscription があるテナントのプラン変更に使うと Stripe 側で二重契約になるため、
+ * その場合は Customer Portal(`createPortalSession`)を使う(ADR-004 / ADR-012)。
+ */
+export async function createCheckoutSession(
+  slug: string,
+  plan: PaidPlan,
+): Promise<{ url: string }> {
+  return apiFetch<{ url: string }>(`/workspaces/${encodeURIComponent(slug)}/checkout-session`, {
+    method: 'POST',
+    body: JSON.stringify({ plan }),
   });
 }

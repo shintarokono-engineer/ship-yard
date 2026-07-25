@@ -3,7 +3,6 @@ import { ShieldAlert } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchBilling } from '@/lib/api/billing';
-import type { Plan } from '@/lib/api/types';
 import { fetchWorkspace } from '@/lib/api/workspaces';
 
 import { PlanComparison } from './_components/plan-comparison';
@@ -37,12 +36,12 @@ export default async function BillingPage({ params }: { params: Promise<{ slug: 
         </p>
       </header>
 
-      {isOwner ? <OwnerView slug={slug} currentPlan={workspace.plan} /> : <NonOwnerView />}
+      {isOwner ? <OwnerView slug={slug} /> : <NonOwnerView />}
     </div>
   );
 }
 
-async function OwnerView({ slug, currentPlan }: { slug: string; currentPlan: Plan }) {
+async function OwnerView({ slug }: { slug: string }) {
   const billing = await fetchBilling(slug);
   // OWNER 確認は親で済んでいるので通常 null は来ないが、Stripe / DB 障害時に備えて防御的に。
   if (!billing) {
@@ -55,6 +54,10 @@ async function OwnerView({ slug, currentPlan }: { slug: string; currentPlan: Pla
     );
   }
 
+  // Subscription 側の plan を正とする(Webhook で `Tenant.plan` と同期される値の出所)。
+  // FREE = トライアル終了 / 解約後で Stripe に有効な Subscription が無い状態。
+  const hasSubscription = billing.plan !== 'FREE';
+
   return (
     <div className="space-y-6">
       <SubscriptionStatus billing={billing} />
@@ -65,8 +68,9 @@ async function OwnerView({ slug, currentPlan }: { slug: string; currentPlan: Pla
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-muted-foreground text-sm">
-            支払い方法の更新、請求書履歴の確認、プラン変更、解約はすべて Stripe
-            のポータルから行います。
+            {hasSubscription
+              ? '支払い方法の更新、請求書履歴の確認、プラン変更、解約はすべて Stripe のポータルから行います。'
+              : '支払い方法の更新と請求書履歴の確認は Stripe のポータルから行います。プランの再開は下のプラン比較から選択してください。'}
           </p>
           <PortalButton slug={slug} />
         </CardContent>
@@ -74,7 +78,7 @@ async function OwnerView({ slug, currentPlan }: { slug: string; currentPlan: Pla
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">プラン比較</h2>
-        <PlanComparison currentPlan={currentPlan} />
+        <PlanComparison slug={slug} currentPlan={billing.plan} />
       </section>
     </div>
   );

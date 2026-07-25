@@ -9,6 +9,18 @@
 export const PLANS = ['FREE', 'PRO', 'TEAM'] as const;
 export type Plan = (typeof PLANS)[number];
 
+/**
+ * Stripe に Price を持つ有料プラン(BE `PaidPlan` / `CreateCheckoutSessionDto` と同期)。
+ * FREE は Price を持たないので Checkout の対象外。
+ */
+export const PAID_PLANS = ['PRO', 'TEAM'] as const;
+export type PaidPlan = (typeof PAID_PLANS)[number];
+
+/** プランが Checkout 可能な有料プランかを判定。 */
+export function isPaidPlan(plan: Plan): plan is PaidPlan {
+  return (PAID_PLANS as readonly string[]).includes(plan);
+}
+
 /** メンバーロール(`Role` enum、packages/db/prisma/schema.prisma)。 */
 export const ROLES = ['OWNER', 'ADMIN', 'DEVELOPER', 'REVIEWER', 'TESTER', 'VIEWER'] as const;
 export type Role = (typeof ROLES)[number];
