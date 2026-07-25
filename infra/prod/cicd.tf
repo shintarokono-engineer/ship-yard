@@ -61,10 +61,34 @@ data "aws_iam_policy_document" "github_deploy" {
     resources = [for repo in aws_ecr_repository.this : repo.arn]
   }
 
+  # ListOperations は deploy.yml がデプロイ完了を待つために使う。
+  # DescribeService は「現在の SourceConfiguration を取得して ImageIdentifier だけ
+  # 差し替える」ために使う(UpdateService は設定を置き換えるため、env / secrets /
+  # アクセスロールを保つには現設定の取得が必須)。
   statement {
-    sid       = "AppRunnerDeploy"
-    actions   = ["apprunner:StartDeployment", "apprunner:UpdateService", "apprunner:DescribeService", "apprunner:ListServices"]
+    sid = "AppRunnerDeploy"
+    actions = [
+      "apprunner:StartDeployment",
+      "apprunner:UpdateService",
+      "apprunner:DescribeService",
+      "apprunner:ListServices",
+      "apprunner:ListOperations",
+    ]
     resources = ["*"]
+  }
+
+  # UpdateService に AuthenticationConfiguration.AccessRoleArn を含めて渡すため、
+  # 対象ロールの PassRole が必要になる(App Runner サービスに渡すロールに限定)。
+  statement {
+    sid       = "PassAppRunnerRoles"
+    actions   = ["iam:PassRole"]
+    resources = [aws_iam_role.apprunner_access.arn, aws_iam_role.apprunner_instance.arn]
+
+    condition {
+      test     = "StringEquals"
+      variable = "iam:PassedToService"
+      values   = ["build.apprunner.amazonaws.com", "tasks.apprunner.amazonaws.com"]
+    }
   }
 }
 

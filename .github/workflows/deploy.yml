@@ -1,11 +1,11 @@
 # Day 38: main への push で API イメージをビルドし、ECR に push して App Runner
 # を更新するデプロイワークフロー。
 #
-# 前提(未整備・このワークフローを有効化する前に必要):
-#   - apps/api/Dockerfile(API のコンテナ化)
-#   - Terraform で enable_apprunner_service = true(App Runner サービス作成)
+# 有効化の前提(手順は docs/runbooks/production-cutover.md §10):
+#   - Terraform で enable_apprunner_service = true(App Runner サービス作成済)
 #   - GitHub Secrets: AWS_DEPLOY_ROLE_ARN(cicd.tf の github_deploy ロール)、
 #     APPRUNNER_SERVICE_ARN(apprunner.tf の出力)
+#   - GitHub Variables: AWS_BOOTSTRAPPED=true
 #
 # ECR は IMMUTABLE タグ(Day 34)のため、イメージタグはコミット SHA を使う。
 
@@ -56,10 +56,77 @@ jobs:
           docker push "$IMAGE"
           echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
 
-      # 新しいイメージタグへ更新する。update-service は変更を検知して
-      # 自動的にデプロイを開始する。source-configuration は JSON で渡す。
+      # 新しいイメージタグへ更新する。
+      #
+      # 【重要】UpdateService の SourceConfiguration は「マージ」ではなく「置き換え」。
+      # イメージタグだけを組み立てて渡すと、Terraform(apprunner.tf)が設定した
+      # RuntimeEnvironmentVariables(APP_BASE_URL / MAIL_FROM)、
+      # RuntimeEnvironmentSecrets(Secrets Manager の 10 キー)、
+      # AuthenticationConfiguration(ECR pull 用アクセスロール)が消える。
+      # 消えると「起動はするが DB / Stripe / AI に繋がらない」「ECR pull に失敗する」
+      # という状態になるため、現在の設定を describe-service で取得し、
+      # ImageIdentifier だけを差し替えて渡す。
       - name: Deploy to App Runner
+        env:
+          SERVICE_ARN: ${{ secrets.APPRUNNER_SERVICE_ARN }}
         run: |
-          aws apprunner update-service \
-            --service-arn "${{ secrets.APPRUNNER_SERVICE_ARN }}" \
-            --source-configuration "{\"ImageRepository\":{\"ImageIdentifier\":\"$IMAGE\",\"ImageRepositoryType\":\"ECR\",\"ImageConfiguration\":{\"Port\":\"3000\"}}}"
+          set -euo pipefail
+
+          CURRENT=$(aws apprunner describe-service \
+            --service-arn "$SERVICE_ARN" \
+            --query 'Service.SourceConfiguration' --output json)
+
+          # ImageIdentifier を差し替えつつ、describe が返す null フィールド
+          # (ECR 利用時の ConnectionArn 等)を落とす。null を渡すと
+          # update-service がバリデーションエラーになるため。
+          NEW=$(printf '%s' "$CURRENT" \
+            | jq --arg img "$IMAGE" '.ImageRepository.ImageIdentifier = $img' \
+            | jq 'walk(if type == "object" then with_entries(select(.value != null)) else . end)')
+
+          # 設定が取れていない状態で update を投げると本番の env / secrets を
+          # 空にしてしまうため、投入前に検算する。
+          SECRET_COUNT=$(printf '%s' "$NEW" \
+            | jq '.ImageRepository.ImageConfiguration.RuntimeEnvironmentSecrets // {} | length')
+          if [ "$SECRET_COUNT" -eq 0 ]; then
+            echo "::error::RuntimeEnvironmentSecrets が空です。App Runner の設定を terraform apply で復旧してから再実行してください。"
+            exit 1
+          fi
+          echo "runtime secrets: $SECRET_COUNT keys / image: $IMAGE"
+
+          OPERATION_ID=$(aws apprunner update-service \
+            --service-arn "$SERVICE_ARN" \
+            --source-configuration "$NEW" \
+            --query 'OperationId' --output text)
+          echo "OPERATION_ID=$OPERATION_ID" >> "$GITHUB_ENV"
+
+      # update-service は非同期。完了を待たないとデプロイ失敗を検知できず
+      # ワークフローが緑のまま終わるため、オペレーションの終了まで待つ。
+      - name: Wait for deployment
+        env:
+          SERVICE_ARN: ${{ secrets.APPRUNNER_SERVICE_ARN }}
+        run: |
+          set -euo pipefail
+
+          for _ in $(seq 1 60); do   # 15s × 60 = 最大 15 分
+            STATUS=$(aws apprunner list-operations \
+              --service-arn "$SERVICE_ARN" \
+              --query "OperationSummaryList[?Id=='$OPERATION_ID'].Status | [0]" \
+              --output text)
+
+            case "$STATUS" in
+              SUCCEEDED)
+                echo "deployment succeeded"
+                exit 0
+                ;;
+              PENDING|IN_PROGRESS)
+                sleep 15
+                ;;
+              *)
+                echo "::error::App Runner のデプロイが失敗しました (status=$STATUS)。App Runner のアプリケーションログを確認してください。"
+                exit 1
+                ;;
+            esac
+          done
+
+          echo "::error::App Runner のデプロイが 15 分以内に完了しませんでした (operation=$OPERATION_ID)。"
+          exit 1
