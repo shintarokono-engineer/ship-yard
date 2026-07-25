@@ -5,7 +5,8 @@
 Shipyard の現状のインフラスタックと、システム運用にかかる費用の概算をまとめます。
 
 - 構成の決定経緯:[ADR-010](adr/010-iac-tool.md)(IaC ツール = Terraform)、[ADR-011](adr/011-lightweight-aws-architecture.md)(軽量 AWS 構成)
-- 本番デプロイの詳細図:`architecture.md`(※軽量 AWS への追従更新は Day 36 予定)
+- 本番デプロイの詳細図:[`architecture.md`](architecture.md)(2026-07-25 に軽量 AWS 構成へ追従更新済み)
+- 構築手順:[`runbooks/production-cutover.md`](runbooks/production-cutover.md)
 - **コスト数値は 2026-07 時点・東京リージョン(`ap-northeast-1`)の概算**です。AWS / 各 SaaS の料金改定で変動します。為替は ¥150/$ で換算しています。
 - **2026-07-25 に `infra/prod/*.tf` の実リソースと突き合わせて再整理しました**(Secrets Manager / VPC Flow Logs / CloudWatch アラームの追記、RDS の東京リージョン価格への補正、Upstash の実態反映、損益分岐の粗利ベース化、削減レバーの追加、Vercel の Pro 移行方針、**初期クレジットの適用範囲と収益ゼロ期の実費**)。数値の確定前に AWS Pricing Calculator で検証してください。
 - **「初期クレジットがあるうちは運用費ゼロ」ではありません。** クレジットが打ち消すのは AWS の請求だけで、AI 原価(Anthropic / OpenAI)とドメイン代は初月から実費です。詳細は **§2.7** を参照してください。
@@ -125,7 +126,7 @@ AWS / SaaS の課金はリソースによって性質が異なります。
 | RDS `db.t4g.micro`          | プロビジョニング        | $0(未作成)     | **$21〜24**(本体 $19〜21 + gp3 20GB $2.3。Single-AZ、バックアップ 7 日は DB サイズ以内なら無料) |
 | App Runner(API)             | プロビジョニング + 従量 | $0(未デプロイ) | **$11〜14**(確保メモリ 2GB $10.2 が**アイドルでも常時**+ アクティブ CPU)     |
 | NAT インスタンス `t4g.nano` | プロビジョニング        | $0             | **$7.5**(本体 $3.1 + EBS $0.7 + **Elastic IP $3.7**)                        |
-| VPC Flow Logs               | 従量                    | $0             | **$1〜4**(`traffic_type = ALL` / 14 日保持、CloudWatch Logs 取り込み)        |
+| VPC Flow Logs               | 従量                    | $0             | **$1〜4**(削減前 = `traffic_type = ALL` 想定。**現在は `REJECT` に変更済で実質 $0.2 前後**、14 日保持) |
 | Route53                     | 固定 + 従量             | $0             | **$0.5〜1**(ホストゾーン $0.5 + クエリ)                                     |
 | Secrets Manager             | 固定 + 従量             | $0             | **$0.4**(シークレット 1 本。App Runner は起動時のみ取得)                     |
 | CloudWatch アラーム(3 個)   | 固定                    | $0             | **$0.3**(無料枠が効けば $0)                                                 |

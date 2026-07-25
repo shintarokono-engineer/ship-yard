@@ -63,17 +63,17 @@
 
 ## 技術スタック(要約)
 
-| 領域           | 採用                                                         |
-| -------------- | ------------------------------------------------------------ |
-| フロントエンド | Next.js (App Router) + TypeScript + Tailwind CSS + shadcn/ui |
-| バックエンド   | NestJS + Prisma                                              |
-| データベース   | PostgreSQL 16 + pgvector(RAG 用ベクトル検索)                 |
-| 認証           | Clerk                                                        |
-| 決済           | Stripe Subscriptions                                         |
-| AI             | Anthropic API(Claude Sonnet 4 + Haiku 4.5 の使い分け)        |
-| キュー         | Redis(ElastiCache)+ BullMQ                                   |
-| インフラ       | Vercel(Web)+ AWS ECS Fargate(API)+ RDS Aurora Serverless v2  |
-| Monorepo       | Turborepo + pnpm Workspaces                                  |
+| 領域           | 採用                                                          |
+| -------------- | ------------------------------------------------------------- |
+| フロントエンド | Next.js (App Router) + TypeScript + Tailwind CSS + shadcn/ui  |
+| バックエンド   | NestJS + Prisma                                               |
+| データベース   | PostgreSQL 16 + pgvector(RAG 用ベクトル検索)                  |
+| 認証           | Clerk                                                         |
+| 決済           | Stripe Subscriptions                                          |
+| AI             | Anthropic API(Claude Sonnet 4 + Haiku 4.5 の使い分け)         |
+| キュー         | (MVP 未実装。v1.x で Redis + BullMQ を検討)                   |
+| インフラ       | Vercel(Web)+ AWS App Runner(API)+ RDS `db.t4g.micro`(ADR-011) |
+| Monorepo       | Turborepo + pnpm Workspaces                                   |
 
 選定理由・棄却した代替は [`docs/adr/001-tech-stack.md`](./adr/001-tech-stack.md) に詳述。
 

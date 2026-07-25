@@ -115,13 +115,14 @@ RDS は private subnet のまま隔離でき、マルチテナント SaaS のデ
     必要な場合あり)
 - **`architecture.md` の本番構成が陳腐化**(ECS / Aurora / ElastiCache 前提のまま):
   - 対策:Day 36 で `architecture.md` を本 ADR の構成に追従更新
+  - **✅ 2026-07-25 対応済**(Day 36 では未実施のまま残っていた)。`architecture.md` の C4 Container 図 / デプロイ構成図 / ネットワーク / 監視 / 障害設計を本 ADR の構成へ全面更新し、`OVERVIEW.md` と `apps/web/.env.example` の ECS 記述も是正した
 - **初期クレジットには有効期限がある** → 枯渇後に課金が始まる:
   - 対策:Day 39 で AWS Budgets アラートを必須設定。Cost Anomaly Detection も有効化
 
 ### フォローアップ
 
 - Day 35-39:上記改訂ロードマップの実装
-- Day 36:`architecture.md` を軽量 AWS 構成へ更新
-- Day 39:AWS Budgets アラート(月予算 + 50/80/100% 通知)
+- ~~Day 36:`architecture.md` を軽量 AWS 構成へ更新~~ → **✅ 2026-07-25 完了**
+- Day 39:AWS Budgets アラート → **✅ 実装済。ただし 2026-07-25 に閾値を 50/80/100% → 80/100/120% へ是正**(固定フロアが予算の半分を超えるため 50% 通知が毎月発火し、アラートが常態化するため。`docs/infrastructure-cost.md` §2.7)
 - v2 以降:トラフィック増に応じて NAT インスタンス → NAT Gateway、RDS → Multi-AZ /
   Aurora、App Runner → ECS の移行を再評価
