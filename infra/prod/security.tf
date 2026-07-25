@@ -56,7 +56,7 @@ resource "aws_security_group" "apprunner" {
 
 resource "aws_vpc_security_group_egress_rule" "apprunner_all" {
   security_group_id = aws_security_group.apprunner.id
-  description       = "All outbound (RDS / Anthropic / Stripe / Upstash via NAT)"
+  description       = "All outbound (RDS / Anthropic / OpenAI / Stripe / Clerk / Resend via NAT)"
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
 }
@@ -81,6 +81,26 @@ resource "aws_vpc_security_group_ingress_rule" "rds_from_apprunner" {
   security_group_id            = aws_security_group.rds.id
   description                  = "PostgreSQL from App Runner VPC connector"
   referenced_security_group_id = aws_security_group.apprunner.id
+  from_port                    = 5432
+  to_port                      = 5432
+  ip_protocol                  = "tcp"
+}
+
+# 管理アクセス用の一時ルール(enable_admin_db_access = true のときだけ作成)。
+#
+# RDS は Private Subnet にあり手元から直接繋がらないため、migration 適用や調査では
+# SSM ポートフォワード(踏み台 = NAT インスタンス)を使う。その接続元は NAT インスタンス
+# なので、上の App Runner 限定ルールだけでは弾かれる。
+#
+# NAT インスタンスは SSH ポートを開けておらず、到達手段は SSM(IAM 認証 + CloudTrail 監査)
+# のみ。それでも DB への経路を常時開ける必要は無いため、既定 false で作業時だけ開ける。
+# 作業後は false に戻して apply すること(docs/runbooks/production-cutover.md Phase 6)。
+resource "aws_vpc_security_group_ingress_rule" "rds_from_nat_admin" {
+  count = var.enable_admin_db_access ? 1 : 0
+
+  security_group_id            = aws_security_group.rds.id
+  description                  = "TEMPORARY: PostgreSQL from NAT instance for admin access via SSM port forwarding"
+  referenced_security_group_id = aws_security_group.nat.id
   from_port                    = 5432
   to_port                      = 5432
   ip_protocol                  = "tcp"

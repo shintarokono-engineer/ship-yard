@@ -34,34 +34,117 @@
 
 ## Phase 0: 事前準備
 
-### 0.1 アカウント
+### 0.1 AWS アカウント
 
-- [ ] **AWS アカウント**(新規作成する場合)
-  - 作成後、Billing コンソール → **Credits** で初期クレジットの**実額と有効期限を控える**(Phase 12 で使う)
-- [ ] Clerk / Stripe / Resend / Vercel / GitHub / Anthropic / OpenAI の各アカウント
+#### アカウントプランは「有料」を選ぶ
 
-### 0.2 ローカルツール
+新規作成時に **「無料アカウントプラン」/「有料アカウントプラン」**の選択があります。**必ず有料アカウントプランを選んでください。**
+
+| | 無料アカウントプラン | 有料アカウントプラン |
+| ----------------------- | ---------------------------------- | -------------------- |
+| 使えるサービス          | **無料利用枠の対象サービスに限定** | 制限なし             |
+| クレジットを使い切ったら | **アカウントが一時停止**           | 従量課金に移行       |
+| 初期クレジット          | あり                               | **あり(同額)**       |
+
+Shipyard の構成には**無料利用枠の対象外リソース**が含まれるため、無料プランでは Phase 2 の `terraform apply` が通らないか、運用開始後に停止します。
+
+- **App Runner**($11〜14/月)/ **Route53 ホストゾーン**($0.50)/ **Secrets Manager**($0.40)/ **Elastic IP**($3.7)
+
+> **「有料」を選んでも即座に課金されるわけではありません。** 初期クレジット($100〜200)は有料プランでも同額付与され、その範囲内なら請求は $0 です。有料プランの違いは「クレジットを使い切っても止まらない」ことだけで、初期数ヶ月の支払いは無料プランと変わりません。
+
+- [ ] **有料アカウントプラン**で作成した
+- [ ] **サポートプランは Basic(無料)のまま**にした(変更しない限り課金されません)
+
+#### Billing コンソールで初期クレジットを確認する
+
+コンソール右上の**アカウント名メニュー → 「請求とコスト管理」**(Billing and Cost Management)から開きます。
+
+| 用途                            | 直リンク                                                            |
+| ------------------------------- | ------------------------------------------------------------------- |
+| 請求ダッシュボード              | `https://console.aws.amazon.com/billing/`                           |
+| **クレジット**(残額・有効期限)  | `https://console.aws.amazon.com/billing/home#/credits`              |
+| Cost Explorer                   | `https://console.aws.amazon.com/cost-management/home#/cost-explorer` |
+| Budgets                         | `https://console.aws.amazon.com/budgets/`                           |
+
+- [ ] 初期クレジットの**実額と有効期限を控えた**(Phase 12.3 でカレンダーに登録する)
+
+> **Billing はグローバル**(内部的に us-east-1 固定)なので、東京リージョンを選んでいても表示内容は同じです。リージョンを切り替える必要はありません。
+>
+> **IAM ユーザーでログインしていると「アクセスが拒否されました」になることがあります。** その場合はルートユーザーでログインし直し、**アカウント → 「IAM ユーザー/ロールによる請求情報へのアクセス」→ アクティブ化**を行ってください。残額を見るだけならルートユーザーで入るのが手早いです。
+
+### 0.2 その他のアカウント
+
+- [ ] Clerk / Stripe / Resend / Vercel / GitHub / Anthropic / OpenAI
+
+### 0.3 ローカルツール
+
+各ツールが**何をするもので、この手順のどこで必要になるか**は次のとおりです。
+
+| ツール                   | 何をするもの                                                   | この手順での用途                              |
+| ------------------------ | -------------------------------------------------------------- | --------------------------------------------- |
+| **tfenv**                | Terraform 本体のバージョンを切り替える管理ツール(下記参照)     | Terraform を正しいバージョンで入れる          |
+| **Terraform**            | インフラをコードから作成・変更する IaC ツール(ADR-010)         | Phase 1・2・7・12 の `apply`                  |
+| **AWS CLI**              | AWS をコマンドラインから操作する                               | 全 Phase(出力確認・Secrets 投入・デプロイ)   |
+| **session-manager-plugin** | AWS CLI に SSM セッション機能を足すプラグイン                  | Phase 6 で Private Subnet の RDS に接続する    |
+| **Docker**               | API のコンテナイメージをビルドする                             | Phase 7 の ECR push                           |
+| **jq**                   | JSON を加工するコマンド                                        | Route53 レコード追加 / Secrets の部分更新      |
+| **GitHub CLI**(`gh`)     | GitHub をコマンドラインから操作する(任意、画面操作でも可)      | Phase 10 の Secrets / Variables 登録           |
+
+#### tfenv とは / なぜ必要か
+
+**tfenv は「Terraform 本体のバージョンを、プロジェクトごとに自動で切り替える」ためのツール**です(Node.js の nvm、Ruby の rbenv と同じ役割)。tfenv 自体はインフラを操作しません。**Terraform をどのバージョンで動かすかを管理するだけ**です。
+
+必要な理由は 2 つあります。
+
+1. **Terraform はバージョン差で挙動が変わる**。新しいバージョンで `apply` すると state ファイルが新形式に更新され、**古いバージョンから触れなくなる**ことがあります。複数人・複数マシンで作業するときに事故になります
+2. **本リポジトリはバージョンを固定している**。`infra/.terraform-version` に `latest:^1.10` と書いてあり(= 1.10 系の最新)、`infra/prod/versions.tf` でも `required_version = ">= 1.10"` を宣言しています。tfenv はこのファイルを読んで**自動的に該当バージョンを入れて切り替えてくれます**
 
 ```bash
-# Terraform(.terraform-version で固定。tfenv 推奨)
-tfenv install && tfenv use
-terraform version        # >= 1.10
+# macOS(Homebrew)
+brew install tfenv
 
+# ⚠ .terraform-version は infra/ 配下にある。tfenv はカレントディレクトリから
+#    「親方向」にしか探さないため、リポジトリ直下で実行すると見つけられない。
+cd infra
+
+tfenv install     # .terraform-version を読んで該当バージョンを取得
+tfenv use         # そのバージョンに切り替え
+terraform version # Terraform v1.10.x が出れば OK
+```
+
+> **tfenv を使わない場合**は Terraform を直接入れても構いません(バージョン固定は手動管理になります)。Homebrew の場合は HashiCorp のライセンス変更以降、公式 tap 経由が推奨です。
+>
+> ```bash
+> brew tap hashicorp/tap && brew install hashicorp/tap/terraform
+> ```
+>
+> ただし `infra/README.md` は tfenv 前提で書かれています。
+
+#### 残りのツール
+
+```bash
 # AWS CLI + 認証情報
-aws configure            # AdministratorAccess 相当のユーザー / SSO
-aws sts get-caller-identity
+#   macOS: brew install awscli
+aws configure                  # AdministratorAccess 相当のユーザー / SSO
+aws sts get-caller-identity    # アカウント ID が出れば OK
 
 # SSM Session Manager プラグイン(Phase 6 の DB 接続で使う)
 #   macOS: brew install --cask session-manager-plugin
 session-manager-plugin --version
 
-# その他
+# Docker(Phase 7 のイメージビルド。Docker Desktop で可)
 docker version
+
+# jq(JSON 加工。macOS: brew install jq)
 jq --version
-gh auth status           # Phase 10 で使う(任意)
+
+# GitHub CLI(Phase 10 用、任意。macOS: brew install gh)
+gh auth status
 ```
 
-### 0.3 用語の置き換え
+- [ ] すべてバージョンが表示された
+
+### 0.4 用語の置き換え
 
 以降 `example.app` と書いてある箇所は、**Phase 1 で取得した実際のドメイン**に読み替えてください。
 
@@ -402,7 +485,30 @@ aws secretsmanager get-secret-value --secret-id "$SECRET_ARN" \
 
 ## Phase 6: DB migration の適用
 
-RDS は Private Subnet にあり、ローカルから直接は繋がりません。**NAT インスタンス経由で SSM ポートフォワード**して適用します。
+RDS は Private Subnet にあり `publicly_accessible = false` なので、ローカルから直接は繋がりません。**NAT インスタンスを踏み台に SSM ポートフォワード**して適用します。
+
+```
+Mac:15432  →(SSM トンネル)→  NAT インスタンス  →  RDS:5432
+```
+
+踏み台に NAT インスタンスを使うのは、それがこの構成で唯一の EC2 であり、`nat.tf` で `AmazonSSMManagedInstanceCore` ポリシーが付与済みだからです。SSH ポートは開いておらず、到達手段は SSM(IAM 認証 + CloudTrail 監査)のみです。
+
+### 6.0 管理アクセスを一時的に開ける
+
+RDS の Security Group は既定で **App Runner の VPC コネクタからの 5432 しか許可していません**。ポートフォワードの接続元は NAT インスタンスなので、そのままでは弾かれて**タイムアウトします**。作業中だけ開けます。
+
+```hcl
+# infra/prod/terraform.tfvars に追記
+enable_admin_db_access = true
+```
+
+```bash
+cd infra/prod && terraform apply    # ingress ルールが 1 本増えるだけ
+```
+
+- [ ] `aws_vpc_security_group_ingress_rule.rds_from_nat_admin` が作成された
+
+> **作業後に必ず閉じます**(§6.6)。常時開けたままにしないでください。
 
 ### 6.1 接続情報を組み立てる
 
@@ -429,7 +535,11 @@ aws ssm start-session --target "$NAT_ID" \
 # このターミナルは開いたままにする
 ```
 
-> 繋がらない場合: NAT インスタンスに SSM エージェントが起動しているか(`nat.tf` で SSM ロールは付与済み)、Private Subnet の RDS SG が NAT からの 5432 を許可しているかを確認します。
+セッションが張れると `Waiting for connections...` と表示されます。
+
+> **`SessionManagerPlugin is not found`** → `brew install --cask session-manager-plugin`(§0.3)。
+> **セッションは張れるが psql / prisma がタイムアウトする** → §6.0 の `enable_admin_db_access = true` が未適用の可能性が高いです。RDS の SG に `rds_from_nat_admin` ルールがあるか確認してください。
+> **セッション自体が張れない** → NAT インスタンスの SSM エージェントが起動しているか(`aws ssm describe-instance-information` に NAT が出るか)を確認します。
 
 ### 6.3 migration を適用する
 
@@ -468,6 +578,23 @@ postgresql://shipyard:<DB_PASSWORD>@<RDS_HOST>:5432/shipyard?schema=public&sslmo
 ```
 
 - [ ] 更新した
+
+### 6.6 管理アクセスを閉じる(必須)
+
+ポートフォワードのセッションを終了(`Ctrl+C`)してから、開けた ingress を閉じます。
+
+```hcl
+# infra/prod/terraform.tfvars
+enable_admin_db_access = false
+```
+
+```bash
+cd infra/prod && terraform apply    # rds_from_nat_admin が destroy される
+```
+
+- [ ] `terraform plan` に `rds_from_nat_admin` の差分が残っていない(= 閉じた)
+
+> 以降 migration や調査で再接続したくなったら、**§6.0 で開けて → 作業 → §6.6 で閉じる**を繰り返します。開けっぱなしにしないでください。
 
 ---
 
@@ -770,7 +897,7 @@ aws sns list-subscriptions-by-topic \
 
 ### 12.3 コスト管理の初期設定
 
-- [ ] **初期クレジットの実額と有効期限を控え、カレンダーに期限日を登録**する(Billing コンソール → Credits)
+- [ ] **初期クレジットの有効期限をカレンダーに登録**する(実額は §0.1 で控えた値。Billing コンソール → Credits)
 - [ ] Cost Explorer を有効化し、**クレジット適用前の請求額**を見られるようにする
 
 > **AWS Budgets はクレジット適用後の実請求額で判定される**ため、クレジットが残っている間はアラートが鳴りません。クレジットで隠れている本来のコストは Cost Explorer で確認してください([`../infrastructure-cost.md`](../infrastructure-cost.md) §2.7)。
@@ -830,7 +957,11 @@ aws apprunner resume-service --service-arn "$(cd infra/prod && terraform output 
 | `terraform apply` で NAT の AMI が見つからない    | `nat_ami_id` を明示指定する(§2.1)                                                                       |
 | ホストゾーンが 2 つある                           | Route53 でドメイン登録した際の自動作成分。import するか削除する(§1.3)                                   |
 | 予算アラートが毎月鳴る / 全く鳴らない             | 閾値が固定フロアと不整合 / クレジット期間中で実請求が 0(§12.3)                                          |
-| SSM ポートフォワードが繋がらない                  | `session-manager-plugin` 未インストール / NAT の SSM エージェント未起動(§6.2)                           |
+| SSM ポートフォワードは張れるが DB がタイムアウト   | **RDS の SG が NAT からの 5432 を許可していない**。`enable_admin_db_access = true` で apply する(§6.0) |
+| SSM セッション自体が張れない                      | `session-manager-plugin` 未インストール(§0.3)/ NAT の SSM エージェント未起動(`aws ssm describe-instance-information` で確認) |
+| `zsh: command not found: tfenv` / `terraform`     | `brew install tfenv` 後、**`cd infra` してから** `tfenv install`(§0.3)。`.terraform-version` は `infra/` 配下にあり、tfenv は親方向にしか探さない |
+| `terraform apply` が権限エラーで通らない          | **無料アカウントプラン**で作成している可能性。App Runner / Route53 / Secrets Manager は無料利用枠の対象外(§0.1) |
+| Billing コンソールが「アクセスが拒否されました」  | IAM ユーザーでログインしている。ルートユーザーで「IAM ユーザー/ロールによる請求情報へのアクセス」を有効化(§0.1) |
 
 ---
 

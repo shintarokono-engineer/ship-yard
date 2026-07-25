@@ -121,6 +121,22 @@ variable "db_skip_final_snapshot" {
   default     = true
 }
 
+variable "enable_admin_db_access" {
+  description = <<-EOT
+    NAT インスタンス経由の RDS 管理アクセス(5432)を一時的に許可するか。
+
+    RDS は Private Subnet + publicly_accessible = false のため、手元から直接は繋がらない。
+    migration 適用や調査で接続する場合は、SSM ポートフォワード(踏み台 = NAT インスタンス)を
+    使うが、RDS の Security Group は既定で App Runner の VPC コネクタからのみ許可しているため
+    このフラグで NAT の SG からの 5432 を一時的に開ける。
+
+    **常時 true にしない**こと。作業が終わったら false に戻して apply する
+    (手順は docs/runbooks/production-cutover.md Phase 6)。
+  EOT
+  type        = bool
+  default     = false
+}
+
 # --- App Runner(Day 36) ---
 
 variable "enable_apprunner_service" {
