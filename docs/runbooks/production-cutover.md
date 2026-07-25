@@ -99,17 +99,27 @@ Shipyard の構成には**無料利用枠の対象外リソース**が含まれ�
 1. **Terraform はバージョン差で挙動が変わる**。新しいバージョンで `apply` すると state ファイルが新形式に更新され、**古いバージョンから触れなくなる**ことがあります。複数人・複数マシンで作業するときに事故になります
 2. **本リポジトリはバージョンを固定している**。`infra/.terraform-version` に `latest:^1.10` と書いてあり(= 1.10 系の最新)、`infra/prod/versions.tf` でも `required_version = ">= 1.10"` を宣言しています。tfenv はこのファイルを読んで**自動的に該当バージョンを入れて切り替えてくれます**
 
+以降 `cd` を何度も行うので、**リポジトリのパスを変数に入れておく**と迷いません(相対パスで移動すると「今どこにいるか」で失敗します)。ターミナルを開き直したら再設定してください。
+
+```bash
+# 自分の環境のパスに置き換える。以降この $REPO を使う
+export REPO=~/projects/ship-yard
+```
+
 ```bash
 # macOS(Homebrew)
 brew install tfenv
 
 # ⚠ .terraform-version は infra/ 配下にある。tfenv はカレントディレクトリから
 #    「親方向」にしか探さないため、リポジトリ直下で実行すると見つけられない。
-cd infra
+cd "$REPO/infra"
 
-tfenv install     # .terraform-version を読んで該当バージョンを取得
-tfenv use         # そのバージョンに切り替え
-terraform version # Terraform v1.10.x が出れば OK
+# .terraform-version を読んで該当バージョンを取得し、切り替える
+tfenv install
+tfenv use
+
+# Terraform v1.10.x が出れば OK
+terraform version
 ```
 
 > **tfenv を使わない場合**は Terraform を直接入れても構いません(バージョン固定は手動管理になります)。Homebrew の場合は HashiCorp のライセンス変更以降、公式 tap 経由が推奨です。
@@ -125,8 +135,12 @@ terraform version # Terraform v1.10.x が出れば OK
 ```bash
 # AWS CLI + 認証情報
 #   macOS: brew install awscli
-aws configure                  # AdministratorAccess 相当のユーザー / SSO
-aws sts get-caller-identity    # アカウント ID が出れば OK
+# AdministratorAccess 相当の IAM ユーザーのアクセスキーを登録する
+# region は ap-northeast-1、output は json
+aws configure
+
+# アカウント ID と ARN が出れば OK
+aws sts get-caller-identity
 
 # SSM Session Manager プラグイン(Phase 6 の DB 接続で使う)
 #   macOS: brew install --cask session-manager-plugin
@@ -180,32 +194,34 @@ gh auth status
 `prod/` の state は S3 に置きますが、その S3 自体をまず作ります(ローカル state で 1 度だけ)。
 
 ```bash
-cd infra/bootstrap
+cd "$REPO/infra/bootstrap"
 terraform init
-terraform apply     # yes を入力
+
+# 確認プロンプトには yes と入力する(y では通らない)
+terraform apply
 ```
 
 - [ ] S3 バケットが作成された
 
 > バケット名はグローバル一意です。`shipyard-tfstate-ap-northeast-1` が取得済みで衝突する場合は、`bootstrap/main.tf` と `prod/backend.tf` の `bucket` を**同じ新しい名前**へ変更してから再実行します。
 
-### 1.3 (方法 A を選んだ場合のみ)ホストゾーンの二重作成を回避する
+### 1.3 (方法 A を選んだ場合のみ)ホストゾーン ID を控える
+
+Route53 でドメインを登録すると**ホストゾーンが自動作成される**ため、Terraform の `aws_route53_zone.main` と二重になります。ID を控えておき、**Phase 2.2 で Terraform に取り込みます**(import は変数を評価するので、`terraform.tfvars` を作ってからでないと実行できません)。
 
 ```bash
-# 自動作成されたホストゾーン ID を確認
-aws route53 list-hosted-zones-by-name --dns-name example.app \
-  --query 'HostedZones[0].[Id,Name]' --output text
+# ドメイン名は完全一致で引く(末尾のドットが必要)
+aws route53 list-hosted-zones \
+  --query "HostedZones[?Name=='example.app.'].[Id,Name]" --output text
 ```
 
-Phase 2 の apply 前に、そのゾーンを Terraform に取り込みます。
-
-```bash
-cd infra/prod
-terraform init
-terraform import aws_route53_zone.main <ZONE_ID の末尾部分>   # 例: Z0123456789ABCDEFGHIJ
+```
+/hostedzone/Z0123456789ABCDEFGHIJ    example.app.
 ```
 
-- [ ] import 済み、または自動作成ゾーンを削除した
+- [ ] ホストゾーン ID(`Z` から始まる部分)を控えた
+
+> `aws route53 list-hosted-zones-by-name --dns-name <domain>` は**完全一致ではなく「その名前以降を辞書順で返す」**仕様です。無関係なゾーンが返ることがあるので、上記の完全一致クエリを使ってください。
 
 ---
 
@@ -229,13 +245,33 @@ budget_alert_email = "you@example.com"
 
 - [ ] `enable_apprunner_service` は **書かない**(既定 `false`)。ECR にイメージが無い状態では作れません
 
-### 2.2 apply する
+### 2.2 初期化と(方法 A の場合のみ)ホストゾーンの import
 
 ```bash
-cd infra/prod
-terraform init          # S3 backend へ接続
-terraform plan          # 差分を必ず目視する
-terraform apply         # RDS 作成があるので 10〜15 分かかる
+cd "$REPO/infra/prod"
+
+# S3 backend(1.2 で作ったバケット)へ接続する
+terraform init
+```
+
+方法 A でドメインを取ったなら、1.3 で控えた ID をここで取り込みます。**`terraform.tfvars` を作った後でないと変数解決に失敗する**ので、順序に注意してください。
+
+```bash
+terraform import aws_route53_zone.main Z0123456789ABCDEFGHIJ
+```
+
+- [ ] `Import successful!` が出た(方法 B ならこの手順は不要)
+
+### 2.3 apply する
+
+```bash
+cd "$REPO/infra/prod"
+
+# 差分を必ず目視する
+terraform plan
+
+# RDS 作成があるので 10〜15 分かかる。確認プロンプトには yes と入力
+terraform apply
 ```
 
 plan で確認すべき点:
@@ -244,21 +280,30 @@ plan で確認すべき点:
 - [ ] `aws_instance.nat` の AMI が fck-nat のもの(想定外なら `nat_ami_id` で明示指定)
 - [ ] `aws_apprunner_service` が **含まれていない**(この段階では正しい)
 
-### 2.3 出力を控える
+### 2.4 出力を控える
 
 ```bash
-terraform output route53_name_servers      # → Phase 3.1
-terraform output -raw rds_endpoint         # → Phase 5 / 6
-terraform output ecr_repository_urls       # → Phase 7
-terraform output -raw github_deploy_role_arn   # → Phase 10
-terraform output -raw route53_zone_id      # → Phase 3 で DNS を足すのに使う
+# → Phase 3.1(レジストラに設定するネームサーバー)
+terraform output route53_name_servers
+
+# → Phase 5 / 6(DATABASE_URL の組み立て)
+terraform output -raw rds_endpoint
+
+# → Phase 7(イメージの push 先)
+terraform output ecr_repository_urls
+
+# → Phase 10(GitHub Secrets)
+terraform output -raw github_deploy_role_arn
+
+# → 以降の DNS レコード追加で使う
+terraform output -raw route53_zone_id
 ```
 
 - [ ] apply 完了、出力を控えた
 
 > **この時点から月 $30 前後の課金が始まります。** 検証が長引く場合は、公開直前まで `terraform destroy` で畳んでおく運用も可能です(§13)。
 
-### 2.4 DNS レコードを追加するための下準備
+### 2.5 DNS レコードを追加するための下準備
 
 以降の Phase で「Route53 にレコードを追加」が何度も出てきます。毎回コンソールを開いてもよいですが、CLI なら次のヘルパーが使えます。
 
@@ -266,7 +311,8 @@ terraform output -raw route53_zone_id      # → Phase 3 で DNS を足すのに
 # infra/prod で実行する前提
 ZONE_ID=$(terraform output -raw route53_zone_id)
 
-add_record() {   # 使い方: add_record <name> <type> <value> [ttl]
+# 使い方: add_record <name> <type> <value> [ttl]
+add_record() {
   aws route53 change-resource-record-sets --hosted-zone-id "$ZONE_ID" \
     --change-batch "$(jq -n --arg n "$1" --arg t "$2" --arg v "$3" --argjson ttl "${4:-300}" '
       {Changes:[{Action:"UPSERT",ResourceRecordSet:{Name:$n,Type:$t,TTL:$ttl,ResourceRecords:[{Value:$v}]}}]}')"
@@ -307,7 +353,7 @@ dig NS example.app +short
    - **実際の値は必ずダッシュボードの表示をコピー**してください
 
 ```bash
-# 2.4 のヘルパーを使う例
+# 2.5 のヘルパーを使う例
 add_record "clerk.example.app"          CNAME "<Clerk が表示した値>"
 add_record "accounts.example.app"       CNAME "<Clerk が表示した値>"
 add_record "clkmail.example.app"        CNAME "<Clerk が表示した値>"
@@ -341,7 +387,8 @@ mail_from = "Shipyard <noreply@example.app>"
 ```
 
 ```bash
-cd infra/prod && terraform apply    # App Runner 未作成の段階では差分なし。Phase 7 以降で反映される
+# App Runner 未作成の段階では差分なし。Phase 7 以降で反映される
+cd "$REPO/infra/prod" && terraform apply
 ```
 
 - [ ] Resend が `Verified` になり、`re_...` を控えた
@@ -503,7 +550,8 @@ enable_admin_db_access = true
 ```
 
 ```bash
-cd infra/prod && terraform apply    # ingress ルールが 1 本増えるだけ
+# ingress ルールが 1 本増えるだけ
+cd "$REPO/infra/prod" && terraform apply
 ```
 
 - [ ] `aws_vpc_security_group_ingress_rule.rds_from_nat_admin` が作成された
@@ -513,8 +561,9 @@ cd infra/prod && terraform apply    # ingress ルールが 1 本増えるだけ
 ### 6.1 接続情報を組み立てる
 
 ```bash
-cd infra/prod
-RDS_ENDPOINT=$(terraform output -raw rds_endpoint)   # host:port 形式
+cd "$REPO/infra/prod"
+# rds_endpoint は host:port 形式なので host だけを取り出す
+RDS_ENDPOINT=$(terraform output -raw rds_endpoint)
 RDS_HOST=${RDS_ENDPOINT%%:*}
 NAT_ID=$(terraform output -raw nat_instance_id)
 
@@ -546,7 +595,7 @@ aws ssm start-session --target "$NAT_ID" \
 **別ターミナル**で実行します。
 
 ```bash
-cd /path/to/ship-yard
+cd "$REPO"
 DATABASE_URL="postgresql://shipyard:<DB_PASSWORD>@localhost:15432/shipyard?schema=public&sslmode=require" \
   pnpm --filter @shipyard/db exec prisma migrate deploy
 ```
@@ -589,7 +638,8 @@ enable_admin_db_access = false
 ```
 
 ```bash
-cd infra/prod && terraform apply    # rds_from_nat_admin が destroy される
+# rds_from_nat_admin が destroy される
+cd "$REPO/infra/prod" && terraform apply
 ```
 
 - [ ] `terraform plan` に `rds_from_nat_admin` の差分が残っていない(= 閉じた)
@@ -605,7 +655,7 @@ cd infra/prod && terraform apply    # rds_from_nat_admin が destroy される
 > ⚠ **Apple Silicon (M1/M2/M3) で作業している場合は `--platform linux/amd64` が必須**です。App Runner は x86_64 のみ対応で、arm64 イメージを push すると起動時に `exec format error` で失敗します。
 
 ```bash
-cd /path/to/ship-yard
+cd "$REPO"
 
 AWS_REGION=ap-northeast-1
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
@@ -635,9 +685,12 @@ apprunner_image_tag      = "<7.1 の TAG>"
 ```
 
 ```bash
-cd infra/prod
-terraform plan     # App Runner サービス + VPC コネクタ + カスタムドメイン関連付けが出る
-terraform apply    # 5〜10 分
+cd "$REPO/infra/prod"
+# App Runner サービス + VPC コネクタ + カスタムドメイン関連付けが出る
+terraform plan
+
+# 5〜10 分かかる
+terraform apply
 ```
 
 ### 7.3 起動を確認する
@@ -682,7 +735,8 @@ apprunner_memory = "2048"
 `api.example.app` の関連付けと証明書検証レコードは Terraform が自動登録します。
 
 ```bash
-curl -i "https://api.example.app/health"    # 反映まで数分〜数十分
+# カスタムドメインの反映まで数分〜数十分かかる
+curl -i "https://api.example.app/health"
 ```
 
 - [ ] `api.example.app` で 200 が返った
@@ -716,7 +770,7 @@ aws secretsmanager put-secret-value --secret-id "$SECRET_ARN" --secret-string "$
 
 ```bash
 aws apprunner start-deployment \
-  --service-arn "$(cd infra/prod && terraform output -raw apprunner_service_arn)"
+  --service-arn "$(cd "$REPO/infra/prod" && terraform output -raw apprunner_service_arn)"
 ```
 
 7. Clerk Dashboard の **Send test event** が **2xx** を返すことを確認
@@ -753,7 +807,7 @@ Vercel → プロジェクト → Settings → **Environment Variables**(対象�
    - apex(`example.app`)は **A レコード**、`www` は **CNAME** が一般的。**表示された値をそのまま**使ってください
 
 ```bash
-# 2.4 のヘルパーを使う例
+# 2.5 のヘルパーを使う例
 add_record "example.app"     A     "<Vercel が表示した IP>"
 add_record "www.example.app" CNAME "<Vercel が表示した値>"
 ```
@@ -781,7 +835,7 @@ add_record "www.example.app" CNAME "<Vercel が表示した値>"
 ### 10.1 Secrets / Variables を登録する
 
 ```bash
-cd infra/prod
+cd "$REPO/infra/prod"
 gh secret set AWS_DEPLOY_ROLE_ARN   --body "$(terraform output -raw github_deploy_role_arn)"
 gh secret set APPRUNNER_SERVICE_ARN --body "$(terraform output -raw apprunner_service_arn)"
 gh variable set AWS_BOOTSTRAPPED    --body "true"
@@ -808,7 +862,7 @@ gh run watch
 
 ```bash
 aws apprunner describe-service \
-  --service-arn "$(cd infra/prod && terraform output -raw apprunner_service_arn)" \
+  --service-arn "$(cd "$REPO/infra/prod" && terraform output -raw apprunner_service_arn)" \
   --query 'Service.SourceConfiguration.ImageRepository.ImageConfiguration.RuntimeEnvironmentSecrets | keys' \
   --output json
 # → 10 キーが並ぶこと(空配列なら設定が飛んでいる)
@@ -880,7 +934,7 @@ db_skip_final_snapshot = false
 ```
 
 ```bash
-cd infra/prod && terraform apply
+cd "$REPO/infra/prod" && terraform apply
 ```
 
 - [ ] 適用した
@@ -891,7 +945,7 @@ cd infra/prod && terraform apply
 
 ```bash
 aws sns list-subscriptions-by-topic \
-  --topic-arn "$(cd infra/prod && terraform output -raw sns_alerts_topic_arn)" \
+  --topic-arn "$(cd "$REPO/infra/prod" && terraform output -raw sns_alerts_topic_arn)" \
   --query 'Subscriptions[].[Endpoint,SubscriptionArn]' --output table
 # SubscriptionArn が "PendingConfirmation" でないこと
 ```
@@ -914,7 +968,8 @@ aws sns list-subscriptions-by-topic \
 ### アプリだけ戻す
 
 ```bash
-git revert <commit> && git push origin main    # deploy.yml が前のコードで再デプロイ
+# deploy.yml が前のコードで再デプロイする
+git revert <commit> && git push origin main
 ```
 
 または App Runner を 1 つ前のイメージタグへ:
@@ -926,7 +981,7 @@ gh workflow run "Deploy API to App Runner" --ref <前のコミット>
 ### インフラを畳む(**公開前の検証中のみ**)
 
 ```bash
-cd infra/prod && terraform destroy
+cd "$REPO/infra/prod" && terraform destroy
 ```
 
 - 課金リソース(RDS / NAT / App Runner)が消えれば課金は止まります
@@ -938,8 +993,8 @@ cd infra/prod && terraform destroy
 App Runner を **Pause** すると、プロビジョニングメモリ課金($10/月相当)が止まります。
 
 ```bash
-aws apprunner pause-service --service-arn "$(cd infra/prod && terraform output -raw apprunner_service_arn)"
-aws apprunner resume-service --service-arn "$(cd infra/prod && terraform output -raw apprunner_service_arn)"
+aws apprunner pause-service --service-arn "$(cd "$REPO/infra/prod" && terraform output -raw apprunner_service_arn)"
+aws apprunner resume-service --service-arn "$(cd "$REPO/infra/prod" && terraform output -raw apprunner_service_arn)"
 ```
 
 ---
@@ -962,6 +1017,10 @@ aws apprunner resume-service --service-arn "$(cd infra/prod && terraform output 
 | 予算アラートが毎月鳴る / 全く鳴らない             | 閾値が固定フロアと不整合 / クレジット期間中で実請求が 0(§12.3)                                          |
 | SSM ポートフォワードは張れるが DB がタイムアウト   | **RDS の SG が NAT からの 5432 を許可していない**。`enable_admin_db_access = true` で apply する(§6.0) |
 | SSM セッション自体が張れない                      | `session-manager-plugin` 未インストール(§0.3)/ NAT の SSM エージェント未起動(`aws ssm describe-instance-information` で確認) |
+| `Too many command line arguments` / `Found invalid choice '#'` | **zsh は既定で対話シェルの `#` をコメント扱いしない**。コマンドの行末にコメントを付けて実行すると引数として渡る。本書はコメントを行の上に置いているのでそのままコピペできる |
+| `cd: no such file or directory` | 相対パスで移動している。本書は `$REPO`(§0.3 で `export`)からの絶対パスを使う。ターミナルを開き直したら `export REPO=...` を再実行する |
+| `AccessDenied ... no identity-based policy allows` | IAM ユーザーにポリシーが付いていない。IAM → ユーザー → 許可を追加 → **許可を直接アタッチする** → `AdministratorAccess`(認証は成功しているので `aws configure` は正しい) |
+| import で `resource address ... does not exist in the configuration` | `infra/prod` 以外のディレクトリで実行している(`aws_route53_zone.main` は `infra/prod/route53.tf` の定義) |
 | `zsh: command not found: tfenv` / `terraform`     | `brew install tfenv` 後、**`cd infra` してから** `tfenv install`(§0.3)。`.terraform-version` は `infra/` 配下にあり、tfenv は親方向にしか探さない |
 | `terraform apply` が権限エラーで通らない          | **無料アカウントプラン**で作成している可能性。App Runner / Route53 / Secrets Manager は無料利用枠の対象外(§0.1) |
 | Billing コンソールが「アクセスが拒否されました」  | IAM ユーザーでログインしている。ルートユーザーで「IAM ユーザー/ロールによる請求情報へのアクセス」を有効化(§0.1) |
