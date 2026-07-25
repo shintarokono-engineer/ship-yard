@@ -38,9 +38,9 @@
 | AUTH-13 | ◇ | onboarding 表示中 | 名前欄に 51 字以上を入力 | `maxLength=50` で 50 字に打ち切り、カウンタ「50 / 50」 | OK(maxlength=50 属性・カウンタ「n / 50」確認) |
 | AUTH-14 | △ | onboarding 表示中 | slug を 2 文字で送信 | slug 直下に「URL は 3 文字以上で入力してください。」 | |
 | AUTH-15 | ◇ | onboarding 表示中 | slug に 31 字以上を入力 | `maxLength=30` で 30 字に打ち切り、カウンタ「30 / 30」 | OK(maxlength=30 属性・カウンタ「n / 30」確認) |
-| AUTH-16 | △ | onboarding 表示中 | slug に「My_Team」「abc def」(記号/空白)を送信 | 「小文字英数字とハイフンのみ使用できます(例: my-team)。」 | |
+| AUTH-16 | △ | onboarding 表示中 | slug に「My_Team」「abc def」(記号/空白)を送信 | 「小文字英数字とハイフンのみ使用できます(例: my-team)。」 | OK(実文言「URL は小文字英数字とハイフンのみ使用できます(例: my-team)。」) |
 | AUTH-17 | ◇ | onboarding 表示中 | slug に「-abc」「abc-」「ab--c」を送信 | 同上のパターンエラー | |
-| AUTH-18 | ◇ | onboarding 表示中 | slug に「My-Team」(大文字含む)を送信 | 小文字化され「my-team」として扱われ、適合なら作成成功 | |
+| AUTH-18 | ◇ | onboarding 表示中 | slug に「My-Team」(大文字含む)を送信 | 小文字化され「my-team」として扱われ、適合なら作成成功 | OK(入力時に My→my へ小文字化を確認) |
 | AUTH-19 | △ | 既存 slug「my-team」あり | slug に「my-team」を指定し送信 | 「この URL はすでに使われています。」(409) | OK |
 | AUTH-20 | ◇ | User 同期未完了 | ワークスペース作成を送信 | 「ユーザー情報の同期待ちです。少し時間を置いて…」(403) | |
 | AUTH-21 | ◇ | onboarding 表示中 | 送信直後の状態を観察 | ボタン「作成中...」、name/slug 入力が disabled | |
@@ -237,7 +237,7 @@
 | ANN-21 | ◎ | Twitter Delivery が DRAFT | Twitter カード「編集」→ 本文編集 →「保存」 | 本文と「N / 280 文字」カウンタ更新 | OK |
 | ANN-22 | △ | Twitter 編集ダイアログ | 本文空で保存 | 「本文を入力してください。」 | |
 | ANN-23 | ◇ | Twitter 編集ダイアログ | 本文 280 字超を貼付 | `maxLength=280` 頭打ち。280 ちょうどは保存可(境界) | |
-| ANN-24 | ◎⚠外部 | Twitter 未送信 | 「X で投稿する」を押す | 新規タブで X Web Intent 投稿画面。アプリ状態は不変 | |
+| ANN-24 | ◎⚠外部 | Twitter 未送信 | 「X で投稿する」を押す | 新規タブで X Web Intent 投稿画面。アプリ状態は不変 | OK(`a target=_blank` で intent/tweet?text=… リンク・アプリ変更なし) |
 | ANN-25 | ◎ | ANN-24 の後 | 「送信完了」→「送信完了とする」 | Twitter バッジ「配信成功」+「送信完了 (日時)」、編集無効・投稿ボタン非表示 | OK |
 | ANN-26 | ◇ | Twitter が SENT 済み | 再操作/再読込を試す | 操作ボタン非表示で再実行不可(二重投稿防止) | OK |
 | ANN-27 | ◎ | Blog Delivery 未公開 | ブログ「編集」で本文/タイトル/slug 編集 →「保存」 | タイトル・本文プレビュー・slug 更新 | |
@@ -296,7 +296,7 @@
 | BIL-09 | △ | OWNER、Billing 情報取得に失敗 | Billing を開く | 「課金情報を取得できませんでした。時間をおいて再度お試しください。」 | |
 | BIL-10 | △ | 非 OWNER で所属 | `/settings/billing` を開く | ShieldAlert +「OWNER のみアクセス可能」カードのみ。Portal/比較/詳細は一切出ない | OK |
 | BIL-11 | △ | 未所属/不在 slug | `/settings/billing` を開く | 親 layout の所属チェックで 404 | |
-| BIL-12 | ◎⚠外部 | OWNER | 「Stripe Customer Portal を開く」を押す | ボタンが「起動中...」/aria-busy、成功で Stripe Portal へ遷移 | |
+| BIL-12 | ◎⚠外部 | OWNER | 「Stripe Customer Portal を開く」を押す | ボタンが「起動中...」/aria-busy、成功で Stripe Portal へ遷移 | OK(Stripe Customer Portal テストモード遷移確認) |
 | BIL-13 | △ | OWNER、Portal 未設定/Stripe 障害 | Portal ボタンを押す | 赤 alert「Stripe Portal の起動に失敗しました (HTTP {status})。…Customer Portal が有効化されているか…」(遷移しない) | |
 | BIL-14 | △ | Portal 作成が 403 | Portal ボタンを押す | 「Stripe Portal を開く権限がありません(OWNER のみ操作可能です)。」 | |
 | BIL-15 | ◎ | OWNER、現在=FREE | プラン比較を確認 | Free/Pro/Team 3 枚。Free 強調 +「現在のプラン」バッジ、内容「¥0」「AI 機能は停止」「閲覧のみ可能」等 | OK |
