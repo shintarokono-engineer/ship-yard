@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage --passWithNoTests",
     "verify:credit-reservation": "ts-node --transpile-only -P tsconfig.json scripts/verify-credit-reservation.ts",
+    "verify:cursor-pagination": "ts-node --transpile-only -P tsconfig.json scripts/verify-cursor-pagination.ts",
     "backfill:embeddings": "ts-node --transpile-only -P tsconfig.json scripts/backfill-embeddings.ts",
     "seed-corpus:apply": "ts-node --transpile-only -P tsconfig.json scripts/seed-corpus.ts"
   },
