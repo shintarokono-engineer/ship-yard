@@ -2,11 +2,7 @@ import { cache } from 'react';
 
 import { apiFetch } from './client';
 import { ApiError } from './errors';
-import type {
-  AnnouncementDetail,
-  AnnouncementListItem,
-  DeliveryChannel,
-} from './types';
+import type { AnnouncementDetail, AnnouncementListItem, DeliveryChannel, Paginated } from './types';
 
 /**
  * Announcement(ADR-014)管理 API クライアント。
@@ -31,22 +27,22 @@ export async function createAnnouncement(
   });
 }
 
-/** `GET .../announcements` — 一覧(新しい順、各 Delivery は channel + status のみ)。 */
+/**
+ * `GET .../announcements` — 一覧(新しい順、cursor ページング、各 Delivery は channel + status のみ)。
+ * `cursor` 未指定で先頭ページ、`res.nextCursor` を渡して続きを取得する。
+ */
 export async function listAnnouncements(
   slug: string,
   projectId: string,
-): Promise<AnnouncementListItem[]> {
-  const res = await apiFetch<{ items: AnnouncementListItem[] }>(base(slug, projectId));
-  return res.items;
+  cursor?: string,
+): Promise<Paginated<AnnouncementListItem>> {
+  const qs = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
+  return apiFetch<Paginated<AnnouncementListItem>>(`${base(slug, projectId)}${qs}`);
 }
 
 /** `GET .../announcements/:id` — 詳細(Delivery 全件含む)。不在 / 他テナント = 404 → null。 */
 export const fetchAnnouncement = cache(
-  async (
-    slug: string,
-    projectId: string,
-    id: string,
-  ): Promise<AnnouncementDetail | null> => {
+  async (slug: string, projectId: string, id: string): Promise<AnnouncementDetail | null> => {
     try {
       return await apiFetch<AnnouncementDetail>(
         `${base(slug, projectId)}/${encodeURIComponent(id)}`,

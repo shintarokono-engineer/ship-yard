@@ -17,6 +17,7 @@ import type {
   LpTheme,
   MonthlyUsageSummary,
   MyWorkspaceListItem,
+  Paginated,
   PricingTier,
   Project,
   ProjectDocument,
@@ -444,13 +445,17 @@ export async function refineDocument(
  *
  * 壁打ちセッション一覧を `updatedAt` 降順(新しい順)で返す。全テナントメンバーが閲覧可。
  */
-export async function listRagQaSessions(slug: string, projectId: string): Promise<RagQaSession[]> {
+export async function listRagQaSessions(
+  slug: string,
+  projectId: string,
+  cursor?: string,
+): Promise<Paginated<RagQaSession>> {
   // BE は cursor ページング化され `{ items, nextCursor }` を返す(既定 50 件)。
-  // 現状の一覧 UI は先頭ページのみ表示するため items だけ取り出す(「さらに読み込む」は今後 nextCursor で対応)。
-  const res = await apiFetch<{ items: RagQaSession[]; nextCursor: string | null }>(
-    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/qa/sessions`,
+  // `cursor` 未指定で先頭ページ、`res.nextCursor` を渡して続きを取得する。
+  const qs = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
+  return apiFetch<Paginated<RagQaSession>>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/qa/sessions${qs}`,
   );
-  return res.items;
 }
 
 /**

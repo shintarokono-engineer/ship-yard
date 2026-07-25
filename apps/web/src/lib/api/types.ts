@@ -43,6 +43,18 @@ export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
 export type BadgeVariant = 'default' | 'secondary' | 'outline' | 'destructive';
 
 /**
+ * cursor ページングの 1 ページ分(BE `common/pagination.ts` の `CursorPage<T>` と対応)。
+ * `nextCursor` が非 null の間、それを `?cursor=` に渡して続きを取得する(null なら最終ページ)。
+ */
+export interface Paginated<T> {
+  items: T[];
+  nextCursor: string | null;
+}
+
+/** 「さらに読み込む」Server Action の戻り値。失敗時はクライアントで toast 表示に使う。 */
+export type LoadMoreResult<T> = { ok: true; page: Paginated<T> } | { ok: false; message: string };
+
+/**
  * プロジェクト状態ごとの表示メタ。Badge の variant と必要に応じた追加 className を直接持つ。
  * 視覚的に区別が必要な BETA / LAUNCHED は配色を分離。
  */
@@ -1031,4 +1043,3 @@ export interface PublicBlogPost {
   project: { id: string; name: string };
   tenant: { slug: string };
 }
-

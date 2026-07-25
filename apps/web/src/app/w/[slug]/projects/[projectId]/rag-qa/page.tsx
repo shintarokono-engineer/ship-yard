@@ -5,8 +5,8 @@ import { notFound } from 'next/navigation';
 import { EmptyState } from '@/components/empty-state';
 import { isWriterRole } from '@/lib/api/types';
 import { fetchProject, fetchWorkspace, listRagQaSessions } from '@/lib/api/workspaces';
-import { formatDateTime } from '@/lib/format';
 
+import { SessionList } from './_components/session-list';
 import { StartSessionDialog } from './_components/start-session-dialog';
 
 /**
@@ -32,7 +32,7 @@ export default async function RagQaSessionsPage({
 
   const sessions = await listRagQaSessions(slug, projectId);
   const canWrite = isWriterRole(workspace.role);
-  const hasSessions = sessions.length > 0;
+  const hasSessions = sessions.items.length > 0;
 
   return (
     <div className="space-y-6 cursor-default">
@@ -56,24 +56,12 @@ export default async function RagQaSessionsPage({
       </div>
 
       {hasSessions ? (
-        <ul className="space-y-2">
-          {sessions.map((session) => (
-            <li key={session.id}>
-              <Link
-                href={`/w/${slug}/projects/${projectId}/rag-qa/${session.id}`}
-                className="hover:bg-accent/30 focus-visible:ring-ring/50 flex items-center justify-between gap-3 rounded-lg border px-4 py-3 outline-none transition-colors focus-visible:ring-[3px]"
-              >
-                <span className="flex items-center gap-2 font-medium">
-                  <MessageCircle className="text-muted-foreground size-4" aria-hidden="true" />
-                  {session.title}
-                </span>
-                <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
-                  {formatDateTime(session.updatedAt)}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <SessionList
+          slug={slug}
+          projectId={projectId}
+          initialItems={sessions.items}
+          initialNextCursor={sessions.nextCursor}
+        />
       ) : (
         <EmptyState
           icon={MessageCircle}
