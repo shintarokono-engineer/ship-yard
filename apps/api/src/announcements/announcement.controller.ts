@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 
@@ -15,6 +16,7 @@ import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
 import { CurrentWorkspace } from '../auth/current-workspace.decorator';
 import { Roles, WRITER_ROLES } from '../auth/roles';
 import { WorkspaceGuard } from '../auth/workspace.guard';
+import { CursorPaginationDto } from '../common/pagination';
 import type { WorkspaceAccess } from '../workspaces/membership.service';
 import { AnnouncementService } from './announcement.service';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
@@ -47,13 +49,17 @@ export class AnnouncementController {
     return this.service.create(ws.tenantId, projectId, ws.userId, dto);
   }
 
-  /** GET /workspaces/:slug/projects/:projectId/announcements:一覧(Delivery の channel + status を含む)。 */
+  /**
+   * GET /workspaces/:slug/projects/:projectId/announcements:一覧(Delivery の channel + status を含む)。
+   * cursor ページング(`?cursor=&limit=`)対応。戻り値は `{ items, nextCursor }`。
+   */
   @Get()
   async list(
     @CurrentWorkspace() ws: WorkspaceAccess,
     @Param('projectId') projectId: string,
+    @Query() query: CursorPaginationDto,
   ) {
-    return this.service.list(ws.tenantId, projectId);
+    return this.service.list(ws.tenantId, projectId, query);
   }
 
   /** GET /workspaces/:slug/projects/:projectId/announcements/:id:詳細(Delivery 全件含む)。 */

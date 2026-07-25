@@ -1,4 +1,13 @@
-import { Body, Controller, Get, NotFoundException, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 
 import { Feature } from '@shipyard/db';
 
@@ -6,6 +15,7 @@ import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
 import { CurrentWorkspace } from '../auth/current-workspace.decorator';
 import { Roles, WRITER_ROLES } from '../auth/roles';
 import { WorkspaceGuard } from '../auth/workspace.guard';
+import { CursorPaginationDto } from '../common/pagination';
 import { ProjectsService } from '../projects/projects.service';
 import type { WorkspaceAccess } from '../workspaces/membership.service';
 import { AI_MODEL_SONNET } from './ai.constants';
@@ -39,11 +49,18 @@ export class RagQaController {
     private readonly ragSearch: RagSearchService,
   ) {}
 
-  /** GET /workspaces/:slug/projects/:projectId/qa/sessions — セッション一覧(新しい順)。 */
+  /**
+   * GET /workspaces/:slug/projects/:projectId/qa/sessions — セッション一覧(新しい順)。
+   * cursor ページング(`?cursor=&limit=`)対応。戻り値は `{ items, nextCursor }`。
+   */
   @Get()
-  async list(@CurrentWorkspace() ws: WorkspaceAccess, @Param('projectId') projectId: string) {
+  async list(
+    @CurrentWorkspace() ws: WorkspaceAccess,
+    @Param('projectId') projectId: string,
+    @Query() query: CursorPaginationDto,
+  ) {
     await this.projects.assertExists(ws.tenantId, projectId);
-    return this.ragQa.listSessions(ws.tenantId, projectId);
+    return this.ragQa.listSessions(ws.tenantId, projectId, query);
   }
 
   /** POST /workspaces/:slug/projects/:projectId/qa/sessions — 新規セッション作成。 */

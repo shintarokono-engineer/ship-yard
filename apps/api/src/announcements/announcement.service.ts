@@ -11,6 +11,7 @@ import {
 
 import { AI_MODEL_SONNET } from '../ai/ai.constants';
 import { AIUsageService } from '../ai/ai-usage.service';
+import { cursorArgs, resolveLimit, toCursorPage } from '../common/pagination';
 import { dayjs } from '../common/time';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectsService } from '../projects/projects.service';
@@ -58,11 +59,17 @@ export class AnnouncementService {
     });
   }
 
-  /** 一覧(プロジェクト配下、新しい順)。各 Delivery の channel + status のみ含める。 */
-  async list(tenantId: string, projectId: string) {
-    const items = await this.prisma.announcement.findMany({
+  /**
+   * 一覧(プロジェクト配下、新しい順)。各 Delivery の channel + status のみ含める。
+   * cursor ベースのページング(既定 `DEFAULT_PAGE_SIZE` 件)で payload を有限に保つ。
+   * 戻り値は `{ items, nextCursor }`(nextCursor が非 null の間 `?cursor=` で続きを取得)。
+   */
+  async list(tenantId: string, projectId: string, page: { cursor?: string; limit?: number } = {}) {
+    const limit = resolveLimit(page.limit);
+    const rows = await this.prisma.announcement.findMany({
       where: { tenantId, projectId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      ...cursorArgs(page.cursor, limit),
       select: {
         id: true,
         title: true,
@@ -71,7 +78,7 @@ export class AnnouncementService {
         deliveries: { select: { channel: true, status: true } },
       },
     });
-    return { items };
+    return toCursorPage(rows, limit);
   }
 
   /** 詳細(Delivery 全件含む)。未存在は 404。 */

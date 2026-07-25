@@ -11,6 +11,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    // class-validator / class-transformer のデコレータ(DTO)が Reflect.getMetadata を使うため、
+    // 実行時ランタイム(NestJS は main.ts で読む)と同様にテストでも reflect-metadata を先に読む。
+    setupFiles: ['reflect-metadata'],
     include: ['src/**/*.spec.ts'],
     exclude: ['dist/**', 'node_modules/**'],
     coverage: {

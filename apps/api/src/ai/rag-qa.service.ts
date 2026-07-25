@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 
 import { Prisma, type RagQaMessage, type RagQaSession, RagQaRole } from '@shipyard/db';
 
+import { type CursorPage, cursorArgs, resolveLimit, toCursorPage } from '../common/pagination';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   AI_MODEL_SONNET,
@@ -77,12 +78,24 @@ export class RagQaService {
     });
   }
 
-  /** 指定プロジェクト配下のセッション一覧(新しい順)。 */
-  async listSessions(tenantId: string, projectId: string): Promise<RagQaSession[]> {
-    return this.prisma.ragQaSession.findMany({
+  /**
+   * 指定プロジェクト配下のセッション一覧(新しい順)。cursor ページング対応で payload を有限に保つ。
+   * 戻り値は `{ items, nextCursor }`。並び順は `updatedAt` 降順 + `id` 降順(一意タイブレーク)。
+   * 注:`updatedAt` は質問追加で変動するため、深いページングを跨いだ同時更新で行順が前後しうる
+   * (MVP のセッション数では実害なし。安定性が要れば `createdAt` 基準へ切替)。
+   */
+  async listSessions(
+    tenantId: string,
+    projectId: string,
+    page: { cursor?: string; limit?: number } = {},
+  ): Promise<CursorPage<RagQaSession>> {
+    const limit = resolveLimit(page.limit);
+    const rows = await this.prisma.ragQaSession.findMany({
       where: { tenantId, projectId },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      ...cursorArgs(page.cursor, limit),
     });
+    return toCursorPage(rows, limit);
   }
 
   /** セッション + メッセージ履歴(古い順)を取得。テナント越境は null を返して呼び出し側で 404 化。 */
