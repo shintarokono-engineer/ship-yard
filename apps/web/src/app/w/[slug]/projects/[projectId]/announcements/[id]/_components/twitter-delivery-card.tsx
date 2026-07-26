@@ -33,6 +33,7 @@ import {
 } from '../_shared/execute-delivery-form';
 import {
   INITIAL_UPDATE_ANNOUNCEMENT_FORM_STATE,
+  validateUpdateAnnouncementForm,
   type UpdateAnnouncementFormState,
 } from '../_shared/update-announcement-form';
 
@@ -153,6 +154,23 @@ function EditTwitterContentDialog({
   const textRaw = state.fields?.twitterText ?? currentText;
   const [textLength, setTextLength] = useState(textRaw.length);
 
+  // クライアント事前検証エラー(null の間はサーバ側 state.fieldErrors を表示)。
+  const [clientFieldErrors, setClientFieldErrors] = useState<
+    UpdateAnnouncementFormState['fieldErrors'] | null
+  >(null);
+  const displayErrors = clientFieldErrors ?? state.fieldErrors;
+
+  // 空送信など不正入力は dispatch せず弾く(サーバ往復なし=ボタン文言のちらつき防止)。
+  function handleSubmit(formData: FormData) {
+    const parsed = validateUpdateAnnouncementForm('twitter', formData);
+    if (!parsed.data) {
+      setClientFieldErrors(parsed.fieldErrors);
+      return;
+    }
+    setClientFieldErrors(null);
+    formAction(formData);
+  }
+
   // 成功時に render 中の prev-state 比較で setOpen(false)(useEffect の再発火経路を避ける)。
   const [prevState, setPrevState] = useState(state);
   if (state !== prevState) {
@@ -182,14 +200,14 @@ function EditTwitterContentDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* noValidate: ブラウザ標準 required を抑止し Server Action のカスタム文言で統一(空は
-            update-announcement が「本文を入力してください。」を返す)。 */}
-        <form action={formAction} className="space-y-4" noValidate>
+        {/* noValidate: ブラウザ標準 required を抑止し、クライアント/サーバ共通のカスタム文言で統一。
+            空送信はクライアント側で弾くため dispatch されず、ボタン文言はちらつかない。 */}
+        <form action={handleSubmit} className="space-y-4" noValidate>
           <FormField
             id="twitterText"
             label="本文"
             counter={{ current: textLength, max: TWITTER_TEXT_MAX }}
-            errors={state.fieldErrors?.twitterText}
+            errors={displayErrors?.twitterText}
           >
             <Textarea
               id="twitterText"

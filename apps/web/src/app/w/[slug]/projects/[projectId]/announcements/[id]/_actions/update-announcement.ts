@@ -5,12 +5,11 @@ import { revalidatePath } from 'next/cache';
 
 import { updateAnnouncement } from '@/lib/api/announcements';
 import { ApiError, extractValidationMessages } from '@/lib/api/errors';
-import {
-  ANNOUNCEMENT_TITLE_MAX,
-  TWITTER_TEXT_MAX,
-} from '@/lib/api/types';
 
-import type { UpdateAnnouncementFormState } from '../_shared/update-announcement-form';
+import {
+  validateUpdateAnnouncementForm,
+  type UpdateAnnouncementFormState,
+} from '../_shared/update-announcement-form';
 
 /**
  * Announcement のタイトル / Twitter Delivery content を編集する Server Action(ADR-014)。
@@ -34,45 +33,12 @@ export async function updateAnnouncementAction(
 
   const titleRaw = String(formData.get('title') ?? '').trim();
   const twitterRaw = String(formData.get('twitterText') ?? '').trim();
-  const body: { title?: string; twitterContent?: { text: string } } = {};
 
-  if (field === 'title') {
-    if (!titleRaw) {
-      return {
-        ok: false,
-        fieldErrors: { title: ['タイトルを入力してください。'] },
-        fields: { title: titleRaw },
-      };
-    }
-    if (titleRaw.length > ANNOUNCEMENT_TITLE_MAX) {
-      return {
-        ok: false,
-        fieldErrors: {
-          title: [`タイトルは ${ANNOUNCEMENT_TITLE_MAX} 文字以内で入力してください。`],
-        },
-        fields: { title: titleRaw },
-      };
-    }
-    body.title = titleRaw;
-  } else {
-    if (!twitterRaw) {
-      return {
-        ok: false,
-        fieldErrors: { twitterText: ['本文を入力してください。'] },
-        fields: { twitterText: twitterRaw },
-      };
-    }
-    if (twitterRaw.length > TWITTER_TEXT_MAX) {
-      return {
-        ok: false,
-        fieldErrors: {
-          twitterText: [`X の本文は ${TWITTER_TEXT_MAX} 文字以内で入力してください。`],
-        },
-        fields: { twitterText: twitterRaw },
-      };
-    }
-    body.twitterContent = { text: twitterRaw };
+  const parsed = validateUpdateAnnouncementForm(field, formData);
+  if (!parsed.data) {
+    return { ok: false, fieldErrors: parsed.fieldErrors, fields: parsed.fields };
   }
+  const body = parsed.data;
 
   try {
     await updateAnnouncement(slug, projectId, id, body);

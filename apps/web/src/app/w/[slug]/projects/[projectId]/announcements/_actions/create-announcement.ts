@@ -6,9 +6,11 @@ import { redirect } from 'next/navigation';
 
 import { createAnnouncement } from '@/lib/api/announcements';
 import { ApiError, extractValidationMessages } from '@/lib/api/errors';
-import { ANNOUNCEMENT_TITLE_MAX } from '@/lib/api/types';
 
-import type { CreateAnnouncementFormState } from '../_shared/create-announcement-form';
+import {
+  validateCreateAnnouncementForm,
+  type CreateAnnouncementFormState,
+} from '../_shared/create-announcement-form';
 
 /**
  * Announcement(ADR-014)新規作成 Server Action。
@@ -28,23 +30,11 @@ export async function createAnnouncementAction(
     return { ok: false, formError: '認証が必要です。再度サインインしてください。' };
   }
 
-  const title = String(formData.get('title') ?? '').trim();
-  if (!title) {
-    return {
-      ok: false,
-      fieldErrors: { title: ['タイトルを入力してください。'] },
-      fields: { title },
-    };
+  const parsed = validateCreateAnnouncementForm(formData);
+  if (!parsed.data) {
+    return { ok: false, fieldErrors: parsed.fieldErrors, fields: parsed.fields };
   }
-  if (title.length > ANNOUNCEMENT_TITLE_MAX) {
-    return {
-      ok: false,
-      fieldErrors: {
-        title: [`タイトルは ${ANNOUNCEMENT_TITLE_MAX} 文字以内で入力してください。`],
-      },
-      fields: { title },
-    };
-  }
+  const { title } = parsed.data;
 
   let createdId: string;
   try {

@@ -5,16 +5,11 @@ import { revalidatePath } from 'next/cache';
 
 import { updateBlogPost } from '@/lib/api/blog-posts';
 import { ApiError, extractValidationMessages } from '@/lib/api/errors';
+
 import {
-  BLOG_BODY_MAX,
-  BLOG_BODY_MIN,
-  BLOG_SLUG_MAX,
-  BLOG_TITLE_MAX,
-} from '@/lib/api/types';
-
-import type { UpdateBlogPostFormState } from '../_shared/update-blog-post-form';
-
-const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+  validateUpdateBlogPostForm,
+  type UpdateBlogPostFormState,
+} from '../_shared/update-blog-post-form';
 
 /**
  * BlogPost 編集 Server Action(ADR-014、タイトル / 本文 / slug)。
@@ -36,35 +31,11 @@ export async function updateBlogPostAction(
     return { ok: false, formError: '認証が必要です。再度サインインしてください。' };
   }
 
-  const title = String(formData.get('title') ?? '').trim();
-  const body = String(formData.get('body') ?? '').replace(/\s+$/, '');
-  const slugField = String(formData.get('slug') ?? '').trim();
-
-  const fieldErrors: NonNullable<UpdateBlogPostFormState['fieldErrors']> = {};
-
-  if (!title) {
-    fieldErrors.title = ['タイトルを入力してください。'];
-  } else if (title.length > BLOG_TITLE_MAX) {
-    fieldErrors.title = [`タイトルは ${BLOG_TITLE_MAX} 文字以内で入力してください。`];
+  const parsed = validateUpdateBlogPostForm(formData);
+  if (!parsed.data) {
+    return { ok: false, fieldErrors: parsed.fieldErrors, fields: parsed.fields };
   }
-
-  if (body.length < BLOG_BODY_MIN) {
-    fieldErrors.body = [`本文は ${BLOG_BODY_MIN} 文字以上で入力してください。`];
-  } else if (body.length > BLOG_BODY_MAX) {
-    fieldErrors.body = [`本文は ${BLOG_BODY_MAX.toLocaleString()} 文字以内で入力してください。`];
-  }
-
-  if (!slugField) {
-    fieldErrors.slug = ['slug を入力してください。'];
-  } else if (slugField.length > BLOG_SLUG_MAX) {
-    fieldErrors.slug = [`slug は ${BLOG_SLUG_MAX} 文字以内で入力してください。`];
-  } else if (!SLUG_PATTERN.test(slugField)) {
-    fieldErrors.slug = ['slug は半角小文字 + 数字 + ハイフンのみ使用できます。'];
-  }
-
-  if (Object.keys(fieldErrors).length > 0) {
-    return { ok: false, fieldErrors, fields: { title, body, slug: slugField } };
-  }
+  const { title, body, slug: slugField } = parsed.data;
 
   try {
     await updateBlogPost(slug, projectId, blogPostId, {

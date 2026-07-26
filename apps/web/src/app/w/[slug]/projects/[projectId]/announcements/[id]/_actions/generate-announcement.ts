@@ -6,13 +6,11 @@ import { revalidatePath } from 'next/cache';
 import { classifyAiApiError } from '@/app/w/[slug]/_shared/ai-form';
 import { generateAnnouncement } from '@/lib/api/announcements';
 import { ApiError } from '@/lib/api/errors';
-import {
-  ANNOUNCEMENT_TOPIC_MAX,
-  DELIVERY_CHANNELS,
-  type DeliveryChannel,
-} from '@/lib/api/types';
 
-import type { GenerateAnnouncementFormState } from '../_shared/generate-announcement-form';
+import {
+  validateGenerateAnnouncementForm,
+  type GenerateAnnouncementFormState,
+} from '../_shared/generate-announcement-form';
 
 /**
  * Announcement の多チャネル文面を Sonnet 4 + Tool Use で生成する Server Action(ADR-014)。
@@ -36,28 +34,11 @@ export async function generateAnnouncementAction(
     return { ok: false, formError: '認証が必要です。再度サインインしてください。' };
   }
 
-  const topic = String(formData.get('topic') ?? '').trim();
-  const rawChannels = formData.getAll('channels').map((v) => String(v));
-  const channels = rawChannels.filter((c): c is DeliveryChannel =>
-    (DELIVERY_CHANNELS as readonly string[]).includes(c),
-  );
-
-  if (!topic) {
-    return {
-      ok: false,
-      fieldErrors: { topic: ['告知内容を入力してください。'] },
-      fields: { topic, channels },
-    };
+  const parsed = validateGenerateAnnouncementForm(formData);
+  if (!parsed.data) {
+    return { ok: false, fieldErrors: parsed.fieldErrors, fields: parsed.fields };
   }
-  if (topic.length > ANNOUNCEMENT_TOPIC_MAX) {
-    return {
-      ok: false,
-      fieldErrors: {
-        topic: [`告知内容は ${ANNOUNCEMENT_TOPIC_MAX} 文字以内で入力してください。`],
-      },
-      fields: { topic, channels },
-    };
-  }
+  const { topic, channels } = parsed.data;
 
   try {
     await generateAnnouncement(slug, projectId, id, {

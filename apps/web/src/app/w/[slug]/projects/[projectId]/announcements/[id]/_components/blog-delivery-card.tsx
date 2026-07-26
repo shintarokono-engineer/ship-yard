@@ -38,6 +38,7 @@ import {
 } from '../_shared/execute-delivery-form';
 import {
   INITIAL_UPDATE_BLOG_POST_FORM_STATE,
+  validateUpdateBlogPostForm,
   type UpdateBlogPostFormState,
 } from '../_shared/update-blog-post-form';
 
@@ -177,6 +178,23 @@ function EditBlogPostDialog({
   const [titleLength, setTitleLength] = useState(titleRaw.length);
   const [bodyLength, setBodyLength] = useState(bodyRaw.length);
 
+  // クライアント事前検証エラー(null の間はサーバ側 state.fieldErrors を表示)。
+  const [clientFieldErrors, setClientFieldErrors] = useState<
+    UpdateBlogPostFormState['fieldErrors'] | null
+  >(null);
+  const displayErrors = clientFieldErrors ?? state.fieldErrors;
+
+  // 空送信など不正入力は dispatch せず弾く(サーバ往復なし=ボタン文言のちらつき防止)。
+  function handleSubmit(formData: FormData) {
+    const parsed = validateUpdateBlogPostForm(formData);
+    if (!parsed.data) {
+      setClientFieldErrors(parsed.fieldErrors);
+      return;
+    }
+    setClientFieldErrors(null);
+    formAction(formData);
+  }
+
   const [prevState, setPrevState] = useState(state);
   if (state !== prevState) {
     setPrevState(state);
@@ -199,15 +217,15 @@ function EditBlogPostDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* noValidate: ブラウザ標準 required を抑止し Server Action のカスタム文言で統一(空は
-            update-blog-post が「タイトル/本文/slug を入力してください。」を返す)。 */}
-        <form action={formAction} className="space-y-4" noValidate>
+        {/* noValidate: ブラウザ標準 required を抑止し、クライアント/サーバ共通のカスタム文言で統一。
+            空送信はクライアント側で弾くため dispatch されず、ボタン文言はちらつかない。 */}
+        <form action={handleSubmit} className="space-y-4" noValidate>
           <FormField
             id="title"
             label="タイトル"
             required
             counter={{ current: titleLength, max: BLOG_TITLE_MAX }}
-            errors={state.fieldErrors?.title}
+            errors={displayErrors?.title}
           >
             <Input
               id="title"
@@ -224,7 +242,7 @@ function EditBlogPostDialog({
             id="slug"
             label="slug(URL)"
             required
-            errors={state.fieldErrors?.slug}
+            errors={displayErrors?.slug}
           >
             <Input
               id="slug"
@@ -242,7 +260,7 @@ function EditBlogPostDialog({
             label="本文(Markdown)"
             required
             counter={{ current: bodyLength, max: BLOG_BODY_MAX }}
-            errors={state.fieldErrors?.body}
+            errors={displayErrors?.body}
           >
             <Textarea
               id="body"
