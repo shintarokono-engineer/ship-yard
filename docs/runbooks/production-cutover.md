@@ -526,7 +526,9 @@ aws secretsmanager get-secret-value --secret-id "$SECRET_ARN" \
 
 - [ ] 10 キーすべてに実値(または Phase 6 / 8 で埋める仮値)が入った
 
-> **`apps/api/.env.example` にキーを追加したら、`infra/prod/secrets.tf` の `app_secret_keys` も必ず同時に更新**してください。ここが食い違うと本番だけ壊れます(2026-07-25 に `CLERK_WEBHOOK_SECRET` の欠落を修正した経緯があります)。
+> **環境変数を追加するときは `.env.example` だけでは本番に届きません。** API の機密値なら `apps/api/.env.example` / `apps/api/.env.local` / **`infra/prod/secrets.tf` の `app_secret_keys`** / **Secrets Manager への実値投入**の 4 箇所が必要です(非機密値は `apprunner.tf` の `runtime_environment_variables`、Web の値は Vercel の環境変数と、経路が別)。判断フローは [`../implementation-rules.md`](../implementation-rules.md) の「環境変数を追加するとき」を参照してください。
+>
+> ここが食い違うと**本番だけ壊れます**(2026-07-25 に `CLERK_WEBHOOK_SECRET` が `secrets.tf` から欠落していた不具合を修正した経緯があります)。
 
 ---
 
@@ -556,7 +558,7 @@ cd "$REPO/infra/prod" && terraform apply
 
 - [ ] `aws_vpc_security_group_ingress_rule.rds_from_nat_admin` が作成された
 
-> **作業後に必ず閉じます**(§6.6)。常時開けたままにしないでください。
+> **作業後に必ず閉じます**(§6.7)。常時開けたままにしないでください。
 
 ### 6.1 接続情報を組み立てる
 
@@ -618,17 +620,70 @@ SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';
 
 - [ ] pgvector 拡張が有効(初期 migration `20260508071135_init` で作成される)
 
-### 6.5 `DATABASE_URL` を Secrets Manager に確定投入する
+### 6.5 アプリ専用の DB ユーザーを作る(必須)
 
-Phase 5 で仮値にしていた場合、ここで実値に更新します(**ホストは RDS のエンドポイント**、localhost ではありません)。
+> ⚠ **マスターユーザーの認証情報をアプリに使ってはいけません。**
+>
+> `rds.tf` の `manage_master_user_password = true` により、**マスターパスワードは AWS が 7 日ごとに自動ローテーション**します(`RotationEnabled: true` / `AutomaticallyAfterDays: 7`)。
+> `DATABASE_URL` にマスターパスワードを焼き付けると、**最大 7 日は正常に動いた後、何もしていないのに突然 DB 接続が全断**します。デプロイもコード変更もしていないタイミングで落ちるため原因究明が難しく、エラーも `password authentication failed` なので設定ミスや攻撃と誤診しやすい、たちの悪い障害になります。
+>
+> あわせて、アプリがテーブルを DROP できる権限を持つ必要もありません。**役割を分けます。**
+
+| 用途 | 接続ユーザー | パスワード |
+| --- | --- | --- |
+| migration(DDL)= 手元から都度実行 | マスターユーザー | AWS 管理。実行のたびに §6.1 で取得するので変わってよい |
+| **アプリ実行時(DML)= 常時接続** | **`shipyard_app`** | **自分で決める。誰も勝手に変えない** |
+
+ポートフォワードを張ったまま、マスターユーザーで接続して作成します(`psql` が無ければ `brew install libpq` 等)。
+
+```bash
+# 強固なパスワードを生成して控える(この値を DATABASE_URL に使う)
+openssl rand -base64 32 | tr -d '/+=' | cut -c1-32
+```
+
+```bash
+PGPASSWORD='<マスターパスワード>' psql -h localhost -p 15432 -U shipyard -d shipyard
+```
+
+```sql
+CREATE ROLE shipyard_app WITH LOGIN PASSWORD '<生成したパスワード>';
+GRANT CONNECT ON DATABASE shipyard TO shipyard_app;
+GRANT USAGE ON SCHEMA public TO shipyard_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO shipyard_app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO shipyard_app;
+
+-- 今後 migration で追加されるテーブル / シーケンスにも自動で権限を付ける。
+-- これが無いと、次にテーブルを追加したときアプリから見えなくなる。
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO shipyard_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT USAGE, SELECT ON SEQUENCES TO shipyard_app;
+```
+
+接続確認します。
+
+```bash
+PGPASSWORD='<生成したパスワード>' psql -h localhost -p 15432 -U shipyard_app -d shipyard -c 'SELECT count(*) FROM "Tenant";'
+```
+
+- [ ] `shipyard_app` で接続でき、テーブルが読める
+- [ ] `shipyard_app` で `DROP TABLE` が**できない**ことを確認(権限が過剰でない)
+
+> **migration で新しいテーブルを追加した後**も、`ALTER DEFAULT PRIVILEGES` により自動で権限が付きます。ただし**既存テーブルへの `GRANT` は遡及しない**ため、この手順を migration 適用「後」に実行しています(§6.3 → §6.5 の順序が重要)。
+
+### 6.6 `DATABASE_URL` を Secrets Manager に確定投入する
+
+**`shipyard_app` の認証情報**で組み立てます(マスターユーザーではありません)。ホストは RDS のエンドポイント(localhost ではない)です。
 
 ```
-postgresql://shipyard:<DB_PASSWORD>@<RDS_HOST>:5432/shipyard?schema=public&sslmode=require
+postgresql://shipyard_app:<生成したパスワード>@<RDS_HOST>:5432/shipyard?schema=public&sslmode=require
 ```
 
-- [ ] 更新した
+Phase 5 のスクリプトを再実行し、`DATABASE_URL` だけ入力して他は空 Enter します。
 
-### 6.6 管理アクセスを閉じる(必須)
+- [ ] 投入した(ユーザー名が `shipyard_app` になっていること)
+
+### 6.7 管理アクセスを閉じる(必須)
 
 ポートフォワードのセッションを終了(`Ctrl+C`)してから、開けた ingress を閉じます。
 
@@ -644,7 +699,7 @@ cd "$REPO/infra/prod" && terraform apply
 
 - [ ] `terraform plan` に `rds_from_nat_admin` の差分が残っていない(= 閉じた)
 
-> 以降 migration や調査で再接続したくなったら、**§6.0 で開けて → 作業 → §6.6 で閉じる**を繰り返します。開けっぱなしにしないでください。
+> 以降 migration や調査で再接続したくなったら、**§6.0 で開けて → 作業 → §6.7 で閉じる**を繰り返します。開けっぱなしにしないでください。
 
 ---
 
@@ -1016,6 +1071,8 @@ aws apprunner resume-service --service-arn "$(cd "$REPO/infra/prod" && terraform
 | ホストゾーンが 2 つある                           | Route53 でドメイン登録した際の自動作成分。import するか削除する(§1.3)                                   |
 | 予算アラートが毎月鳴る / 全く鳴らない             | 閾値が固定フロアと不整合 / クレジット期間中で実請求が 0(§12.3)                                          |
 | SSM ポートフォワードは張れるが DB がタイムアウト   | **RDS の SG が NAT からの 5432 を許可していない**。`enable_admin_db_access = true` で apply する(§6.0) |
+| 公開から数日後に突然 `password authentication failed` で DB 全断 | **`DATABASE_URL` にマスターパスワードを埋めている**。AWS が 7 日ごとに自動ローテーションするため。`shipyard_app` の認証情報に切り替える(§6.5) |
+| migration 後にアプリから新テーブルが見えない | `ALTER DEFAULT PRIVILEGES` が未実行、または既存テーブルへの `GRANT` 漏れ(§6.5) |
 | SSM セッション自体が張れない                      | `session-manager-plugin` 未インストール(§0.3)/ NAT の SSM エージェント未起動(`aws ssm describe-instance-information` で確認) |
 | `Too many command line arguments` / `Found invalid choice '#'` | **zsh は既定で対話シェルの `#` をコメント扱いしない**。コマンドの行末にコメントを付けて実行すると引数として渡る。本書はコメントを行の上に置いているのでそのままコピペできる |
 | `cd: no such file or directory` | 相対パスで移動している。本書は `$REPO`(§0.3 で `export`)からの絶対パスを使う。ターミナルを開き直したら `export REPO=...` を再実行する |

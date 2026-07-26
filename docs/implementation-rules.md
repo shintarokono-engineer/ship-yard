@@ -58,3 +58,38 @@
 
 - 上限回数・モデル ID・単価・為替・タイムアウト等、**変更されうる値は定数ファイルに集約**する(コード中に直書きしない)。例: AI 関連は `apps/api/src/ai/ai.constants.ts`
 - schema の enum がある値はマジック文字列ではなく enum(`@shipyard/db` 経由)を使う(`'PRO'` ではなく `Plan.PRO`)
+
+## 環境変数を追加するとき(本番だけ壊れる事故の防止)
+
+環境変数は **`.env.example` に足しただけでは本番に届かない**。ローカルと本番で読み込み経路が完全に別なので、**追加先を必ず 3 分類で判断する**こと。
+
+判断フロー:
+
+```
+その環境変数は誰が読む?
+├ API(NestJS)が読む
+│  ├ 機密(APIキー / シークレット / 接続文字列)
+│  │   → ① apps/api/.env.example
+│  │     ② apps/api/.env.local(ローカル実値、gitignore 済)
+│  │     ③ infra/prod/secrets.tf の `app_secret_keys`   ← 忘れると本番だけ壊れる
+│  │     ④ Secrets Manager への実値投入(手動)          ← 忘れると REPLACE_ME のまま起動
+│  └ 非機密(URL / フラグ等)
+│      → ① apps/api/.env.example
+│        ② apps/api/.env.local
+│        ③ infra/prod/apprunner.tf の `runtime_environment_variables`
+│          (環境ごとに変える値なら variables.tf にも変数を足す)
+└ Web(Next.js)が読む
+   → ① apps/web/.env.example
+     ② apps/web/.env.local
+     ③ Vercel の環境変数(Production)  ← ビルド時に取り込まれるため追加後は再デプロイが必要
+```
+
+補足:
+
+- **③ `app_secret_keys` に足せば App Runner への配線まで完了する**。`apprunner.tf` が `for k in local.app_secret_keys` で `runtime_environment_secrets` を生成しているため、apprunner.tf 側の編集は不要
+- **機密でない値を Secrets Manager に入れない**。シークレット単位で月額課金が発生する
+- `NEXT_PUBLIC_` 接頭辞の値は**ブラウザに露出する**ので機密を入れない
+- **Secrets Manager の値は App Runner の起動時に解決される**。値を更新しただけでは反映されず、`aws apprunner start-deployment` で再デプロイが必要
+- `packages/db/.env` の `DATABASE_URL` は Prisma CLI(`migrate` / `generate`)専用の**ローカル用**。本番の migration は環境変数で明示的に渡す
+
+**実績**: 2026-07-25 に `CLERK_WEBHOOK_SECRET` が ③ に無いまま放置されていた不具合を発見(`.env.example` とコードにはあったが `secrets.tf` に無く、本番の `POST /webhooks/clerk` が 500 を返し続けてユーザープロビジョニングが止まる状態だった)。本番構築前に気付けたのは偶然なので、上記フローで機械的に確認すること。
