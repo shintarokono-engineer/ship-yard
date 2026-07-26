@@ -16,3 +16,10 @@ infra
 **/*.tfstate
 **/*.tfstate.*
 *.log
+# ローカル開発用の環境変数ファイル。Dockerfile が `COPY . .` するため、除外しないと
+# ローカルのキーがイメージレイヤーに焼き込まれ、ECR を pull できる人が取り出せてしまう。
+# 加えて ConfigModule が `envFilePath: '.env.local'` を読むため、コンテナ内に残ると
+# 「Secrets Manager に入れ忘れたキーがローカル値で静かに動く」= 設定漏れを検知できなくなる。
+# 本番の値は App Runner が OS 環境変数として注入する(secrets.tf / apprunner.tf)。
+**/.env
+**/.env.*
