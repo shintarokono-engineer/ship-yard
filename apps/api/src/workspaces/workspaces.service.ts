@@ -221,12 +221,33 @@ export class WorkspacesService {
     // (削除されたユーザーの再アクティブ化は Clerk Webhook の `user.created/updated` 経由のみとする)。
     // 既に upsert へ来た時点で findUnique は null だったが、レースで insert が `unique` で衝突したら
     // update 節に進む。update 節では `deletedAt` を触らない。
-    const created = await this.prisma.user.upsert({
-      where: { clerkUserId },
-      create: { clerkUserId, email, name, image },
-      update: { email, name, image },
-      select: { id: true, email: true, name: true, deletedAt: true },
-    });
+    let created: { id: string; email: string; name: string | null; deletedAt: Date | null };
+    try {
+      created = await this.prisma.user.upsert({
+        where: { clerkUserId },
+        create: { clerkUserId, email, name, image },
+        update: { email, name, image },
+        select: { id: true, email: true, name: true, deletedAt: true },
+      });
+    } catch (err) {
+      // 別の clerkUserId が同じ email を既に持つと、create 側が email UNIQUE(P2002)で衝突する。
+      // これはユーザーが同一メールで Clerk アカウントを作り直した場合等に起きる(Webhook の
+      // user.created は新 clerkUserId で来るが、旧行が同 email で残る)。email は Clerk 側で
+      // 所有検証済みなので、既存 User 行の clerkUserId を新しい値へ張り替えて再関連付けする
+      // (アカウント復旧と同義。GitHub / Notion 等と同パターン)。放置すると /onboarding や
+      // ワークスペース作成が 500 になり、ログイン後に白紙化する。
+      if (!isPrismaError(err, PrismaErrorCode.UNIQUE_VIOLATION)) {
+        throw err;
+      }
+      created = await this.prisma.user.update({
+        where: { email },
+        data: { clerkUserId, name, image },
+        select: { id: true, email: true, name: true, deletedAt: true },
+      });
+      this.logger.warn(
+        `Re-linked existing user (email=${email}) to new clerkUserId ${clerkUserId}`,
+      );
+    }
     if (created.deletedAt) {
       throw new ForbiddenException('User has been deleted');
     }

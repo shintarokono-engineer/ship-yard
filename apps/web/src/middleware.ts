@@ -16,6 +16,9 @@ const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/sign-out-cleanup',
+  // サインイン直後の中間ページ(フルロード遷移で `/` を開き直す)。遷移中にセッション Cookie の
+  // 伝搬タイミング差で認証必須にすると loop しうるため公開ルートにする(`/sign-out-cleanup` と同様)。
+  '/sign-in-complete',
   '/invite/(.*)',
   '/p/(.*)',
 ]);

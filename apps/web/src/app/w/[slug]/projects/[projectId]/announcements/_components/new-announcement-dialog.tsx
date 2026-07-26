@@ -20,6 +20,7 @@ import { ANNOUNCEMENT_TITLE_MAX } from '@/lib/api/types';
 import { createAnnouncementAction } from '../_actions/create-announcement';
 import {
   INITIAL_CREATE_ANNOUNCEMENT_FORM_STATE,
+  validateCreateAnnouncementForm,
   type CreateAnnouncementFormState,
 } from '../_shared/create-announcement-form';
 
@@ -48,6 +49,23 @@ export function NewAnnouncementDialog({
   const titleRaw = state.fields?.title ?? '';
   const [titleLength, setTitleLength] = useState(titleRaw.length);
 
+  // クライアント事前検証エラー(null の間はサーバ側 state.fieldErrors を表示)。
+  const [clientFieldErrors, setClientFieldErrors] = useState<
+    CreateAnnouncementFormState['fieldErrors'] | null
+  >(null);
+  const displayErrors = clientFieldErrors ?? state.fieldErrors;
+
+  // 空送信など不正入力は dispatch せず弾く(サーバ往復なし=ボタン文言のちらつき防止)。
+  function handleSubmit(formData: FormData) {
+    const parsed = validateCreateAnnouncementForm(formData);
+    if (!parsed.data) {
+      setClientFieldErrors(parsed.fieldErrors);
+      return;
+    }
+    setClientFieldErrors(null);
+    formAction(formData);
+  }
+
   return (
     <Dialog
       open={open}
@@ -70,12 +88,14 @@ export function NewAnnouncementDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form action={formAction} className="space-y-4">
+        {/* noValidate: ブラウザ標準 required を抑止し、クライアント/サーバ共通のカスタム文言で統一。
+            空送信はクライアント側で弾くため dispatch されず、ボタン文言はちらつかない。 */}
+        <form action={handleSubmit} className="space-y-4" noValidate>
           <FormField
             id="title"
             label="タイトル(内部管理用)"
             counter={{ current: titleLength, max: ANNOUNCEMENT_TITLE_MAX }}
-            errors={state.fieldErrors?.title}
+            errors={displayErrors?.title}
           >
             <Input
               id="title"
@@ -86,7 +106,7 @@ export function NewAnnouncementDialog({
               onChange={(e) => setTitleLength(e.currentTarget.value.length)}
               disabled={pending}
               aria-describedby={
-                state.fieldErrors?.title && state.fieldErrors.title.length > 0
+                displayErrors?.title && displayErrors.title.length > 0
                   ? 'title-error'
                   : undefined
               }

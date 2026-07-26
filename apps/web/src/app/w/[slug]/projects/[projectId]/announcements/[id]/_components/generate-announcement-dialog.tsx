@@ -28,6 +28,7 @@ import {
 import { generateAnnouncementAction } from '../_actions/generate-announcement';
 import {
   INITIAL_GENERATE_ANNOUNCEMENT_FORM_STATE,
+  validateGenerateAnnouncementForm,
   type GenerateAnnouncementFormState,
 } from '../_shared/generate-announcement-form';
 
@@ -65,6 +66,23 @@ export function GenerateAnnouncementDialog({
   const topicRaw = state.fields?.topic ?? '';
   const [topicLength, setTopicLength] = useState(topicRaw.length);
 
+  // クライアント事前検証エラー(null の間はサーバ側 state.fieldErrors を表示)。
+  const [clientFieldErrors, setClientFieldErrors] = useState<
+    GenerateAnnouncementFormState['fieldErrors'] | null
+  >(null);
+  const displayErrors = clientFieldErrors ?? state.fieldErrors;
+
+  // 空送信など不正入力は dispatch せず弾く(サーバ往復なし=ボタン文言のちらつき防止)。
+  function handleSubmit(formData: FormData) {
+    const parsed = validateGenerateAnnouncementForm(formData);
+    if (!parsed.data) {
+      setClientFieldErrors(parsed.fieldErrors);
+      return;
+    }
+    setClientFieldErrors(null);
+    formAction(formData);
+  }
+
   const [prevState, setPrevState] = useState(state);
   if (state !== prevState) {
     setPrevState(state);
@@ -98,13 +116,15 @@ export function GenerateAnnouncementDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form action={formAction} className="space-y-4">
+        {/* noValidate: ブラウザ標準 required を抑止し、クライアント/サーバ共通のカスタム文言で統一。
+            空送信はクライアント側で弾くため dispatch されず、ボタン文言はちらつかない。 */}
+        <form action={handleSubmit} className="space-y-4" noValidate>
           <FormField
             id="topic"
             label="告知内容(何を伝えたいか)"
             required
             counter={{ current: topicLength, max: ANNOUNCEMENT_TOPIC_MAX }}
-            errors={state.fieldErrors?.topic}
+            errors={displayErrors?.topic}
           >
             <Textarea
               id="topic"

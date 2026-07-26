@@ -20,6 +20,7 @@ import { ANNOUNCEMENT_TITLE_MAX } from '@/lib/api/types';
 import { updateAnnouncementAction } from '../_actions/update-announcement';
 import {
   INITIAL_UPDATE_ANNOUNCEMENT_FORM_STATE,
+  validateUpdateAnnouncementForm,
   type UpdateAnnouncementFormState,
 } from '../_shared/update-announcement-form';
 
@@ -46,6 +47,23 @@ export function EditAnnouncementTitleDialog({
   );
   const titleRaw = state.fields?.title ?? currentTitle;
   const [titleLength, setTitleLength] = useState(titleRaw.length);
+
+  // クライアント事前検証エラー(null の間はサーバ側 state.fieldErrors を表示)。
+  const [clientFieldErrors, setClientFieldErrors] = useState<
+    UpdateAnnouncementFormState['fieldErrors'] | null
+  >(null);
+  const displayErrors = clientFieldErrors ?? state.fieldErrors;
+
+  // 空送信など不正入力は dispatch せず弾く(サーバ往復なし=ボタン文言のちらつき防止)。
+  function handleSubmit(formData: FormData) {
+    const parsed = validateUpdateAnnouncementForm('title', formData);
+    if (!parsed.data) {
+      setClientFieldErrors(parsed.fieldErrors);
+      return;
+    }
+    setClientFieldErrors(null);
+    formAction(formData);
+  }
 
   const [prevState, setPrevState] = useState(state);
   if (state !== prevState) {
@@ -75,12 +93,14 @@ export function EditAnnouncementTitleDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form action={formAction} className="space-y-4">
+        {/* noValidate: ブラウザ標準 required を抑止し、クライアント/サーバ共通のカスタム文言で統一。
+            空送信はクライアント側で弾くため dispatch されず、ボタン文言はちらつかない。 */}
+        <form action={handleSubmit} className="space-y-4" noValidate>
           <FormField
             id="title"
             label="タイトル"
             counter={{ current: titleLength, max: ANNOUNCEMENT_TITLE_MAX }}
-            errors={state.fieldErrors?.title}
+            errors={displayErrors?.title}
           >
             <Input
               id="title"
