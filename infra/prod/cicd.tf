@@ -78,17 +78,18 @@ data "aws_iam_policy_document" "github_deploy" {
   }
 
   # UpdateService に AuthenticationConfiguration.AccessRoleArn を含めて渡すため、
-  # 対象ロールの PassRole が必要になる(App Runner サービスに渡すロールに限定)。
+  # 対象ロールの PassRole が必要になる。
+  #
+  # `iam:PassedToService` による条件は付けない。App Runner の UpdateService は
+  # このコンテキストキーを設定しないらしく、条件付きだとステートメント自体が
+  # 適用されず AccessDeniedException になる(2026-08-02 に実測)。
+  #   User: .../GitHubActions is not authorized to perform: iam:PassRole
+  #   because no identity-based policy allows the iam:PassRole action
+  # 代わりに resources を App Runner の 2 ロールに限定して影響範囲を絞る。
   statement {
     sid       = "PassAppRunnerRoles"
     actions   = ["iam:PassRole"]
     resources = [aws_iam_role.apprunner_access.arn, aws_iam_role.apprunner_instance.arn]
-
-    condition {
-      test     = "StringEquals"
-      variable = "iam:PassedToService"
-      values   = ["build.apprunner.amazonaws.com", "tasks.apprunner.amazonaws.com"]
-    }
   }
 }
 
