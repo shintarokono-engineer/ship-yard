@@ -33,7 +33,7 @@ export class WebhooksController {
 
   /**
    * Clerk Webhook 署名検証用の Svix Webhook インスタンス(Standard Webhooks 準拠)。
-   * env 未設定でもアプリ起動は止めず、エンドポイント側で 500 を返す方式
+   * env 未設定 / 不正でもアプリ起動は止めず、エンドポイント側で 500 を返す方式
    * (本番起動時に env チェックを行う運用上の選択。ローカル/CI で Clerk を使わないテストを阻害しない)。
    */
   private readonly clerkWebhook: Webhook | null;
@@ -45,11 +45,30 @@ export class WebhooksController {
     config: ConfigService,
   ) {
     const secret = config.get<string>('CLERK_WEBHOOK_SECRET');
-    this.clerkWebhook = secret ? new Webhook(secret) : null;
+    // `new Webhook()` は不正な値(base64 でない等)に対して同期的に throw する。Controller の
+    // constructor で throw すると NestJS の bootstrap ごと落ちるため、**Clerk webhook 1 機能の
+    // 設定不備で API 全体が起動しなくなる**。Secrets Manager のプレースホルダ(`REPLACE_ME`)が
+    // 残ったまま本番デプロイして実際にこの事象を踏んだため、未設定と同じ「null に倒して
+    // エンドポイントだけ 500」に統一する。
+    this.clerkWebhook = WebhooksController.buildClerkWebhook(secret, this.logger);
+  }
+
+  /** `CLERK_WEBHOOK_SECRET` から Svix Webhook を作る。未設定 / 不正なら null を返す(起動は止めない)。 */
+  private static buildClerkWebhook(secret: string | undefined, logger: Logger): Webhook | null {
     if (!secret) {
-      this.logger.warn(
+      logger.warn(
         'CLERK_WEBHOOK_SECRET is not set; POST /webhooks/clerk will respond 500 until configured',
       );
+      return null;
+    }
+    try {
+      return new Webhook(secret);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      logger.error(
+        `CLERK_WEBHOOK_SECRET is set but invalid (${msg}); POST /webhooks/clerk will respond 500 until corrected`,
+      );
+      return null;
     }
   }
 
