@@ -11,8 +11,16 @@ import { TENANT_SLUG_HEADER } from '@/lib/tenant-slug';
 // `publishedAt` がセットされた LP のみ返すため認証不要。
 // `/sign-out-cleanup` は Clerk サインアウト後の中間ページ(F1.5、§9.12.2 観点 2)。
 // LocalStorage / SessionStorage を cleanup してから `/` にフルロード遷移するため認証不要。
+// `/robots.txt` と `/sitemap.xml`(F10、`app/robots.ts` / `app/sitemap.ts` が生成)はクローラが
+// 未認証で取得するもの。下の matcher の除外拡張子に txt / xml が無いため middleware を通るので、
+// ここで明示的に公開しないと `auth.protect()` に捕まる。クローラは `Sec-Fetch-Dest: document` を
+// 送らないため Clerk は 307 ではなく 404 を返し、**SEO が本番でだけ無効化される**
+// (2026-08-02 の本番構築で実際に踏んだ)。matcher に txt|xml を足す方法もあるが、将来
+// ユーザー生成の .xml を素通しにしてしまうリスクがあるためルートを明示する。
 const isPublicRoute = createRouteMatcher([
   '/',
+  '/robots.txt',
+  '/sitemap.xml',
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/sign-out-cleanup',
