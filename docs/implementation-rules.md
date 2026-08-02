@@ -63,7 +63,60 @@
 
 環境変数は **`.env.example` に足しただけでは本番に届かない**。ローカルと本番で読み込み経路が完全に別なので、**追加先を必ず 3 分類で判断する**こと。
 
-判断フロー:
+### 前提: ホスティングが 2 つに分かれている
+
+```
+ブラウザ
+   │
+   ▼
+Vercel(Web / Next.js)          ← 環境変数は Vercel ダッシュボード
+   │  サーバー間通信
+   ▼
+AWS App Runner(API / NestJS)   ← 環境変数は Secrets Manager + apprunner.tf
+   │
+   ▼
+AWS RDS
+```
+
+**Vercel は Secrets Manager を読めず、App Runner は Vercel の環境変数を読めない。** 互いに独立している。
+
+反映タイミングも異なる。どちらも「値を更新しただけでは反映されない」が理由が違う。
+
+|            | 反映方法                             | 理由                           |
+| ---------- | ------------------------------------ | ------------------------------ |
+| Vercel     | **再デプロイ**                       | ビルド成果物に埋め込まれる     |
+| App Runner | **`aws apprunner start-deployment`** | 起動時にシークレットを解決する |
+
+### 現在の定義場所(一覧)
+
+**API(NestJS / App Runner)— 機密 10 件**: `infra/prod/secrets.tf` の `app_secret_keys` に列挙 → Secrets Manager に実値を手動投入 → App Runner が起動時に注入。
+
+`DATABASE_URL`(アプリ専用ロール `shipyard_app`) / `CLERK_SECRET_KEY` / `CLERK_WEBHOOK_SECRET` / `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `STRIPE_PRICE_PRO` / `STRIPE_PRICE_TEAM` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `RESEND_API_KEY`
+
+**API — 非機密 2 件**: `infra/prod/apprunner.tf` の `runtime_environment_variables` で直接定義(Secrets Manager はシークレット単位で課金されるため機密でない値は入れない)。
+
+`APP_BASE_URL`(= `https://${var.domain_name}`) / `MAIL_FROM`(= `var.mail_from`)
+
+**API — その他 1 件**: `PORT` は `apps/api/Dockerfile` の `ENV PORT=3000`。`apprunner.tf` の `port = "3000"` と一致させる。環境ごとに変える値ではないので env 管理しない。
+
+**Web(Next.js / Vercel)— 8 件**: Vercel ダッシュボード(Production)のみ。
+
+| 変数                                                               | 参照のされ方                                                                                                                                                |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `API_URL`                                                          | `lib/api/client.ts` が直読み。全 API 呼び出しのベース URL。**未設定だと即 throw**                                                                           |
+| `SITE_URL`                                                         | `lib/site-url.ts`。OG 画像 / メタデータ / robots / sitemap の絶対 URL。**未設定でもエラーにならず Vercel 既定ドメインにフォールバックする**ので気付きにくい |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`                                | **Clerk SDK が暗黙に読む**(コードに登場しない)                                                                                                              |
+| `CLERK_SECRET_KEY`                                                 | Clerk SDK が暗黙に読む。`auth()` / `auth.protect()` のサーバー側検証                                                                                        |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` / `_SIGN_UP_URL`                   | Clerk SDK が読む。middleware のリダイレクト先。**未設定だと Clerk ホストの Account Portal へ飛ぶ**                                                          |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` / `_SIGN_UP_...` | Clerk SDK が読む。認証後の既定遷移先                                                                                                                        |
+
+- **`NEXT_PUBLIC_` 付きはビルド時にバンドルへ埋め込まれブラウザから見える**。機密は絶対に付けない
+- `API_URL` に `NEXT_PUBLIC_` を付けないのは意図的。ブラウザから直接 API を叩かせず Server Component / Server Action 経由に限定する設計
+- **`CLERK_SECRET_KEY` だけは Vercel と Secrets Manager の両方に同じ値を置く**(Web は JWT を発行・取得、API は受け取った JWT を検証。役割が違うだけで同一インスタンスを指す必要がある)
+
+**ローカル開発**: `apps/api/.env.local` / `apps/web/.env.local` / `packages/db/.env`(Prisma CLI 専用)。いずれも gitignore 済みで、`.dockerignore` でもイメージから除外している(本番コンテナに `.env` は存在しない)。
+
+### 判断フロー
 
 ```
 その環境変数は誰が読む?
