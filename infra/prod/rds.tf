@@ -25,6 +25,11 @@ resource "aws_db_parameter_group" "main" {
   parameter {
     name  = "rds.force_ssl"
     value = "1"
+
+    # AWS 側はこのパラメータを pending-reboot で保持する。apply_method を省略すると
+    # provider の既定値 immediate と食い違い、毎回の plan に差分が出続けて本当に見るべき
+    # 変更が埋もれるため、実態に合わせて明示する(値 1 = TLS 必須は DB 作成時から有効)。
+    apply_method = "pending-reboot"
   }
 
   lifecycle {
