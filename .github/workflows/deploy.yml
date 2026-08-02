@@ -47,14 +47,29 @@ jobs:
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      # ECR は IMMUTABLE タグのため、同じコミット SHA のイメージが既にあると push が
+      # `tag invalid: ... cannot be overwritten` で失敗する。デプロイ段階で失敗した run を
+      # 再実行するケース(インフラ修正後のリトライ、同一コミットでの workflow_dispatch)では
+      # push だけ先に成功しているのが普通なので、既存タグならビルドごとスキップして
+      # デプロイ段階へ進む。イメージの中身はコミット SHA で一意に決まるため再ビルドは不要。
       - name: Build and push image
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
         run: |
+          set -euo pipefail
+
           IMAGE="$REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+          if aws ecr describe-images \
+               --repository-name "$ECR_REPOSITORY" \
+               --image-ids imageTag="$GITHUB_SHA" > /dev/null 2>&1; then
+            echo "同一タグのイメージが既に存在するため、ビルドと push をスキップします: $GITHUB_SHA"
+            exit 0
+          fi
+
           docker build -t "$IMAGE" -f apps/api/Dockerfile .
           docker push "$IMAGE"
-          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
 
       # 新しいイメージタグへ更新する。
       #

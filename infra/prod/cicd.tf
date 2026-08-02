@@ -57,6 +57,9 @@ data "aws_iam_policy_document" "github_deploy" {
       "ecr:InitiateLayerUpload",
       "ecr:PutImage",
       "ecr:UploadLayerPart",
+      # deploy.yml が「同一タグのイメージが既にあるか」を判定して push をスキップするために使う
+      # (ECR は IMMUTABLE タグのため、再実行時に同じタグを push すると失敗する)。
+      "ecr:DescribeImages",
     ]
     resources = [for repo in aws_ecr_repository.this : repo.arn]
   }
