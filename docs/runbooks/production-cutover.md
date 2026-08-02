@@ -476,13 +476,21 @@ echo "$SECRET_ARN"
 
 ### 5.2 10 キーすべてに値を入れる
 
+> ⚠ **`CLERK_WEBHOOK_SECRET` にプレースホルダを残したまま Phase 7 に進むと、API が起動しません。**
+>
+> `WebhooksController` は `new Webhook(secret)` で svix のインスタンスを作りますが、**`REPLACE_ME` も空文字も base64 として不正なため同期的に throw** します。以前は Controller の constructor で直接呼んでいたため NestJS の bootstrap ごと落ち、App Runner が `CREATE_FAILED` になりました(2026-08-02 に実際に踏んだ)。
+>
+> **現在はコード側で try/catch して起動を止めないよう修正済み**ですが、その場合も `POST /webhooks/clerk` は 500 のままで、**サインアップしても `User` 行が作られずオンボーディングが 403 で止まります**(§9.10 の MVP ブロッカー)。
+>
+> **Clerk の Webhook エンドポイント登録(Phase 8.1〜8.4)は API が動いていなくても実施できます。** URL を登録するだけで署名シークレットがその場で払い出されるので、**Phase 5 の時点で Phase 8 を先取りして本物の値を入れておく**のが確実です。
+
 **1 つでも `REPLACE_ME` のままだと、起動はしても該当機能が壊れます。**
 
 | キー                    | 値の取得元                                                        |
 | ----------------------- | ----------------------------------------------------------------- |
-| `DATABASE_URL`          | **Phase 6.1 で組み立てる**(ここでは仮値でよい)                   |
+| `DATABASE_URL`          | **Phase 6.6 で確定**(ここでは仮値でよい。Phase 7 の起動には影響しない) |
 | `CLERK_SECRET_KEY`      | Phase 3.2 の `sk_live_...`                                         |
-| `CLERK_WEBHOOK_SECRET`  | **Phase 8 で取得**(ここでは仮値でよい)                           |
+| `CLERK_WEBHOOK_SECRET`  | **Phase 8 を先取りして今すぐ取得する**(仮値のままにしない)        |
 | `STRIPE_SECRET_KEY`     | Phase 4.5 の `sk_live_...`                                         |
 | `STRIPE_WEBHOOK_SECRET` | Phase 4.4 の `whsec_...`                                           |
 | `STRIPE_PRICE_PRO`      | Phase 4.2 の `price_...`                                           |
@@ -739,14 +747,38 @@ enable_apprunner_service = true
 apprunner_image_tag      = "<7.1 の TAG>"
 ```
 
-```bash
-cd "$REPO/infra/prod"
-# App Runner サービス + VPC コネクタ + カスタムドメイン関連付けが出る
-terraform plan
+> ⚠ **ここは 2 段階に分けて apply する必要があります。**
+>
+> TLS 証明書の検証用 DNS レコード(`aws_route53_record.apprunner_cert_validation`)は、**App Runner のカスタムドメイン関連付けを作って初めて値が判明**します。`for_each` のキーは plan 時点で確定している必要があるため、1 回で apply しようとすると次のエラーで止まります。
+>
+> ```
+> Error: Invalid for_each argument
+>   route53.tf:40  certificate_validation_records is known only after apply
+> ```
+>
+> これは Terraform の構造的な制約で、コードの書き方では回避できません(値そのものが apply 後にしか存在しないため)。Terraform 自身がエラーメッセージで `-target` による 2 段階 apply を案内しています。**初回構築時のみ**必要な手順で、以降の通常運用では 1 回の apply で完結します。
 
-# 5〜10 分かかる
-terraform apply
+**1 回目**: App Runner サービスとカスタムドメイン関連付けだけを作ります。イメージの pull と起動で 5〜10 分かかります。
+
+```bash
+cd "$REPO/infra/prod" && terraform apply -target=aws_apprunner_custom_domain_association.api
 ```
+
+**2 回目**: 残りを作ります。この時点で検証レコードの値が判明しています。
+
+```bash
+cd "$REPO/infra/prod" && terraform plan
+```
+
+```bash
+cd "$REPO/infra/prod" && terraform apply
+```
+
+2 回目で作られるもの:
+
+- `aws_route53_record.api` — `api.<domain>` の CNAME
+- `aws_route53_record.apprunner_cert_validation` — 証明書の検証レコード
+- `aws_cloudwatch_metric_alarm.apprunner_5xx` — 5xx 監視
 
 ### 7.3 起動を確認する
 
@@ -1059,6 +1091,7 @@ aws apprunner resume-service --service-arn "$(cd "$REPO/infra/prod" && terraform
 | 症状                                              | 原因 / 対処                                                                                             |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | App Runner が `exec format error` で起動しない    | **arm64 でビルドしている**。`docker buildx build --platform linux/amd64` で作り直す(§7.1)               |
+| App Runner が `CREATE_FAILED` + ログに `Base64Coder: incorrect characters` | **`CLERK_WEBHOOK_SECRET` がプレースホルダ**。svix が base64 デコードに失敗する。Phase 8 を先取りして実値を入れる(§5.2) |
 | App Runner が起動しない(その他)                   | Secrets が `REPLACE_ME` のまま / ECR タグが存在しない / インスタンスロールに Secrets 読取権が無い        |
 | App Runner が起動直後に落ちる                     | メモリ不足の可能性。`apprunner_memory` を `2048` に戻す(§7.4)                                           |
 | API から外部 API(Anthropic 等)に出られない        | NAT インスタンスと Private Subnet のルートを確認。VPC Flow Logs(`REJECT`)に拒否が出ていないか            |
