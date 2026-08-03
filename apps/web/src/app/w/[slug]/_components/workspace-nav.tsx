@@ -26,7 +26,7 @@ export function WorkspaceNav({ slug }: { slug: string }) {
 
   return (
     <nav aria-label="ワークスペース">
-      <ul className="mx-auto -mb-px flex w-full max-w-6xl gap-1 px-6">
+      <ul className="mx-auto -mb-px flex w-full max-w-6xl gap-1 px-4 sm:px-6">
         {tabs.map((tab) => (
           <li key={tab.href}>
             <Link

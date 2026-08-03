@@ -44,8 +44,10 @@ export default async function WorkspaceProjectsPage({
         {canWrite && hasProjects && <NewProjectDialog slug={slug} />}
       </div>
 
+      {/* グリッドは列数固定にしない。件数が少ないとき右に大きな余白が残り、カードも痩せて
+          メタ情報が折り返すため。min-width ベースで件数と画面幅から列数を決める。 */}
       {hasProjects ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(18rem,1fr))]">
           {projects.map((p) => (
             <ProjectCard key={p.id} slug={slug} project={p} />
           ))}

@@ -111,8 +111,10 @@ export function RagQaChatPanel({
   const hasMessages = optimisticMessages.length > 0;
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-4">
+    // メッセージが少ないときに会話が画面上部へ張り付き、入力欄との間が間延びしていた。
+    // 高さを確保したうえで下詰めにし、入力欄のすぐ上に会話が来るようにする(チャット UI の通常挙動)。
+    <div className="flex min-h-[55vh] flex-col gap-6">
+      <div className="flex flex-1 flex-col justify-end space-y-4">
         {hasMessages ? (
           optimisticMessages.map((message) => (
             <RagQaMessageItem key={message.id} message={message} pending={message.pending} />

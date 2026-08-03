@@ -23,7 +23,8 @@ export function SettingsNav({ slug }: { slug: string }) {
 
   return (
     <nav className="border-b" aria-label="設定タブ">
-      <ul className="flex gap-1 -mb-px">
+      {/* 4 タブがモバイル幅に収まらないことがあるので、折り返さず横スクロールさせる。 */}
+      <ul className="flex gap-1 -mb-px overflow-x-auto">
         {TABS.map((tab) => {
           const href = `/w/${slug}/settings/${tab.segment}`;
           // segment 単位の前方一致(`/settings/members/...` のような子ルートにも対応)
@@ -34,7 +35,7 @@ export function SettingsNav({ slug }: { slug: string }) {
                 href={href}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
-                  'inline-flex items-center px-4 py-2 text-sm border-b-2 transition-colors',
+                  'inline-flex items-center whitespace-nowrap px-4 py-2 text-sm border-b-2 transition-colors',
                   isActive
                     ? 'border-primary text-primary font-medium'
                     : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/50',

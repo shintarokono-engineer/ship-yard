@@ -32,11 +32,12 @@ export function ProjectCard({ slug, project }: { slug: string; project: Project 
             </p>
           )}
         </CardContent>
-        <CardFooter className="text-muted-foreground flex items-center justify-between text-xs">
+        {/* 狭い幅では 2 行に折り返す。日時は途中で切らない。 */}
+        <CardFooter className="text-muted-foreground flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs">
           <span>
             ドキュメント {project._count.documents} / チェックリスト {project._count.checklist}
           </span>
-          <span>更新 {formatDateTime(project.updatedAt)}</span>
+          <span className="whitespace-nowrap">更新 {formatDateTime(project.updatedAt)}</span>
         </CardFooter>
       </Card>
     </Link>

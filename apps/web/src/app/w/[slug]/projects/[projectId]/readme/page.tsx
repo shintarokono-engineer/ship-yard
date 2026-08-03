@@ -82,7 +82,7 @@ export default async function ReadmePage({
   if (!currentWithContent) notFound();
 
   return (
-    <div className="space-y-8 cursor-default">
+    <div className="space-y-6 cursor-default">
       <div className="space-y-4">
         <ProjectBreadcrumbs workspace={workspace} project={project} current="README" />
 
@@ -115,7 +115,7 @@ export default async function ReadmePage({
         </div>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_240px]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_240px]">
         <article aria-label="本文">
           {currentWithContent.content && currentWithContent.content.length > 0 ? (
             <MarkdownViewer source={currentWithContent.content} />

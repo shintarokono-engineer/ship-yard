@@ -27,7 +27,7 @@ export default function Loading() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(18rem,1fr))]">
         {Array.from({ length: 6 }).map((_, i) => (
           <Skeleton key={i} className="h-32 rounded-xl" />
         ))}

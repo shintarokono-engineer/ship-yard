@@ -61,14 +61,15 @@ export default async function ProjectDetailPage({
       : null;
 
   return (
-    <div className="space-y-8 cursor-default">
+    <div className="space-y-6 cursor-default">
       <div className="space-y-4">
         <ProjectBreadcrumbs workspace={workspace} project={project} />
 
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-2">
+        {/* 狭い幅ではタイトルが潰れるので、操作ボタンを下の行に落とす。 */}
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-semibold">{project.name}</h1>
+              <h1 className="text-2xl font-semibold break-words">{project.name}</h1>
               <Badge variant={meta.badgeVariant} className={meta.badgeClassName}>
                 {meta.label}
               </Badge>
@@ -149,7 +150,8 @@ export default async function ProjectDetailPage({
         </section>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* 一覧側と同じ min-width ベース。列数固定だとページごとにブレークポイントがズレる。 */}
+      <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(18rem,1fr))]">
         <FeatureCard
           slug={slug}
           projectId={projectId}

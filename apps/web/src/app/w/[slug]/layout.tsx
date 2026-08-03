@@ -37,7 +37,7 @@ export default async function WorkspaceLayout({
   return (
     <div className="flex min-h-screen flex-col">
       <header className="bg-card border-b">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <WorkspaceSwitcher current={workspace} workspaces={myWorkspaces} />
           {/* F1.5(§9.12.2 観点 2):サインアウト後の遷移先(`/sign-out-cleanup` で LocalStorage /
               SessionStorage cleanup + フルロード)は `<ClerkProvider afterSignOutUrl="...">`
@@ -50,7 +50,7 @@ export default async function WorkspaceLayout({
         <WorkspaceNav slug={workspace.slug} />
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">{children}</main>
     </div>
   );
 }
