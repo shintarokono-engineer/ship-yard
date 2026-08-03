@@ -7,10 +7,10 @@ import { useTheme } from 'next-themes';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
 
 const OPTIONS = [
   { value: 'light', label: 'ライト', icon: Sun },
@@ -39,17 +39,20 @@ export function ThemeToggle() {
       >
         <Icon className="text-muted-foreground size-4" aria-hidden="true" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-36">
-        {OPTIONS.map((opt) => (
-          <DropdownMenuItem
-            key={opt.value}
-            onClick={() => setTheme(opt.value)}
-            className={cn(mounted && theme === opt.value && 'text-primary font-medium')}
-          >
-            <opt.icon className="size-4" aria-hidden="true" />
-            {opt.label}
-          </DropdownMenuItem>
-        ))}
+      <DropdownMenuContent align="end" className="w-40">
+        {/* RadioGroup にすることで選択状態が aria-checked で読み上げられる
+            (色だけの表現だとスクリーンリーダーに伝わらない)。 */}
+        <DropdownMenuRadioGroup
+          value={mounted ? theme : undefined}
+          onValueChange={(next) => setTheme(next)}
+        >
+          {OPTIONS.map((opt) => (
+            <DropdownMenuRadioItem key={opt.value} value={opt.value}>
+              <opt.icon className="size-4" aria-hidden="true" />
+              {opt.label}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -5,17 +5,11 @@ import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import {
-  ITEM_STATUS_META,
-  type ChecklistItem,
-  type ItemStatus,
-  type MonthlyUsageSummary,
-} from '@/lib/api/types';
+import { ITEM_STATUS_META, type ChecklistItem, type ItemStatus } from '@/lib/api/types';
 
 import { toggleChecklistItemStatusAction } from '../_actions/update-checklist-item';
 import { DeleteChecklistItemButton } from './delete-checklist-item-button';
 import { EditChecklistItemDialog } from './edit-checklist-item-dialog';
-import { SplitTaskDialog } from './split-task-dialog';
 import { StatusCheckbox } from './status-checkbox';
 
 /**
@@ -30,6 +24,11 @@ import { StatusCheckbox } from './status-checkbox';
  * トグルは `useOptimistic` でサーバー往復を待たずに反映する。チェック状態と取消線・バッジは
  * 同じ楽観値から描く(片方だけ先に変わると不整合に見えるため、状態は行が一括で持つ)。
  * 失敗時は transition の終了で楽観値が破棄され、サーバーの値に戻る。
+ *
+ * `splitAction` は「AI でタスク分解」の Dialog を **Server Component 側で描いて差し込む**
+ * ための slot。この行自体が Client Component なので、`MonthlyUsageSummary` を prop で
+ * 受けると全行ぶん RSC ペイロードに直列化される。実際に使うのは親タスクの Dialog だけなので、
+ * 生成をサーバー側に残して必要な行にだけ渡す。
  */
 export function ChecklistItemRow({
   slug,
@@ -38,7 +37,7 @@ export function ChecklistItemRow({
   subtaskCount,
   indent,
   canWrite,
-  usage,
+  splitAction,
 }: {
   slug: string;
   projectId: string;
@@ -46,7 +45,7 @@ export function ChecklistItemRow({
   subtaskCount: number;
   indent: boolean;
   canWrite: boolean;
-  usage: MonthlyUsageSummary;
+  splitAction?: React.ReactNode;
 }) {
   const [, startTransition] = useTransition();
   const [status, setOptimisticStatus] = useOptimistic<ItemStatus, ItemStatus>(
@@ -104,10 +103,9 @@ export function ChecklistItemRow({
       </div>
       {canWrite && (
         <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-          {/* TASK_SPLIT は親タスク(parentId=null)のみ対象。サブタスクのさらに分解は階層 2 段までの仕様外。 */}
-          {item.parentId === null && (
-            <SplitTaskDialog slug={slug} projectId={projectId} parent={item} usage={usage} />
-          )}
+          {/* TASK_SPLIT は親タスク(parentId=null)のみ対象。サブタスクのさらに分解は階層 2 段までの仕様外。
+              呼び出し側がその条件で `splitAction` を渡す / 渡さないを決める。 */}
+          {splitAction}
           <EditChecklistItemDialog slug={slug} projectId={projectId} item={item} />
           <DeleteChecklistItemButton
             slug={slug}

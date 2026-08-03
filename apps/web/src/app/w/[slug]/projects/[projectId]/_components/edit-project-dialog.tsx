@@ -23,7 +23,8 @@ import { updateProjectAction, type ProjectFormState } from '../_actions/update-p
  * プロジェクト編集ダイアログ。`NewProjectDialog` と入力 UI を `ProjectFormFields` で
  * 共有しつつ、Action と「成功時の挙動(redirect しない、close する)」だけが異なる。
  *
- * `state.ok` を `useEffect` で監視してダイアログを閉じるのが標準パターン。
+ * 成功時のクローズは render 中の prev-state 比較で行う(`useEffect` は使わない)。
+ * 連続編集でも `state` の reference が変わるため確実に発火する。
  */
 export function EditProjectDialog({ slug, project }: { slug: string; project: Project }) {
   const [open, setOpen] = useState(false);
@@ -51,10 +52,10 @@ export function EditProjectDialog({ slug, project }: { slug: string; project: Pr
   // 名前を空にしたまま保存されても dispatch せず弾く(サーバ往復なし=ボタン文言のちらつき防止)。
   // 検証は Server Action と同じ `parseProjectFormData` を使うので二重管理にならない。
   //
-  // `fieldErrors` だけでなく `fields`(入力値スナップショット)も state に載せるのが要点。
-  // React 19 の `<form action>` は action 完了後に非制御フォームをリセットするため、
-  // エラーだけ持って返すと利用者が書いた内容が消える。`fields` を渡しておけば
-  // `defaultValue` が入力値のまま更新され、リセットされても内容が戻る。
+  // `fieldErrors` だけでなく `fields`(入力値スナップショット)も載せている。
+  // React 19 の `<form action>` はフォームをリセットしうるため、エラーだけ返すと
+  // 利用者が書いた内容が消える可能性がある。`fields` を渡しておけばリセットが起きても
+  // `defaultValue` 経由で内容が戻り、起きなければ無害(保険)。
   function handleSubmit(formData: FormData) {
     const parsed = parseProjectFormData(formData);
     if (!parsed.data) {

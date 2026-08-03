@@ -21,17 +21,15 @@ import type { LucideIcon } from 'lucide-react';
  * `lib/api/types.ts` ではなく独立モジュールにしているのは、これが API のレスポンス型ではなく
  * ナビゲーション + コピーの定義だから(`icon` に `LucideIcon` を持つ)。
  */
-export const PROJECT_FEATURES = [
-  'CHECKLIST',
-  'RAG_QA',
-  'ANNOUNCEMENT',
-  'LANDING_PAGE',
-  'IDEA_VALIDATION',
-  'DIAGNOSIS',
-] as const;
-export type ProjectFeature = (typeof PROJECT_FEATURES)[number];
+export type ProjectFeature =
+  | 'CHECKLIST'
+  | 'RAG_QA'
+  | 'ANNOUNCEMENT'
+  | 'LANDING_PAGE'
+  | 'IDEA_VALIDATION'
+  | 'DIAGNOSIS';
 
-export interface ProjectFeatureMeta {
+interface ProjectFeatureMeta {
   label: string;
   icon: LucideIcon;
   segment: string;
@@ -42,7 +40,7 @@ export interface ProjectFeatureMeta {
 }
 
 /** Pro / Team 限定機能の説明末尾に付ける一文(機能ページ用)。 */
-export const PLAN_LIMITED_NOTE = 'Pro / Team 限定機能です。';
+const PLAN_LIMITED_NOTE = 'Pro / Team 限定機能です。';
 
 export const PROJECT_FEATURE_META: Record<ProjectFeature, ProjectFeatureMeta> = {
   CHECKLIST: {

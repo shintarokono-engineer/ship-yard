@@ -43,10 +43,10 @@ export function NewProjectDialog({ slug }: { slug: string }) {
   // 名前が空のまま送信されても dispatch せず弾く(サーバ往復なし=ボタン文言のちらつき防止)。
   // 検証は Server Action と同じ `parseProjectFormData` を使うので二重管理にならない。
   //
-  // `fieldErrors` だけでなく `fields`(入力値スナップショット)も state に載せるのが要点。
-  // React 19 の `<form action>` は action 完了後に非制御フォームをリセットするため、
-  // エラーだけ持って返すと利用者が書いた概要などが消える。`fields` を渡しておけば
-  // `defaultValue` が入力値のまま更新され、リセットされても内容が戻る。
+  // `fieldErrors` だけでなく `fields`(入力値スナップショット)も載せている。
+  // React 19 の `<form action>` はフォームをリセットしうるため、エラーだけ返すと
+  // 利用者が書いた概要が消える可能性がある。`fields` を渡しておけばリセットが起きても
+  // `defaultValue` 経由で内容が戻り、起きなければ無害(保険)。
   function handleSubmit(formData: FormData) {
     const parsed = parseProjectFormData(formData);
     if (!parsed.data) {

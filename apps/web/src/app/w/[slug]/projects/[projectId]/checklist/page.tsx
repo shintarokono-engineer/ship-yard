@@ -16,6 +16,7 @@ import { fetchProject, fetchUsage, fetchWorkspace, listChecklist } from '@/lib/a
 import { ChecklistItemRow } from './_components/checklist-item-row';
 import { GenerateChecklistDialog } from './_components/generate-checklist-dialog';
 import { InlineAddForm } from './_components/inline-add-form';
+import { SplitTaskDialog } from './_components/split-task-dialog';
 import { SubtaskAddSlot } from './_components/subtask-add-slot';
 
 /**
@@ -88,7 +89,18 @@ export default async function ChecklistPage({
                         subtaskCount={group.subtasks.get(parent.id)?.length ?? 0}
                         indent={false}
                         canWrite={canWrite}
-                        usage={usage}
+                        // TASK_SPLIT は親タスクのみ対象。Dialog はここ(Server Component)で
+                        // 生成して差し込み、`usage` が全行ぶん直列化されるのを避ける。
+                        splitAction={
+                          canWrite && parent.parentId === null ? (
+                            <SplitTaskDialog
+                              slug={slug}
+                              projectId={projectId}
+                              parent={parent}
+                              usage={usage}
+                            />
+                          ) : undefined
+                        }
                       />
                       {(group.subtasks.get(parent.id) ?? []).map((sub) => (
                         <ChecklistItemRow
@@ -99,7 +111,6 @@ export default async function ChecklistPage({
                           subtaskCount={0}
                           indent={true}
                           canWrite={canWrite}
-                          usage={usage}
                         />
                       ))}
                       {/* 真のトップレベル項目(parentId=null)のみ、その直下に「+ サブタスク」を出す。

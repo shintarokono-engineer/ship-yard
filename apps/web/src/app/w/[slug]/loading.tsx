@@ -17,7 +17,7 @@ export default function Loading() {
         <Skeleton className="h-9 w-32 shrink-0" />
       </div>
 
-      <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(18rem,1fr))]">
+      <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(min(18rem,100%),1fr))]">
         {Array.from({ length: 6 }).map((_, i) => (
           <Skeleton key={i} className="h-36 rounded-xl" />
         ))}

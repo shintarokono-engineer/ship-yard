@@ -151,7 +151,7 @@ export default async function ProjectDetailPage({
       </div>
 
       {/* 一覧側と同じ min-width ベース。列数固定だとページごとにブレークポイントがズレる。 */}
-      <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(18rem,1fr))]">
+      <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(min(18rem,100%),1fr))]">
         <FeatureCard
           slug={slug}
           projectId={projectId}

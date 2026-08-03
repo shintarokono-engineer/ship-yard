@@ -4,6 +4,7 @@ import { ClerkProvider } from '@clerk/nextjs';
 import { jaJP } from '@clerk/localizations';
 import { dark } from '@clerk/themes';
 import { ThemeProvider, useTheme } from 'next-themes';
+import { useMemo } from 'react';
 
 /**
  * アプリ全体の Client Provider。
@@ -46,6 +47,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
 function ThemedClerkProvider({ children }: { children: React.ReactNode }) {
   const { resolvedTheme } = useTheme();
 
+  // 参照を固定する。ルート直下の Provider なので、リテラルを直接渡すとページ遷移の
+  // たびに `appearance` が新しいオブジェクトになり Clerk 側の props 更新が走る。
+  const appearance = useMemo(
+    () => ({ baseTheme: resolvedTheme === 'dark' ? dark : undefined }),
+    [resolvedTheme],
+  );
+
   return (
     // afterSignOutUrl: F1.5(§9.12.2 観点 2)中間ページに遷移し LocalStorage /
     // SessionStorage cleanup + フルロードで Clerk SDK を再初期化する。
@@ -53,11 +61,7 @@ function ThemedClerkProvider({ children }: { children: React.ReactNode }) {
     // `<ClerkProvider>` 側に集約(Clerk 公式ベストプラクティス)。
     // 加えて Clerk Dashboard で Multi-session handling を OFF にする運用前提
     // (デフォルト OFF、Sessions ページで確認)。
-    <ClerkProvider
-      localization={jaJP}
-      afterSignOutUrl="/sign-out-cleanup"
-      appearance={{ baseTheme: resolvedTheme === 'dark' ? dark : undefined }}
-    >
+    <ClerkProvider localization={jaJP} afterSignOutUrl="/sign-out-cleanup" appearance={appearance}>
       {children}
     </ClerkProvider>
   );

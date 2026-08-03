@@ -12,3 +12,14 @@ export function getSiteUrl(): string {
       : 'http://localhost:3000')
   );
 }
+
+/**
+ * URL 例を画面に見せるためのホスト名(スキーム無し)。
+ *
+ * 「`example.com/w/{slug}`」のようにワークスペース / 公開 LP の URL を提示する箇所で使う。
+ * ここをハードコードするとドメイン変更時に画面だけ古い表記が残るため、`getSiteUrl` から導く。
+ * `SITE_URL` を読むので **Server Component 専用**。Client へは prop で渡すこと。
+ */
+export function getSiteHost(): string {
+  return getSiteUrl().replace(/^https?:\/\//, '');
+}

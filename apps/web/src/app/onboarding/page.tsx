@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { listMyWorkspaces } from '@/lib/api/workspaces';
+import { getSiteHost } from '@/lib/site-url';
 
 import { CreateWorkspaceForm } from './_components/create-workspace-form';
 
@@ -19,6 +20,8 @@ export const dynamic = 'force-dynamic';
  *
  * BE: `GET /workspaces`(自分の所属一覧)+ `POST /workspaces`(新規作成)。
  */
+const siteHost = getSiteHost();
+
 export default async function OnboardingPage() {
   const workspaces = await listMyWorkspaces();
 
@@ -47,7 +50,9 @@ export default async function OnboardingPage() {
                   <CardHeader className="flex flex-row items-center justify-between gap-3">
                     <div className="space-y-1">
                       <CardTitle className="text-base">{ws.name}</CardTitle>
-                      <p className="text-muted-foreground text-xs">shipyard.app/w/{ws.slug}</p>
+                      <p className="text-muted-foreground text-xs">
+                        {siteHost}/w/{ws.slug}
+                      </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <Badge variant="outline" className="font-mono text-[10px]">
@@ -70,7 +75,7 @@ export default async function OnboardingPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <CreateWorkspaceForm />
+          <CreateWorkspaceForm siteHost={siteHost} />
         </CardContent>
       </Card>
     </main>

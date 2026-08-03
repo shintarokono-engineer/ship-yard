@@ -16,7 +16,8 @@ import {
 } from '../_shared/onboarding-form';
 
 /** 新規ワークスペース作成フォーム(Server Action 経由)。成功時は Action 側で `/w/{slug}` へ redirect。 */
-export function CreateWorkspaceForm() {
+/** `siteHost` はサーバー側で解決したホスト名(`SITE_URL` は Client から読めないため prop で受ける)。 */
+export function CreateWorkspaceForm({ siteHost }: { siteHost: string }) {
   const [state, formAction, pending] = useActionState<OnboardingFormState, FormData>(
     createWorkspaceAction,
     INITIAL_ONBOARDING_FORM_STATE,
@@ -85,7 +86,7 @@ export function CreateWorkspaceForm() {
         errors={slugErrors}
       >
         <div className="flex items-center gap-2">
-          <span className="text-muted-foreground text-sm">shipyard.app/w/</span>
+          <span className="text-muted-foreground text-sm">{siteHost}/w/</span>
           <Input
             id="slug"
             name="slug"

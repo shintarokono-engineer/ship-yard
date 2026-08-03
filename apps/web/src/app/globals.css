@@ -87,13 +87,16 @@
 }
 
 /**
- * 見出し用の書体スタック。
+ * 見出し用の書体スタック(ワードマークからも `font-brand` として使う)。
  *
  * `--font-geist` は `next/font/google` が `<html>` に載せる変数(app/layout.tsx)。
  * Geist は欧文のみなので、日本語は自然に次の system-ui へフォールバックする
  * = 「欧文見出しは Geist / 日本語は system-ui」の 2 段構えが 1 スタックで成立する。
+ *
+ * ユーティリティ名を `font-display` にしないのは、CSS の `font-display`
+ * ディスクリプタと同名で紛らわしいため。
  */
-@utility font-display {
+@utility font-brand {
   font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -104,6 +107,10 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* 見出しは公開 LP(`/p/...`)にも適用される。LP ブロックは既に `bg-background` /
+     `text-foreground` などアプリのトークンを継いでおり、書体だけ別扱いにすると
+     アプリ内プレビューと公開ページで見え方がズレるため、意図的に全ページ共通にしている。
+     利用者が LP の書体を選べる仕様になったら、ここを機能側に閉じること。 */
   h1,
   h2,
   h3 {

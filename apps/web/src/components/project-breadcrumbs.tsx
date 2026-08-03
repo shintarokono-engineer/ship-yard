@@ -30,7 +30,7 @@ export function ProjectBreadcrumbs({
   feature,
   current,
 }: {
-  workspace: Workspace;
+  workspace: Pick<Workspace, 'slug' | 'name'>;
   project: Pick<Project, 'id' | 'name'>;
   feature?: ProjectFeature;
   /** 末端(現在地)の表示名。機能ページ自体が現在地なら省略する。 */

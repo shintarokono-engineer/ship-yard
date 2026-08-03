@@ -10,6 +10,7 @@ import { isWriterRole } from '@/lib/api/types';
 import { featurePageDescription, PROJECT_FEATURE_META } from '@/lib/project-features';
 import { fetchLandingPage, fetchProject, fetchUsage, fetchWorkspace } from '@/lib/api/workspaces';
 import { formatDateTime } from '@/lib/format';
+import { getSiteHost } from '@/lib/site-url';
 
 import { GenerateLpDialog } from './_components/generate-lp-dialog';
 import { PublishToggle } from './_components/publish-toggle';
@@ -111,7 +112,7 @@ export default async function LandingPagePreviewPage({
                 <span className="size-2.5 rounded-full bg-emerald-400/70" />
               </span>
               <span className="bg-background text-muted-foreground mx-auto rounded px-3 py-0.5 text-xs">
-                shipyard.app/p/{slug}/{projectId}
+                {getSiteHost()}/p/{slug}/{projectId}
               </span>
             </div>
             <LpRenderer blocks={landingPage.blocks} theme={landingPage.theme} headingLevel={2} />
