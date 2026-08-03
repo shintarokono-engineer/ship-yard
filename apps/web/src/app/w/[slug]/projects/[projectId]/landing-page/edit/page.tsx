@@ -1,7 +1,6 @@
-import { ChevronLeft } from 'lucide-react';
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
+import { ProjectBreadcrumbs } from '@/components/project-breadcrumbs';
 import { isWriterRole } from '@/lib/api/types';
 import { fetchLandingPage, fetchProject, fetchWorkspace } from '@/lib/api/workspaces';
 
@@ -38,13 +37,12 @@ export default async function LandingPageEditPage({
   return (
     <div className="space-y-6 cursor-default">
       <div className="space-y-2">
-        <Link
-          href={previewHref}
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
-        >
-          <ChevronLeft className="size-4" aria-hidden="true" />
-          プレビューへ戻る
-        </Link>
+        <ProjectBreadcrumbs
+          workspace={workspace}
+          project={project}
+          feature="LANDING_PAGE"
+          current="編集"
+        />
         <h1 className="text-2xl font-semibold">ランディングページを編集</h1>
         <p className="text-muted-foreground text-sm">
           各ブロックのテキストを編集できます。ブロックの追加・削除・並び替えは今後対応予定です。

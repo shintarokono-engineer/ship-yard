@@ -1,5 +1,3 @@
-import { ChevronLeft } from 'lucide-react';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import {
@@ -10,6 +8,7 @@ import {
   type ChecklistItem,
 } from '@/lib/api/types';
 import { InlineEmpty } from '@/components/inline-empty';
+import { ProjectBreadcrumbs } from '@/components/project-breadcrumbs';
 import { EMPTY_MESSAGES } from '@/lib/empty-messages';
 import { featurePageDescription, PROJECT_FEATURE_META } from '@/lib/project-features';
 import { fetchProject, fetchUsage, fetchWorkspace, listChecklist } from '@/lib/api/workspaces';
@@ -49,13 +48,7 @@ export default async function ChecklistPage({
   return (
     <div className="space-y-6 cursor-default">
       <div className="space-y-2">
-        <Link
-          href={`/w/${slug}/projects/${projectId}`}
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
-        >
-          <ChevronLeft className="size-4" aria-hidden="true" />
-          {project.name} の詳細へ戻る
-        </Link>
+        <ProjectBreadcrumbs workspace={workspace} project={project} feature="CHECKLIST" />
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold">{PROJECT_FEATURE_META.CHECKLIST.label}</h1>

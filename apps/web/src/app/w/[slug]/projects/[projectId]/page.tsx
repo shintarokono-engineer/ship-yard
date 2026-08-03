@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronLeft, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
 import { InlineEmpty } from '@/components/inline-empty';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ProjectBreadcrumbs } from '@/components/project-breadcrumbs';
 import { isAdminRole, isWriterRole, PROJECT_STATUS_META } from '@/lib/api/types';
 import { EMPTY_MESSAGES } from '@/lib/empty-messages';
 import { featureHref, PROJECT_FEATURE_META, type ProjectFeature } from '@/lib/project-features';
@@ -62,13 +63,7 @@ export default async function ProjectDetailPage({
   return (
     <div className="space-y-8 cursor-default">
       <div className="space-y-4">
-        <Link
-          href={`/w/${slug}`}
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
-        >
-          <ChevronLeft className="size-4" aria-hidden="true" />
-          プロジェクト一覧へ戻る
-        </Link>
+        <ProjectBreadcrumbs workspace={workspace} project={project} />
 
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">

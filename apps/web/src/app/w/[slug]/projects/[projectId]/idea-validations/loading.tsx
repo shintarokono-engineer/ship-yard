@@ -1,21 +1,16 @@
-import { ChevronLeft } from 'lucide-react';
-
 import { Skeleton } from '@/components/ui/skeleton';
 
 /**
  * `/w/[slug]/projects/[projectId]/idea-validations` — アイデア検証履歴のローディング(F5、§9.12.2 観点 5)。
  *
- * 実ページの「戻るリンク + タイトル + 実行ボタン + 履歴リスト」 を Skeleton で表現する。
+ * 実ページの「パンくず + タイトル + 実行ボタン + 履歴リスト」 を Skeleton で表現する。
  * 各履歴行は recommendation Badge + スコア + 日時の構成。
  */
 export default function Loading() {
   return (
     <div className="cursor-default space-y-6">
       <div className="space-y-2">
-        <div className="text-muted-foreground inline-flex items-center gap-1 text-sm">
-          <ChevronLeft className="size-4" aria-hidden="true" />
-          <Skeleton className="h-4 w-40" />
-        </div>
+        <Skeleton className="h-5 w-64" />
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-2">
             <Skeleton className="h-7 w-40" />

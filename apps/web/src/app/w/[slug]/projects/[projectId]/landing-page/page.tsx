@@ -1,18 +1,14 @@
-import { ChevronLeft, LayoutTemplate, Pencil } from 'lucide-react';
+import { LayoutTemplate, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { LpRenderer } from '@/components/lp-blocks/lp-renderer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ProjectBreadcrumbs } from '@/components/project-breadcrumbs';
 import { isWriterRole } from '@/lib/api/types';
 import { featurePageDescription, PROJECT_FEATURE_META } from '@/lib/project-features';
-import {
-  fetchLandingPage,
-  fetchProject,
-  fetchUsage,
-  fetchWorkspace,
-} from '@/lib/api/workspaces';
+import { fetchLandingPage, fetchProject, fetchUsage, fetchWorkspace } from '@/lib/api/workspaces';
 import { formatDateTime } from '@/lib/format';
 
 import { GenerateLpDialog } from './_components/generate-lp-dialog';
@@ -51,13 +47,7 @@ export default async function LandingPagePreviewPage({
   return (
     <div className="space-y-6 cursor-default">
       <div className="space-y-2">
-        <Link
-          href={`/w/${slug}/projects/${projectId}`}
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
-        >
-          <ChevronLeft className="size-4" aria-hidden="true" />
-          {project.name} の詳細へ戻る
-        </Link>
+        <ProjectBreadcrumbs workspace={workspace} project={project} feature="LANDING_PAGE" />
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-3">

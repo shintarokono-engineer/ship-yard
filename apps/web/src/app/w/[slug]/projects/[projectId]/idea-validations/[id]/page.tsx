@@ -1,5 +1,3 @@
-import { ChevronLeft } from 'lucide-react';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import {
@@ -10,8 +8,10 @@ import {
   ScoreSummary,
   SuggestionsList,
 } from '@/components/score';
+import { ProjectBreadcrumbs } from '@/components/project-breadcrumbs';
 import { VALIDATION_AXIS_LABEL } from '@/lib/api/types';
 import { fetchIdeaValidation, fetchProject, fetchWorkspace } from '@/lib/api/workspaces';
+import { formatDateTime } from '@/lib/format';
 
 /**
  * `/w/{slug}/projects/{projectId}/idea-validations/{id}` — アイデア検証 1 件の結果ページ。
@@ -39,13 +39,12 @@ export default async function IdeaValidationDetailPage({
   return (
     <div className="cursor-default space-y-6">
       <div className="space-y-2">
-        <Link
-          href={`/w/${slug}/projects/${projectId}/idea-validations`}
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
-        >
-          <ChevronLeft className="size-4" aria-hidden="true" />
-          アイデア検証の履歴へ戻る
-        </Link>
+        <ProjectBreadcrumbs
+          workspace={workspace}
+          project={project}
+          feature="IDEA_VALIDATION"
+          current={formatDateTime(validation.createdAt)}
+        />
         <h1 className="text-2xl font-semibold">アイデア検証の結果</h1>
         <p className="text-muted-foreground text-sm">{project.name}</p>
       </div>

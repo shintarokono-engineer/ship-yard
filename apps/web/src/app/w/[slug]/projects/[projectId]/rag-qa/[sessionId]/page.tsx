@@ -1,14 +1,8 @@
-import { ChevronLeft } from 'lucide-react';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { ProjectBreadcrumbs } from '@/components/project-breadcrumbs';
 import { isWriterRole } from '@/lib/api/types';
-import {
-  fetchProject,
-  fetchRagQaSession,
-  fetchUsage,
-  fetchWorkspace,
-} from '@/lib/api/workspaces';
+import { fetchProject, fetchRagQaSession, fetchUsage, fetchWorkspace } from '@/lib/api/workspaces';
 
 import { RagQaChatPanel } from './_components/rag-qa-chat-panel';
 
@@ -42,13 +36,12 @@ export default async function RagQaSessionPage({
   return (
     <div className="space-y-4 cursor-default">
       <div className="space-y-2">
-        <Link
-          href={`/w/${slug}/projects/${projectId}/rag-qa`}
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
-        >
-          <ChevronLeft className="size-4" aria-hidden="true" />
-          壁打ち一覧へ戻る
-        </Link>
+        <ProjectBreadcrumbs
+          workspace={workspace}
+          project={project}
+          feature="RAG_QA"
+          current={detail.session.title}
+        />
         <h1 className="text-2xl font-semibold">{detail.session.title}</h1>
         <p className="text-muted-foreground text-sm">
           {project.name} について AI と相談します。過去のドキュメントを参照して回答します。

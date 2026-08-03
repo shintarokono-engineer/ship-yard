@@ -1,15 +1,11 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronLeft, Megaphone } from 'lucide-react';
+import { Megaphone } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
+import { ProjectBreadcrumbs } from '@/components/project-breadcrumbs';
 import { fetchAnnouncement } from '@/lib/api/announcements';
 import { fetchBlogPost } from '@/lib/api/blog-posts';
-import {
-  ANNOUNCEMENT_STATUS_META,
-  isWriterRole,
-  type BlogPost,
-} from '@/lib/api/types';
+import { ANNOUNCEMENT_STATUS_META, isWriterRole, type BlogPost } from '@/lib/api/types';
 import { fetchProject, fetchUsage, fetchWorkspace } from '@/lib/api/workspaces';
 import { formatDateTime } from '@/lib/format';
 
@@ -61,13 +57,12 @@ export default async function AnnouncementDetailPage({
   return (
     <div className="space-y-6 cursor-default">
       <div className="space-y-2">
-        <Link
-          href={`/w/${slug}/projects/${projectId}/announcements`}
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
-        >
-          <ChevronLeft className="size-4" aria-hidden="true" />
-          告知一覧へ戻る
-        </Link>
+        <ProjectBreadcrumbs
+          workspace={workspace}
+          project={project}
+          feature="ANNOUNCEMENT"
+          current={announcement.title}
+        />
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-3">

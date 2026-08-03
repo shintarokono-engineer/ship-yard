@@ -1,8 +1,9 @@
-import { ChevronLeft, Gauge } from 'lucide-react';
+import { Gauge } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { EmptyState } from '@/components/empty-state';
+import { ProjectBreadcrumbs } from '@/components/project-breadcrumbs';
 import { isWriterRole } from '@/lib/api/types';
 import { featurePageDescription, PROJECT_FEATURE_META } from '@/lib/project-features';
 import { fetchProject, fetchUsage, fetchWorkspace, listDiagnoses } from '@/lib/api/workspaces';
@@ -29,23 +30,14 @@ export default async function DiagnosesPage({
   const project = await fetchProject(slug, projectId);
   if (!project) notFound();
 
-  const [diagnoses, usage] = await Promise.all([
-    listDiagnoses(slug, projectId),
-    fetchUsage(slug),
-  ]);
+  const [diagnoses, usage] = await Promise.all([listDiagnoses(slug, projectId), fetchUsage(slug)]);
   const canWrite = isWriterRole(workspace.role);
   const hasDiagnoses = diagnoses.length > 0;
 
   return (
     <div className="cursor-default space-y-6">
       <div className="space-y-2">
-        <Link
-          href={`/w/${slug}/projects/${projectId}`}
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
-        >
-          <ChevronLeft className="size-4" aria-hidden="true" />
-          {project.name} の詳細へ戻る
-        </Link>
+        <ProjectBreadcrumbs workspace={workspace} project={project} feature="DIAGNOSIS" />
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold">{PROJECT_FEATURE_META.DIAGNOSIS.label}</h1>

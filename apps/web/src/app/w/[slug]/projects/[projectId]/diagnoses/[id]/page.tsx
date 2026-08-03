@@ -1,5 +1,3 @@
-import { ChevronLeft } from 'lucide-react';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import {
@@ -9,8 +7,10 @@ import {
   ScoreSummary,
   SuggestionsList,
 } from '@/components/score';
+import { ProjectBreadcrumbs } from '@/components/project-breadcrumbs';
 import { DIAGNOSIS_AXIS_LABEL } from '@/lib/api/types';
 import { fetchDiagnosis, fetchProject, fetchWorkspace } from '@/lib/api/workspaces';
+import { formatDateTime } from '@/lib/format';
 
 /**
  * `/w/{slug}/projects/{projectId}/diagnoses/{id}` — プロダクト診断 1 件の結果ページ。
@@ -38,13 +38,12 @@ export default async function DiagnosisDetailPage({
   return (
     <div className="cursor-default space-y-6">
       <div className="space-y-2">
-        <Link
-          href={`/w/${slug}/projects/${projectId}/diagnoses`}
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
-        >
-          <ChevronLeft className="size-4" aria-hidden="true" />
-          プロダクト診断の履歴へ戻る
-        </Link>
+        <ProjectBreadcrumbs
+          workspace={workspace}
+          project={project}
+          feature="DIAGNOSIS"
+          current={formatDateTime(diagnosis.createdAt)}
+        />
         <h1 className="text-2xl font-semibold">プロダクト診断の結果</h1>
         <p className="text-muted-foreground text-sm">{project.name}</p>
       </div>

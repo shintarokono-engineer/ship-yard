@@ -1,8 +1,8 @@
-import { ChevronLeft, MessageCircle } from 'lucide-react';
-import Link from 'next/link';
+import { MessageCircle } from 'lucide-react';
 import { notFound } from 'next/navigation';
 
 import { EmptyState } from '@/components/empty-state';
+import { ProjectBreadcrumbs } from '@/components/project-breadcrumbs';
 import { isWriterRole } from '@/lib/api/types';
 import { featurePageDescription, PROJECT_FEATURE_META } from '@/lib/project-features';
 import { fetchProject, fetchWorkspace, listRagQaSessions } from '@/lib/api/workspaces';
@@ -38,13 +38,7 @@ export default async function RagQaSessionsPage({
   return (
     <div className="space-y-6 cursor-default">
       <div className="space-y-2">
-        <Link
-          href={`/w/${slug}/projects/${projectId}`}
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
-        >
-          <ChevronLeft className="size-4" aria-hidden="true" />
-          {project.name} の詳細へ戻る
-        </Link>
+        <ProjectBreadcrumbs workspace={workspace} project={project} feature="RAG_QA" />
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold">{PROJECT_FEATURE_META.RAG_QA.label}</h1>
