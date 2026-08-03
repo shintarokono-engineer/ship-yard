@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import type { Project } from '@/lib/api/types';
 
-import { INITIAL_PROJECT_FORM_STATE } from '../../../_shared/project-form';
+import { INITIAL_PROJECT_FORM_STATE, parseProjectFormData } from '../../../_shared/project-form';
 import { ProjectFormFields } from '../../../_shared/project-form-fields';
 import { updateProjectAction, type ProjectFormState } from '../_actions/update-project';
 
@@ -44,8 +44,36 @@ export function EditProjectDialog({ slug, project }: { slug: string; project: Pr
     if (state.ok) setOpen(false);
   }
 
+  // 送信前にクライアント側で弾いた結果。null の間はサーバ側の `state` をそのまま表示する。
+  const [clientState, setClientState] = useState<ProjectFormState | null>(null);
+  const shownState = clientState ?? state;
+
+  // 名前を空にしたまま保存されても dispatch せず弾く(サーバ往復なし=ボタン文言のちらつき防止)。
+  // 検証は Server Action と同じ `parseProjectFormData` を使うので二重管理にならない。
+  //
+  // `fieldErrors` だけでなく `fields`(入力値スナップショット)も state に載せるのが要点。
+  // React 19 の `<form action>` は action 完了後に非制御フォームをリセットするため、
+  // エラーだけ持って返すと利用者が書いた内容が消える。`fields` を渡しておけば
+  // `defaultValue` が入力値のまま更新され、リセットされても内容が戻る。
+  function handleSubmit(formData: FormData) {
+    const parsed = parseProjectFormData(formData);
+    if (!parsed.data) {
+      setClientState({ ok: false, fieldErrors: parsed.fieldErrors, fields: parsed.fields });
+      return;
+    }
+    setClientState(null);
+    formAction(formData);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        // 閉じたら事前検証の結果を捨てる(次に開いたときエラーが残らないように)
+        if (!next) setClientState(null);
+      }}
+    >
       <DialogTrigger asChild>
         <Button variant="outline">
           <Pencil aria-hidden="true" />
@@ -58,10 +86,10 @@ export function EditProjectDialog({ slug, project }: { slug: string; project: Pr
           <DialogDescription>名前 / 概要 / ライフサイクル状態を更新します。</DialogDescription>
         </DialogHeader>
 
-        <form action={formAction} noValidate className="flex min-h-0 flex-1 flex-col gap-4">
+        <form action={handleSubmit} noValidate className="flex min-h-0 flex-1 flex-col gap-4">
           <div className="flex-1 space-y-4 overflow-y-auto pr-1">
             <ProjectFormFields
-              state={state}
+              state={shownState}
               defaults={{
                 name: project.name,
                 description: project.description ?? '',

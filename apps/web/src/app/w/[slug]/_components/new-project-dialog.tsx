@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 
 import { createProjectAction, type ProjectFormState } from '../_actions/create-project';
 import { ProjectFormFields } from '../_shared/project-form-fields';
-import { INITIAL_PROJECT_FORM_STATE } from '../_shared/project-form';
+import { INITIAL_PROJECT_FORM_STATE, parseProjectFormData } from '../_shared/project-form';
 
 /** 概要の決め方(§9.7)。`mode` は FormData として Server Action に渡り、成功時の遷移先を分岐する。 */
 type DescriptionMode = 'write' | 'chat';
@@ -36,13 +36,37 @@ export function NewProjectDialog({ slug }: { slug: string }) {
     INITIAL_PROJECT_FORM_STATE,
   );
 
+  // 送信前にクライアント側で弾いた結果。null の間はサーバ側の `state` をそのまま表示する。
+  const [clientState, setClientState] = useState<ProjectFormState | null>(null);
+  const shownState = clientState ?? state;
+
+  // 名前が空のまま送信されても dispatch せず弾く(サーバ往復なし=ボタン文言のちらつき防止)。
+  // 検証は Server Action と同じ `parseProjectFormData` を使うので二重管理にならない。
+  //
+  // `fieldErrors` だけでなく `fields`(入力値スナップショット)も state に載せるのが要点。
+  // React 19 の `<form action>` は action 完了後に非制御フォームをリセットするため、
+  // エラーだけ持って返すと利用者が書いた概要などが消える。`fields` を渡しておけば
+  // `defaultValue` が入力値のまま更新され、リセットされても内容が戻る。
+  function handleSubmit(formData: FormData) {
+    const parsed = parseProjectFormData(formData);
+    if (!parsed.data) {
+      setClientState({ ok: false, fieldErrors: parsed.fieldErrors, fields: parsed.fields });
+      return;
+    }
+    setClientState(null);
+    formAction(formData);
+  }
+
   return (
     <Dialog
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
         // 閉じたら次回はまっさらの「自分で書く」で開く
-        if (!next) setMode('write');
+        if (!next) {
+          setMode('write');
+          setClientState(null);
+        }
       }}
     >
       <DialogTrigger asChild>
@@ -64,7 +88,7 @@ export function NewProjectDialog({ slug }: { slug: string }) {
 
         {/* noValidate でブラウザ既定のバリデーション吹き出しを抑制し、サーバー側の
             検証結果(フィールド直下 / フォーム全体)に表示を一本化する */}
-        <form action={formAction} noValidate className="flex min-h-0 flex-1 flex-col gap-4">
+        <form action={handleSubmit} noValidate className="flex min-h-0 flex-1 flex-col gap-4">
           <div className="flex-1 space-y-4 overflow-y-auto pr-1">
             <fieldset className="space-y-2">
               <legend className="text-sm font-medium">概要の決め方</legend>
@@ -97,7 +121,10 @@ export function NewProjectDialog({ slug }: { slug: string }) {
               </div>
             </fieldset>
 
-            <ProjectFormFields state={state} variant={mode === 'chat' ? 'name-only' : 'full'} />
+            <ProjectFormFields
+              state={shownState}
+              variant={mode === 'chat' ? 'name-only' : 'full'}
+            />
           </div>
 
           <DialogFooter className="shrink-0 pt-4">
