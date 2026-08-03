@@ -4,7 +4,7 @@ import { SettingsNav } from './_components/settings-nav';
  * `/w/{slug}/settings/...` 共通レイアウト。
  *
  * 親 `/w/{slug}/layout.tsx` が所属チェック + 404 を済ませているので、ここでは
- * 4 タブ(メンバー / プロフィール / Billing / 利用状況)のヘッダー + ナビゲーションだけを担う。
+ * 4 タブ(メンバー / プロフィール / 請求 / 利用状況)のヘッダー + ナビゲーションだけを担う。
  * 各タブごとの role-based UI 出し分けは子ページの責務。
  */
 export default async function SettingsLayout({

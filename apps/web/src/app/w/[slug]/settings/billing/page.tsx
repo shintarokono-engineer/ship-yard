@@ -10,7 +10,7 @@ import { PortalButton } from './_components/portal-button';
 import { SubscriptionStatus } from './_components/subscription-status';
 
 /**
- * `/w/{slug}/settings/billing` — 課金 / プラン管理ページ。
+ * `/w/{slug}/settings/billing` — 請求 / プラン管理ページ。
  *
  * - 所属・slug チェックは親 `apps/web/src/app/w/[slug]/layout.tsx` で済む(未所属 / 不在は 404)
  * - OWNER 以外は「OWNER のみアクセス可能」を表示(BE が 403 を返すので UI と二重で防御)
@@ -30,7 +30,7 @@ export default async function BillingPage({ params }: { params: Promise<{ slug: 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold">課金とプラン</h1>
+        <h1 className="text-2xl font-semibold">請求とプラン</h1>
         <p className="text-muted-foreground text-sm">
           現在のプラン、次回更新日、支払い情報を確認し、プラン変更や解約を行います。
         </p>
@@ -48,7 +48,7 @@ async function OwnerView({ slug }: { slug: string }) {
     return (
       <Card>
         <CardContent className="text-muted-foreground py-8 text-sm">
-          課金情報を取得できませんでした。時間をおいて再度お試しください。
+          請求情報を取得できませんでした。時間をおいて再度お試しください。
         </CardContent>
       </Card>
     );
@@ -94,7 +94,7 @@ function NonOwnerView() {
         </CardTitle>
       </CardHeader>
       <CardContent className="text-muted-foreground space-y-2 text-sm">
-        <p>課金とプランの管理はワークスペースのオーナーのみ操作できます。</p>
+        <p>請求とプランの管理はワークスペースのオーナーのみ操作できます。</p>
         <p>プラン変更や支払い情報の更新が必要な場合は、オーナーにご依頼ください。</p>
       </CardContent>
     </Card>

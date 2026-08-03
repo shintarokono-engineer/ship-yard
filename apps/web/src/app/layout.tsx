@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
-import { ClerkProvider } from '@clerk/nextjs';
 import './globals.css';
 
 import { Toaster } from '@/components/ui/sonner';
 import { getSiteUrl } from '@/lib/site-url';
+
+import { Providers } from './providers';
 
 // OG 画像・メタデータの絶対 URL 解決に使うベース URL(robots / sitemap と共通、`getSiteUrl` に集約)。
 const siteUrl = getSiteUrl();
@@ -35,21 +36,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // afterSignOutUrl: F1.5(§9.12.2 観点 2)中間ページに遷移し LocalStorage /
-    // SessionStorage cleanup + フルロードで Clerk SDK を再初期化する。
-    // `<UserButton afterSignOutUrl>` は Clerk v6 で deprecated のため
-    // `<ClerkProvider>` 側に集約(Clerk 公式ベストプラクティス)。
-    // 加えて Clerk Dashboard で Multi-session handling を OFF にする運用前提
-    // (デフォルト OFF、Sessions ページで確認)。
-    <ClerkProvider afterSignOutUrl="/sign-out-cleanup">
-      <html lang="ja">
-        {/* ブラウザ拡張(ColorZilla 等)が body に属性注入することによる
-            hydration mismatch を抑制(1 階層のみ。子要素の警告は引き続き出る) */}
-        <body className="antialiased" suppressHydrationWarning>
+    <html lang="ja">
+      {/* ブラウザ拡張(ColorZilla 等)が body に属性注入することによる
+          hydration mismatch を抑制(1 階層のみ。子要素の警告は引き続き出る) */}
+      <body className="antialiased" suppressHydrationWarning>
+        <Providers>
           {children}
           <Toaster richColors position="bottom-right" />
-        </body>
-      </html>
-    </ClerkProvider>
+        </Providers>
+      </body>
+    </html>
   );
 }

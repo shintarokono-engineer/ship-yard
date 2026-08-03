@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 const TABS: ReadonlyArray<{ key: string; label: string; segment: string }> = [
   { key: 'members', label: 'メンバー', segment: 'members' },
   { key: 'profile', label: 'プロフィール', segment: 'profile' },
-  { key: 'billing', label: 'Billing', segment: 'billing' },
+  { key: 'billing', label: '請求', segment: 'billing' },
   { key: 'usage', label: '利用状況', segment: 'usage' },
 ];
 
