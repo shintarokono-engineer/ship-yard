@@ -2,9 +2,11 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 
+import { InlineEmpty } from '@/components/inline-empty';
 import { MarkdownViewer } from '@/components/markdown-viewer';
 import { Badge } from '@/components/ui/badge';
 import { isWriterRole } from '@/lib/api/types';
+import { EMPTY_MESSAGES } from '@/lib/empty-messages';
 import {
   fetchDocument,
   fetchProject,
@@ -69,10 +71,10 @@ export default async function ReadmePage({
         </div>
 
         <div className="border-border space-y-3 rounded-lg border border-dashed p-6">
-          <p className="text-muted-foreground/70 text-sm italic">(未作成)</p>
-          {canWrite && (
-            <GenerateReadmeDialog slug={slug} projectId={projectId} usage={usage} />
-          )}
+          <InlineEmpty>
+            {canWrite ? EMPTY_MESSAGES.readme.canWrite : EMPTY_MESSAGES.readme.readOnly}
+          </InlineEmpty>
+          {canWrite && <GenerateReadmeDialog slug={slug} projectId={projectId} usage={usage} />}
         </div>
       </div>
     );
@@ -119,16 +121,8 @@ export default async function ReadmePage({
                 documentId={currentWithContent.id}
                 usage={usage}
               />
-              <EditReadmeDialog
-                slug={slug}
-                projectId={projectId}
-                document={currentWithContent}
-              />
-              <DeleteReadmeButton
-                slug={slug}
-                projectId={projectId}
-                document={currentWithContent}
-              />
+              <EditReadmeDialog slug={slug} projectId={projectId} document={currentWithContent} />
+              <DeleteReadmeButton slug={slug} projectId={projectId} document={currentWithContent} />
             </div>
           )}
         </div>
@@ -139,7 +133,9 @@ export default async function ReadmePage({
           {currentWithContent.content && currentWithContent.content.length > 0 ? (
             <MarkdownViewer source={currentWithContent.content} />
           ) : (
-            <p className="text-muted-foreground/70 text-sm italic">(本文なし)</p>
+            <InlineEmpty>
+              {canWrite ? EMPTY_MESSAGES.readmeBody.canWrite : EMPTY_MESSAGES.readmeBody.readOnly}
+            </InlineEmpty>
           )}
         </article>
         {versions.length > 1 && (

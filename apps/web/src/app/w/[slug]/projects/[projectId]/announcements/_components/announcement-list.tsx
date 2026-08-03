@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 
+import { InlineEmpty } from '@/components/inline-empty';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +12,7 @@ import {
   DELIVERY_STATUS_META,
   type AnnouncementListItem,
 } from '@/lib/api/types';
+import { EMPTY_MESSAGES } from '@/lib/empty-messages';
 import { formatDateTime } from '@/lib/format';
 import { useCursorList } from '@/lib/use-cursor-list';
 
@@ -65,7 +67,7 @@ export function AnnouncementList({
                       作成 {formatDateTime(a.createdAt)}
                     </p>
                     {a.deliveries.length === 0 ? (
-                      <p className="text-muted-foreground/70 text-xs italic">(配信文面は未生成)</p>
+                      <InlineEmpty size="xs">{EMPTY_MESSAGES.announcementDeliveries}</InlineEmpty>
                     ) : (
                       <div className="flex flex-wrap gap-2">
                         {a.deliveries.map((d) => {

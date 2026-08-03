@@ -2,10 +2,12 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronLeft, FileText } from 'lucide-react';
 
+import { InlineEmpty } from '@/components/inline-empty';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { isAdminRole, isWriterRole, PROJECT_STATUS_META } from '@/lib/api/types';
+import { EMPTY_MESSAGES } from '@/lib/empty-messages';
 import { featureHref, PROJECT_FEATURE_META, type ProjectFeature } from '@/lib/project-features';
 import { fetchProject, fetchUsage, fetchWorkspace, listDocuments } from '@/lib/api/workspaces';
 import { formatDate, formatDateTime } from '@/lib/format';
@@ -107,7 +109,11 @@ export default async function ProjectDetailPage({
           {project.description ? (
             <p className="whitespace-pre-wrap text-sm">{project.description}</p>
           ) : (
-            <p className="text-muted-foreground/70 text-sm italic">(説明なし)</p>
+            <InlineEmpty>
+              {canWrite
+                ? EMPTY_MESSAGES.projectDescription.canWrite
+                : EMPTY_MESSAGES.projectDescription.readOnly}
+            </InlineEmpty>
           )}
         </section>
 
@@ -136,7 +142,9 @@ export default async function ProjectDetailPage({
           {readmePreview ? (
             <p className="whitespace-pre-wrap text-sm leading-relaxed">{readmePreview}</p>
           ) : (
-            <p className="text-muted-foreground/70 text-sm italic">(未作成)</p>
+            <InlineEmpty>
+              {canWrite ? EMPTY_MESSAGES.readme.canWrite : EMPTY_MESSAGES.readme.readOnly}
+            </InlineEmpty>
           )}
           {latestReadme && (
             <p className="text-muted-foreground text-xs">

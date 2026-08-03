@@ -14,7 +14,9 @@ export function ProjectCard({ slug, project }: { slug: string; project: Project 
       aria-label={project.name}
       className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
     >
-      <Card className="hover:border-primary/40 h-full cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
+      {/* 概要が無いときは段落ごと省く(一覧では「概要がありません」を並べても情報が増えない)。
+          CardContent が空になるので flex-col + flex-1 でフッターを底に揃える。 */}
+      <Card className="hover:border-primary/40 flex h-full cursor-pointer flex-col transition-all hover:shadow-sm [&_*]:cursor-pointer">
         <CardHeader className="gap-2">
           <div className="flex items-start justify-between gap-2">
             <h2 className="text-base leading-none font-semibold">{project.name}</h2>
@@ -23,13 +25,11 @@ export function ProjectCard({ slug, project }: { slug: string; project: Project 
             </Badge>
           </div>
         </CardHeader>
-        <CardContent>
-          {project.description ? (
+        <CardContent className="flex-1">
+          {project.description && (
             <p className="text-muted-foreground line-clamp-3 text-sm whitespace-pre-wrap">
               {project.description}
             </p>
-          ) : (
-            <p className="text-muted-foreground/70 text-sm italic">(説明なし)</p>
           )}
         </CardContent>
         <CardFooter className="text-muted-foreground flex items-center justify-between text-xs">

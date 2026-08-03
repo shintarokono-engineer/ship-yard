@@ -9,6 +9,8 @@ import {
   type Category,
   type ChecklistItem,
 } from '@/lib/api/types';
+import { InlineEmpty } from '@/components/inline-empty';
+import { EMPTY_MESSAGES } from '@/lib/empty-messages';
 import { featurePageDescription, PROJECT_FEATURE_META } from '@/lib/project-features';
 import { fetchProject, fetchUsage, fetchWorkspace, listChecklist } from '@/lib/api/workspaces';
 
@@ -78,7 +80,11 @@ export default async function ChecklistPage({
               </summary>
               <div className="space-y-2 border-t px-4 py-3">
                 {group.parents.length === 0 ? (
-                  <p className="text-muted-foreground/70 text-sm italic">(項目なし)</p>
+                  <InlineEmpty>
+                    {canWrite
+                      ? EMPTY_MESSAGES.checklistCategory.canWrite
+                      : EMPTY_MESSAGES.checklistCategory.readOnly}
+                  </InlineEmpty>
                 ) : (
                   group.parents.map((parent) => (
                     <div key={parent.id} className="space-y-2">
