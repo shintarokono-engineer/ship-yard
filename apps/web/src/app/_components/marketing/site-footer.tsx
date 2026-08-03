@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { ShipyardWordmark } from '@/components/shipyard-logo';
+import { NeorieWordmark } from '@/components/neorie-logo';
 
 /** マーケティング LP のフッター。 */
 export function SiteFooter() {
@@ -8,7 +8,7 @@ export function SiteFooter() {
     <footer className="bg-card border-t">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-6 py-10 sm:flex-row">
         <div className="flex flex-col items-center gap-1 sm:items-start">
-          <ShipyardWordmark />
+          <NeorieWordmark />
           <p className="text-muted-foreground text-xs">
             個人開発者と小さなチームのためのプロダクト開発プラットフォーム
           </p>
@@ -36,7 +36,7 @@ export function SiteFooter() {
       </div>
       <div className="border-t py-4">
         <p className="text-muted-foreground text-center text-xs">
-          © {new Date().getFullYear()} Shipyard
+          © {new Date().getFullYear()} Neorie
         </p>
       </div>
     </footer>

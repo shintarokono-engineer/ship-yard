@@ -13,18 +13,18 @@ const description =
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: 'Shipyard',
+  title: 'Neorie',
   description,
   openGraph: {
-    title: 'Shipyard',
+    title: 'Neorie',
     description,
-    siteName: 'Shipyard',
+    siteName: 'Neorie',
     locale: 'ja_JP',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Shipyard',
+    title: 'Neorie',
     description,
   },
 };

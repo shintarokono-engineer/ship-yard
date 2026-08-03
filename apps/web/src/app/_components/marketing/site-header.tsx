@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { SignInButton, SignUpButton } from '@clerk/nextjs';
 
 import { Button } from '@/components/ui/button';
-import { ShipyardWordmark } from '@/components/shipyard-logo';
+import { NeorieWordmark } from '@/components/neorie-logo';
 
 const NAV_LINKS = [
   { label: '機能', href: '#features' },
@@ -15,8 +15,8 @@ export function SiteHeader() {
   return (
     <header className="bg-card/80 sticky top-0 z-50 border-b backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <Link href="/" aria-label="Shipyard ホーム">
-          <ShipyardWordmark />
+        <Link href="/" aria-label="Neorie ホーム">
+          <NeorieWordmark />
         </Link>
         <nav aria-label="セクション" className="hidden items-center gap-6 md:flex">
           {NAV_LINKS.map((link) => (

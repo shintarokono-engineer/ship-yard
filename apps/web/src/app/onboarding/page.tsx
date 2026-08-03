@@ -25,7 +25,7 @@ export default async function OnboardingPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-4 py-12">
       <header className="space-y-2 text-center">
-        <h1 className="text-3xl font-semibold">Shipyard へようこそ</h1>
+        <h1 className="text-3xl font-semibold">Neorie へようこそ</h1>
         <p className="text-muted-foreground">
           まずは最初のワークスペースを作成しましょう。チームで使う場合は後からメンバーを招待できます。
         </p>

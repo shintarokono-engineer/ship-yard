@@ -99,7 +99,7 @@ export default async function PublicBlogPostPage({
     },
     publisher: {
       '@type': 'Organization',
-      name: 'Shipyard',
+      name: 'Neorie',
       url: siteUrl,
     },
     isPartOf: {

@@ -40,7 +40,7 @@ export default async function HomePage() {
     {
       '@context': 'https://schema.org',
       '@type': 'Organization',
-      name: 'Shipyard',
+      name: 'Neorie',
       url: siteUrl,
       description:
         '個人開発者および小規模開発チーム向けの、アイデアからリリースまでを一元管理する AI 支援付き SaaS',
@@ -48,7 +48,7 @@ export default async function HomePage() {
     {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
-      name: 'Shipyard',
+      name: 'Neorie',
       url: siteUrl,
     },
   ];

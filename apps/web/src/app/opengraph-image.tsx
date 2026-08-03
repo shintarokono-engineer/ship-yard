@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 
-export const alt = 'Shipyard — Ship your product, faster.';
+export const alt = 'Neorie — Ship your product, faster.';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -24,12 +24,13 @@ export default function OpengraphImage() {
         color: '#ffffff',
       }}
     >
-      <svg width="128" height="128" viewBox="0 0 32 32" fill="#ffffff">
-        <path d="M17 4v15h11z" />
-        <path d="M15 8v11H7z" />
-        <path d="M3 21h26c-1.8 5.4-6.6 8-13 8S4.8 26.4 3 21z" />
+      {/* ブランドマーク(白地に indigo で N を抜く)。indigo 背景の上なので
+          白の角丸スクエア + 背景色の N という反転構成にする。 */}
+      <svg width="120" height="120" viewBox="0 0 32 32">
+        <rect width="32" height="32" rx="7" fill="#ffffff" />
+        <path fill="#4f46e5" d="M9 8h3.5l7 9.6V8H23v16h-3.5l-7-9.6V24H9V8z" />
       </svg>
-      <div style={{ display: 'flex', marginTop: 36, fontSize: 84, fontWeight: 700 }}>Shipyard</div>
+      <div style={{ display: 'flex', marginTop: 36, fontSize: 84, fontWeight: 700 }}>Neorie</div>
       <div style={{ display: 'flex', marginTop: 12, fontSize: 36, color: '#c7d2fe' }}>
         Ship your product, faster.
       </div>

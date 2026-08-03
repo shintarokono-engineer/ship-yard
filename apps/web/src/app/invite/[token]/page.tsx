@@ -88,7 +88,7 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
 
           {acceptable && (
             <p className="text-muted-foreground text-xs">
-              承諾には Shipyard
+              承諾には Neorie
               へのサインインが必要です。サインアップしていない場合は承諾ボタンを押すとサインアップ画面に進みます。
             </p>
           )}
