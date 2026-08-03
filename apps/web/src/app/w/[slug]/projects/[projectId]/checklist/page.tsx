@@ -91,9 +91,12 @@ export default async function ChecklistPage({
                         canWrite={canWrite}
                         // TASK_SPLIT は親タスクのみ対象。Dialog はここ(Server Component)で
                         // 生成して差し込み、`usage` が全行ぶん直列化されるのを避ける。
+                        // `key` は必須: map の中で生成した要素を prop として渡すため、
+                        // 付けないと React が「配列の子に key が無い」と警告する。
                         splitAction={
                           canWrite && parent.parentId === null ? (
                             <SplitTaskDialog
+                              key={parent.id}
                               slug={slug}
                               projectId={projectId}
                               parent={parent}
