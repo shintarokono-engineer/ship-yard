@@ -208,7 +208,7 @@ function FeatureCard({
       aria-label={meta.label}
       className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
     >
-      <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-md motion-safe:hover:-translate-y-0.5 [&_*]:cursor-pointer">
+      <Card className="hover:border-primary/40 cursor-pointer transition-[border-color,box-shadow,translate] hover:shadow-md motion-safe:hover:-translate-y-0.5 [&_*]:cursor-pointer">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Icon className="text-primary size-4" aria-hidden="true" />

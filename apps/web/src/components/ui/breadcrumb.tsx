@@ -49,12 +49,18 @@ function BreadcrumbLink({
   );
 }
 
+/**
+ * 現在地(遷移先を持たない末端)。
+ *
+ * **shadcn 生成物からの意図的な差分**: 既定では `role="link" aria-disabled="true"` が付くが、
+ * 実際には遷移しない要素にリンクのロールを与えると、スクリーンリーダー利用者に誤った期待を持たせる。
+ * `aria-current="page"` だけで現在地は伝わるため両方外している。
+ * shadcn CLI で再生成すると戻るので、その際はここを当て直すこと。
+ */
 function BreadcrumbPage({ className, ...props }: React.ComponentProps<'span'>) {
   return (
     <span
       data-slot="breadcrumb-page"
-      role="link"
-      aria-disabled="true"
       aria-current="page"
       className={cn('font-normal text-foreground', className)}
       {...props}

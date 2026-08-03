@@ -16,7 +16,7 @@ export function ProjectCard({ slug, project }: { slug: string; project: Project 
     >
       {/* 概要が無いときは段落ごと省く(一覧では「概要がありません」を並べても情報が増えない)。
           CardContent が空になるので flex-col + flex-1 でフッターを底に揃える。 */}
-      <Card className="hover:border-primary/40 flex h-full cursor-pointer flex-col transition-all hover:shadow-md motion-safe:hover:-translate-y-0.5 [&_*]:cursor-pointer">
+      <Card className="hover:border-primary/40 flex h-full cursor-pointer flex-col transition-[border-color,box-shadow,translate] hover:shadow-md motion-safe:hover:-translate-y-0.5 [&_*]:cursor-pointer">
         <CardHeader className="gap-2">
           <div className="flex items-start justify-between gap-2">
             <h2 className="text-base leading-none font-semibold">{project.name}</h2>
