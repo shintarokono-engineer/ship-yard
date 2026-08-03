@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 
 import { EmptyState } from '@/components/empty-state';
 import { isWriterRole } from '@/lib/api/types';
+import { featurePageDescription, PROJECT_FEATURE_META } from '@/lib/project-features';
 import { fetchProject, fetchWorkspace, listRagQaSessions } from '@/lib/api/workspaces';
 
 import { SessionList } from './_components/session-list';
@@ -46,10 +47,8 @@ export default async function RagQaSessionsPage({
         </Link>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold">AI 壁打ち</h1>
-            <p className="text-muted-foreground text-sm">
-              プロジェクトについて AI と相談します。過去のドキュメントを参照しながら回答します。
-            </p>
+            <h1 className="text-2xl font-semibold">{PROJECT_FEATURE_META.RAG_QA.label}</h1>
+            <p className="text-muted-foreground text-sm">{featurePageDescription('RAG_QA')}</p>
           </div>
           {canWrite && <StartSessionDialog slug={slug} projectId={projectId} />}
         </div>

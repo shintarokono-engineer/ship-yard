@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 
 import { EmptyState } from '@/components/empty-state';
 import { isWriterRole } from '@/lib/api/types';
+import { featurePageDescription, PROJECT_FEATURE_META } from '@/lib/project-features';
 import { fetchProject, fetchUsage, fetchWorkspace, listDiagnoses } from '@/lib/api/workspaces';
 import { formatDateTime } from '@/lib/format';
 
@@ -47,12 +48,8 @@ export default async function DiagnosesPage({
         </Link>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold">プロダクト診断</h1>
-            <p className="text-muted-foreground text-sm">
-              開発中以降のプロジェクトを 5 軸(差別化 / ターゲット明確性 / 機能完成度 /
-              リリース準備度 / 競合優位性)で AI がスコア化し、改善提案と競合参照を提示します。Pro /
-              Team 限定機能です。
-            </p>
+            <h1 className="text-2xl font-semibold">{PROJECT_FEATURE_META.DIAGNOSIS.label}</h1>
+            <p className="text-muted-foreground text-sm">{featurePageDescription('DIAGNOSIS')}</p>
           </div>
           {canWrite && <RunDiagnosisDialog slug={slug} projectId={projectId} usage={usage} />}
         </div>

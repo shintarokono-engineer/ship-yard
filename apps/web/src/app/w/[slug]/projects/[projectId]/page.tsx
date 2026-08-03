@@ -1,20 +1,12 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import {
-  ChevronLeft,
-  FileText,
-  Gauge,
-  LayoutTemplate,
-  Lightbulb,
-  ListChecks,
-  Megaphone,
-  MessageCircle,
-} from 'lucide-react';
+import { ChevronLeft, FileText } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { isAdminRole, isWriterRole, PROJECT_STATUS_META } from '@/lib/api/types';
+import { featureHref, PROJECT_FEATURE_META, type ProjectFeature } from '@/lib/project-features';
 import { fetchProject, fetchUsage, fetchWorkspace, listDocuments } from '@/lib/api/workspaces';
 import { formatDate, formatDateTime } from '@/lib/format';
 
@@ -155,90 +147,15 @@ export default async function ProjectDetailPage({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* aria-label 未指定だと accessible name が「見出し + 件数 + 説明文」の連結になる。
-            値は可視の見出しと同一文字列にすること(WCAG 2.5.3 Label in Name)。 */}
-        <Link
-          href={`/w/${slug}/projects/${projectId}/checklist`}
-          aria-label="チェックリスト"
-          className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
-        >
-          <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ListChecks className="text-primary size-4" aria-hidden="true" />
-                チェックリスト
-                <span className="text-muted-foreground ml-auto text-xs font-normal">
-                  {project._count.checklist} 件
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-sm">
-                リリース前に必要な作業をカテゴリ別に管理します。
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link
-          href={`/w/${slug}/projects/${projectId}/rag-qa`}
-          aria-label="AI 壁打ち"
-          className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
-        >
-          <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <MessageCircle className="text-primary size-4" aria-hidden="true" />
-                AI 壁打ち
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-sm">
-                プロジェクトの方針や課題を AI と相談します。過去ドキュメントを参照して回答します。
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link
-          href={`/w/${slug}/projects/${projectId}/announcements`}
-          aria-label="告知"
-          className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
-        >
-          <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Megaphone className="text-primary size-4" aria-hidden="true" />
-                告知
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-sm">
-                X (Twitter) とブログ向けの告知文を AI で一括生成し、配信状況を管理します。
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link
-          href={`/w/${slug}/projects/${projectId}/landing-page`}
-          aria-label="ランディングページ"
-          className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
-        >
-          <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <LayoutTemplate className="text-primary size-4" aria-hidden="true" />
-                ランディングページ
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-sm">
-                AI がブロック構造の LP を生成します。アプリ内でプレビューできます。
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        <FeatureCard
+          slug={slug}
+          projectId={projectId}
+          feature="CHECKLIST"
+          badge={`${project._count.checklist} 件`}
+        />
+        <FeatureCard slug={slug} projectId={projectId} feature="RAG_QA" />
+        <FeatureCard slug={slug} projectId={projectId} feature="ANNOUNCEMENT" />
+        <FeatureCard slug={slug} projectId={projectId} feature="LANDING_PAGE" />
 
         {/*
           ADR-013 改訂版「2 モード化」:
@@ -246,54 +163,65 @@ export default async function ProjectDetailPage({
           - status=IN_DEV 以降 → 「プロダクト診断」 Card(ServiceScore)
           両 Card は同時には出さない(機能を分けて UX を明確にする ADR-013 改訂版の意図)。
         */}
-        {project.status === 'IDEA' ? (
-          <Link
-            href={`/w/${slug}/projects/${projectId}/idea-validations`}
-            aria-label="アイデア検証"
-            className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
-          >
-            <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Lightbulb className="text-primary size-4" aria-hidden="true" />
-                  アイデア検証
-                  <Badge variant="outline" className="ml-auto text-[10px] font-normal">
-                    Pro / Team
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-sm">
-                  AI が実競合と比較して Go / Pivot / No-Go を判定します。発案段階の方向性検証に。
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-        ) : (
-          <Link
-            href={`/w/${slug}/projects/${projectId}/diagnoses`}
-            aria-label="プロダクト診断"
-            className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
-          >
-            <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Gauge className="text-primary size-4" aria-hidden="true" />
-                  プロダクト診断
-                  <Badge variant="outline" className="ml-auto text-[10px] font-normal">
-                    Pro / Team
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-sm">
-                  AI が実競合と比較してプロダクトの実用性を 100 点満点でスコア化します。
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-        )}
+        <FeatureCard
+          slug={slug}
+          projectId={projectId}
+          feature={project.status === 'IDEA' ? 'IDEA_VALIDATION' : 'DIAGNOSIS'}
+        />
       </div>
     </div>
+  );
+}
+
+/**
+ * 子リソースへのエントリポイント Card。
+ *
+ * ラベル・アイコン・説明・遷移先は `PROJECT_FEATURE_META` を唯一の出所とする
+ * (機能ページ側の見出しも同じ定数を参照する)。
+ *
+ * `aria-label` 未指定だと accessible name が「見出し + 件数 + 説明文」の連結になる。
+ * 値は可視の見出しと同一文字列にすること(WCAG 2.5.3 Label in Name)。
+ */
+function FeatureCard({
+  slug,
+  projectId,
+  feature,
+  badge,
+}: {
+  slug: string;
+  projectId: string;
+  feature: ProjectFeature;
+  /** 件数などの補助表示(タイトル右端)。 */
+  badge?: string;
+}) {
+  const meta = PROJECT_FEATURE_META[feature];
+  const Icon = meta.icon;
+
+  return (
+    <Link
+      href={featureHref(slug, projectId, feature)}
+      aria-label={meta.label}
+      className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
+    >
+      <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Icon className="text-primary size-4" aria-hidden="true" />
+            {meta.label}
+            {badge && (
+              <span className="text-muted-foreground ml-auto text-xs font-normal">{badge}</span>
+            )}
+            {meta.planLimited && (
+              <Badge variant="outline" className="ml-auto text-[10px] font-normal">
+                Pro / Team
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground text-sm">{meta.description}</p>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }

@@ -9,6 +9,7 @@ import {
   type Category,
   type ChecklistItem,
 } from '@/lib/api/types';
+import { featurePageDescription, PROJECT_FEATURE_META } from '@/lib/project-features';
 import { fetchProject, fetchUsage, fetchWorkspace, listChecklist } from '@/lib/api/workspaces';
 
 import { ChecklistItemRow } from './_components/checklist-item-row';
@@ -55,10 +56,8 @@ export default async function ChecklistPage({
         </Link>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold">チェックリスト</h1>
-            <p className="text-muted-foreground text-sm">
-              リリース前に必要な作業をカテゴリ別に管理します。
-            </p>
+            <h1 className="text-2xl font-semibold">{PROJECT_FEATURE_META.CHECKLIST.label}</h1>
+            <p className="text-muted-foreground text-sm">{featurePageDescription('CHECKLIST')}</p>
           </div>
           {canWrite && <GenerateChecklistDialog slug={slug} projectId={projectId} usage={usage} />}
         </div>

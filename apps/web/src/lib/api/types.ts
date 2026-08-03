@@ -795,9 +795,10 @@ export const VALIDATION_RECOMMENDATION_META: Record<
   ValidationRecommendation,
   { label: string; description: string; tone: 'positive' | 'neutral' | 'negative' }
 > = {
-  GO: { label: 'GO', description: '明確に進めるべきアイデア', tone: 'positive' },
-  PIVOT: { label: 'PIVOT', description: '方向修正で改善余地あり', tone: 'neutral' },
-  NO_GO: { label: 'NO_GO', description: '根本的に再検討推奨', tone: 'negative' },
+  // label は表示専用。キー(API が返す値)とは独立に、アプリ全体で `Go / Pivot / No-Go` に統一する。
+  GO: { label: 'Go', description: '明確に進めるべきアイデア', tone: 'positive' },
+  PIVOT: { label: 'Pivot', description: '方向修正で改善余地あり', tone: 'neutral' },
+  NO_GO: { label: 'No-Go', description: '根本的に再検討推奨', tone: 'negative' },
 };
 
 /** 5 軸ブレークダウン(プロダクト診断 / アイデア検証 で共通の構造)。 */

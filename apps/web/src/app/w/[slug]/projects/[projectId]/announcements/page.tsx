@@ -1,10 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronLeft, Megaphone } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 
 import { listAnnouncements } from '@/lib/api/announcements';
 import { isWriterRole } from '@/lib/api/types';
+import { featurePageDescription, PROJECT_FEATURE_META } from '@/lib/project-features';
 import { fetchProject, fetchWorkspace } from '@/lib/api/workspaces';
+
+const AnnouncementIcon = PROJECT_FEATURE_META.ANNOUNCEMENT.icon;
 
 import { AnnouncementList } from './_components/announcement-list';
 import { NewAnnouncementDialog } from './_components/new-announcement-dialog';
@@ -45,11 +48,11 @@ export default async function AnnouncementsPage({
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="flex items-center gap-2 text-2xl font-semibold">
-              <Megaphone className="text-primary size-5" aria-hidden="true" />
-              告知
+              <AnnouncementIcon className="text-primary size-5" aria-hidden="true" />
+              {PROJECT_FEATURE_META.ANNOUNCEMENT.label}
             </h1>
             <p className="text-muted-foreground text-sm">
-              AI で多チャネル(X + ブログ)の告知文を生成し、配信状況を管理します。
+              {featurePageDescription('ANNOUNCEMENT')}
             </p>
           </div>
           {canWrite && <NewAnnouncementDialog slug={slug} projectId={projectId} />}

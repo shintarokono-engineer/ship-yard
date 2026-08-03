@@ -3,8 +3,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { EmptyState } from '@/components/empty-state';
-import { Badge } from '@/components/ui/badge';
-import { VALIDATION_RECOMMENDATION_META, isWriterRole } from '@/lib/api/types';
+import { RecommendationBadge } from '@/components/score/recommendation-badge';
+import { isWriterRole } from '@/lib/api/types';
+import { featurePageDescription, PROJECT_FEATURE_META } from '@/lib/project-features';
 import {
   fetchProject,
   fetchUsage,
@@ -53,10 +54,9 @@ export default async function IdeaValidationsPage({
         </Link>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold">アイデア検証</h1>
+            <h1 className="text-2xl font-semibold">{PROJECT_FEATURE_META.IDEA_VALIDATION.label}</h1>
             <p className="text-muted-foreground text-sm">
-              Lean Startup の Problem-Solution Fit 観点で AI がアイデアを 5 軸スコア化し、 GO /
-              PIVOT / NO_GO の意思決定を支援します。Pro / Team 限定機能です。
+              {featurePageDescription('IDEA_VALIDATION')}
             </p>
           </div>
           {canWrite && <RunValidationDialog slug={slug} projectId={projectId} usage={usage} />}
@@ -65,36 +65,25 @@ export default async function IdeaValidationsPage({
 
       {hasValidations ? (
         <ul className="space-y-2">
-          {validations.map((v) => {
-            const meta = VALIDATION_RECOMMENDATION_META[v.recommendation];
-            const variant =
-              meta.tone === 'positive'
-                ? 'default'
-                : meta.tone === 'negative'
-                  ? 'destructive'
-                  : 'secondary';
-            return (
-              <li key={v.id}>
-                <Link
-                  href={`/w/${slug}/projects/${projectId}/idea-validations/${v.id}`}
-                  className="hover:bg-accent/30 focus-visible:ring-ring/50 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 outline-none transition-colors focus-visible:ring-[3px]"
-                >
-                  <span className="flex items-center gap-3">
-                    <Badge variant={variant} className="font-semibold tracking-wide">
-                      {meta.label}
-                    </Badge>
-                    <span className="tabular-nums">
-                      <span className="text-foreground text-xl font-semibold">{v.totalScore}</span>
-                      <span className="text-muted-foreground text-xs"> / 100</span>
-                    </span>
+          {validations.map((v) => (
+            <li key={v.id}>
+              <Link
+                href={`/w/${slug}/projects/${projectId}/idea-validations/${v.id}`}
+                className="hover:bg-accent/30 focus-visible:ring-ring/50 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 outline-none transition-colors focus-visible:ring-[3px]"
+              >
+                <span className="flex items-center gap-3">
+                  <RecommendationBadge recommendation={v.recommendation} showDescription={false} />
+                  <span className="tabular-nums">
+                    <span className="text-foreground text-xl font-semibold">{v.totalScore}</span>
+                    <span className="text-muted-foreground text-xs"> / 100</span>
                   </span>
-                  <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
-                    {formatDateTime(v.createdAt)}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
+                </span>
+                <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+                  {formatDateTime(v.createdAt)}
+                </span>
+              </Link>
+            </li>
+          ))}
         </ul>
       ) : (
         <EmptyState

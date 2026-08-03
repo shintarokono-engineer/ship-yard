@@ -6,6 +6,7 @@ import { LpRenderer } from '@/components/lp-blocks/lp-renderer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { isWriterRole } from '@/lib/api/types';
+import { featurePageDescription, PROJECT_FEATURE_META } from '@/lib/project-features';
 import {
   fetchLandingPage,
   fetchProject,
@@ -60,7 +61,7 @@ export default async function LandingPagePreviewPage({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-semibold">ランディングページ</h1>
+              <h1 className="text-2xl font-semibold">{PROJECT_FEATURE_META.LANDING_PAGE.label}</h1>
               {landingPage &&
                 (landingPage.publishedAt ? (
                   <Badge
@@ -74,7 +75,7 @@ export default async function LandingPagePreviewPage({
                 ))}
             </div>
             <p className="text-muted-foreground text-sm">
-              プロジェクト情報から AI がブロック構造の LP を生成し、公開 URL で配信できます。
+              {featurePageDescription('LANDING_PAGE')}
             </p>
             {landingPage?.publishedAt && (
               <p className="text-sm">
