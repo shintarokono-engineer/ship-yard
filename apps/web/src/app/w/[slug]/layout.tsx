@@ -1,6 +1,7 @@
 import { UserButton } from '@clerk/nextjs';
 import { notFound } from 'next/navigation';
 
+import { ThemeToggle } from '@/components/theme-toggle';
 import { fetchWorkspace, listMyWorkspaces } from '@/lib/api/workspaces';
 import { isValidTenantSlug } from '@/lib/tenant-slug';
 
@@ -45,7 +46,10 @@ export default async function WorkspaceLayout({
               deprecated のため使わない。Multi-session handling は Clerk Dashboard で OFF に
               設定する前提(Sessions ページ、デフォルト OFF)= 1 ブラウザ 1 セッションで
               `signOut()` 標準動作で全セッション無効化となる。 */}
-          <UserButton />
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <UserButton />
+          </div>
         </div>
         <WorkspaceNav slug={workspace.slug} />
       </header>

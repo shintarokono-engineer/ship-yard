@@ -36,7 +36,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja">
+    // suppressHydrationWarning: next-themes が hydration 前に `<html>` へ theme class を
+    // 付けるため必須(docs/implementation-rules.md「フロントエンド」節の例外に該当)。
+    <html lang="ja" suppressHydrationWarning>
       {/* ブラウザ拡張(ColorZilla 等)が body に属性注入することによる
           hydration mismatch を抑制(1 階層のみ。子要素の警告は引き続き出る) */}
       <body className="antialiased" suppressHydrationWarning>

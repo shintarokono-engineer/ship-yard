@@ -38,9 +38,11 @@ export const LP_THEME_META: Record<
       heroBg: 'bg-background',
       sectionBg: 'bg-muted/30',
       accentText: 'text-foreground',
-      accentSolid: 'bg-zinc-900 text-white',
-      accentSolidHover: 'hover:bg-zinc-800',
-      accentSoft: 'bg-zinc-100 text-zinc-900',
+      // 他テーマと違い default は無彩色なので、ダークでは明暗を反転させる
+      // (zinc-900 のままだとダーク背景と同化して CTA が消える)。
+      accentSolid: 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900',
+      accentSolidHover: 'hover:bg-zinc-800 dark:hover:bg-zinc-200',
+      accentSoft: 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100',
     },
   },
   blue: {

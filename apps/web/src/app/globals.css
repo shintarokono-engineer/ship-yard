@@ -37,9 +37,13 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.21 0.006 285.885);
   --popover-foreground: oklch(0.985 0 0);
-  /* ダーク用 UI は未提供。indigo アクセントとの整合だけ取る(切り替え時に破綻させない)。 */
-  --primary: oklch(0.585 0.233 277.117);
-  --primary-foreground: oklch(0.985 0 0);
+  /* ダークでは --primary を「面(ボタン背景)」と「テキスト色(text-primary)」の両方に使う。
+     L を下げると面に載る白文字は読めるが text-primary が背景に沈み、上げるとその逆になる。
+     ライト側と逆に **明るい primary + 濃い前景** にして両立させる(shadcn のダークテーマと同じ方針)。
+       text-primary: --background 5.97:1 / --card 5.32:1
+       面に載る前景: 5.97:1 */
+  --primary: oklch(0.68 0.233 277.117);
+  --primary-foreground: oklch(0.141 0.005 285.823);
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.274 0.006 286.033);
