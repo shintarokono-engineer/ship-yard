@@ -31,8 +31,12 @@ export function NeorieMark({ className }: { className?: string }) {
  *
  * シンボルを持たない構成(Stripe / 初期 Linear と同じ考え方)。ロゴマークとの
  * 偶発的な衝突リスクを構造的に負わず、`Neorie` という綴り自体を識別子にする。
- * 書体は body 既定(system-ui)を使い、字間を詰めて塊として見せる。
+ * 書体は見出しと同じ `font-display`(Geist)を使い、字間を詰めて塊として見せる。
  */
 export function NeorieWordmark({ className }: { className?: string }) {
-  return <span className={cn('text-xl font-semibold tracking-tight', className)}>Neorie</span>;
+  return (
+    <span className={cn('font-display text-xl font-semibold tracking-tight', className)}>
+      Neorie
+    </span>
+  );
 }

@@ -1,10 +1,24 @@
 import type { Metadata } from 'next';
+import { Geist } from 'next/font/google';
 import './globals.css';
 
 import { Toaster } from '@/components/ui/sonner';
 import { getSiteUrl } from '@/lib/site-url';
 
 import { Providers } from './providers';
+
+/**
+ * 見出し・ワードマーク用の欧文書体。
+ *
+ * **本文(日本語)は system-ui のまま**にしている。日本語 Web フォントは可変でも
+ * 数百 kB あり LCP を確実に悪化させるため、欧文の見出しだけに絞って"顔"を作る。
+ * `display: 'swap'` + fallback で FOUT はあっても CLS は最小に留める。
+ */
+const geist = Geist({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-geist',
+});
 
 // OG 画像・メタデータの絶対 URL 解決に使うベース URL(robots / sitemap と共通、`getSiteUrl` に集約)。
 const siteUrl = getSiteUrl();
@@ -38,7 +52,7 @@ export default function RootLayout({
   return (
     // suppressHydrationWarning: next-themes が hydration 前に `<html>` へ theme class を
     // 付けるため必須(docs/implementation-rules.md「フロントエンド」節の例外に該当)。
-    <html lang="ja" suppressHydrationWarning>
+    <html lang="ja" className={geist.variable} suppressHydrationWarning>
       {/* ブラウザ拡張(ColorZilla 等)が body に属性注入することによる
           hydration mismatch を抑制(1 階層のみ。子要素の警告は引き続き出る) */}
       <body className="antialiased" suppressHydrationWarning>

@@ -12,8 +12,12 @@
   --card-foreground: oklch(0.141 0.005 285.823);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.141 0.005 285.823);
-  /* ブランドアクセント = indigo-600。CTA / リンク / 選択状態に追従する。 */
-  --primary: oklch(0.511 0.262 276.966);
+  /* ブランドアクセント。CTA / リンク / 選択状態に追従する。
+     shadcn 既定の indigo(H≈277)から色相を violet 寄り(H=292)へずらして固有色にしている。
+     色相を変えるときは light / dark の 4 トークン(primary / accent / accent-foreground / ring)
+     を同じ H に揃え、白文字・濃文字とのコントラストを再計測すること。
+       白文字 6.33:1 / 面 vs card 6.60:1 */
+  --primary: oklch(0.511 0.262 292);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
@@ -21,13 +25,13 @@
   /* 二次テキストの既定色(--background 5.77:1 / --card 6.02:1)。
      不透明度修飾(`/70` 等)を掛けると 3.12:1 まで落ちて WCAG AA を割るので掛けない。 */
   --muted-foreground: oklch(0.5 0.016 285.938);
-  /* hover 面 = indigo-50 / その上のテキスト = indigo-700。 */
-  --accent: oklch(0.962 0.018 272.314);
-  --accent-foreground: oklch(0.457 0.24 277.023);
+  /* hover 面 = アクセントの淡色 / その上のテキスト = アクセントの濃色。 */
+  --accent: oklch(0.962 0.018 292);
+  --accent-foreground: oklch(0.457 0.24 292);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.92 0.004 286.32);
   --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.585 0.233 277.117);
+  --ring: oklch(0.585 0.233 292);
 }
 
 .dark {
@@ -40,20 +44,20 @@
   /* ダークでは --primary を「面(ボタン背景)」と「テキスト色(text-primary)」の両方に使う。
      L を下げると面に載る白文字は読めるが text-primary が背景に沈み、上げるとその逆になる。
      ライト側と逆に **明るい primary + 濃い前景** にして両立させる(shadcn のダークテーマと同じ方針)。
-       text-primary: --background 5.97:1 / --card 5.32:1
-       面に載る前景: 5.97:1 */
-  --primary: oklch(0.68 0.233 277.117);
+       text-primary: --background 5.98:1 / --card 5.33:1
+       面に載る前景: 5.98:1 */
+  --primary: oklch(0.68 0.233 292);
   --primary-foreground: oklch(0.141 0.005 285.823);
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.274 0.006 286.033);
   --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.36 0.055 277);
-  --accent-foreground: oklch(0.962 0.018 272.314);
+  --accent: oklch(0.36 0.055 292);
+  --accent-foreground: oklch(0.962 0.018 292);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.585 0.233 277.117);
+  --ring: oklch(0.585 0.233 292);
 }
 
 @theme inline {
@@ -82,11 +86,27 @@
   --color-ring: var(--ring);
 }
 
+/**
+ * 見出し用の書体スタック。
+ *
+ * `--font-geist` は `next/font/google` が `<html>` に載せる変数(app/layout.tsx)。
+ * Geist は欧文のみなので、日本語は自然に次の system-ui へフォールバックする
+ * = 「欧文見出しは Geist / 日本語は system-ui」の 2 段構えが 1 スタックで成立する。
+ */
+@utility font-display {
+  font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   }
 }

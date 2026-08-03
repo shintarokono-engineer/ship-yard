@@ -1,20 +1,35 @@
+'use client';
+
+import { useOptimistic, useTransition } from 'react';
+import { toast } from 'sonner';
+
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { ITEM_STATUS_META, type ChecklistItem, type MonthlyUsageSummary } from '@/lib/api/types';
+import {
+  ITEM_STATUS_META,
+  type ChecklistItem,
+  type ItemStatus,
+  type MonthlyUsageSummary,
+} from '@/lib/api/types';
 
+import { toggleChecklistItemStatusAction } from '../_actions/update-checklist-item';
 import { DeleteChecklistItemButton } from './delete-checklist-item-button';
 import { EditChecklistItemDialog } from './edit-checklist-item-dialog';
 import { SplitTaskDialog } from './split-task-dialog';
 import { StatusCheckbox } from './status-checkbox';
 
 /**
- * チェックリスト 1 行のレンダリング。Server Component。
+ * チェックリスト 1 行のレンダリング。
  *
  * - status=DONE はタイトルを取消線 + muted 表示
  * - IN_PROGRESS / NOT_APPLICABLE はバッジで状態表示(TODO / DONE はチェックボックスで表現済みなので不要)
  * - サブタスクは `parentId` でグループ化済み、本コンポーネントは「親または独立タスク」「子タスク」を
  *   `indent` プロパティで描き分ける
  * - 編集 / 削除ボタンは `canWrite`(WRITER 以上)で表示
+ *
+ * トグルは `useOptimistic` でサーバー往復を待たずに反映する。チェック状態と取消線・バッジは
+ * 同じ楽観値から描く(片方だけ先に変わると不整合に見えるため、状態は行が一括で持つ)。
+ * 失敗時は transition の終了で楽観値が破棄され、サーバーの値に戻る。
  */
 export function ChecklistItemRow({
   slug,
@@ -33,9 +48,27 @@ export function ChecklistItemRow({
   canWrite: boolean;
   usage: MonthlyUsageSummary;
 }) {
-  const meta = ITEM_STATUS_META[item.status];
-  const showStatusBadge = item.status === 'IN_PROGRESS' || item.status === 'NOT_APPLICABLE';
-  const isDone = item.status === 'DONE';
+  const [, startTransition] = useTransition();
+  const [status, setOptimisticStatus] = useOptimistic<ItemStatus, ItemStatus>(
+    item.status,
+    (_current, next) => next,
+  );
+
+  const meta = ITEM_STATUS_META[status];
+  const showStatusBadge = status === 'IN_PROGRESS' || status === 'NOT_APPLICABLE';
+  const isDone = status === 'DONE';
+
+  const handleToggle = () => {
+    if (!canWrite) return;
+    const nextStatus: ItemStatus = isDone ? 'TODO' : 'DONE';
+    startTransition(async () => {
+      setOptimisticStatus(nextStatus);
+      const result = await toggleChecklistItemStatusAction(slug, projectId, item.id, nextStatus);
+      if (!result.ok && result.message) {
+        toast.error(result.message);
+      }
+    });
+  };
 
   return (
     <div
@@ -45,7 +78,12 @@ export function ChecklistItemRow({
       )}
     >
       <div className="mt-0.5">
-        <StatusCheckbox slug={slug} projectId={projectId} item={item} disabled={!canWrite} />
+        <StatusCheckbox
+          checked={isDone}
+          onToggle={handleToggle}
+          disabled={!canWrite}
+          label={`${item.title} を ${isDone ? '未完了' : '完了'} にする`}
+        />
       </div>
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex flex-wrap items-center gap-2">

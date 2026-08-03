@@ -1,54 +1,32 @@
 'use client';
 
-import { useTransition } from 'react';
-import { toast } from 'sonner';
-
 import { cn } from '@/lib/utils';
-import type { ChecklistItem, ItemStatus } from '@/lib/api/types';
-
-import { toggleChecklistItemStatusAction } from '../_actions/update-checklist-item';
 
 /**
- * status を TODO ↔ DONE でトグルする軽量チェックボックス。
+ * status を TODO ↔ DONE でトグルする軽量チェックボックス(表示のみ)。
  *
- * - DONE / それ以外で見た目を切り替え
- * - IN_PROGRESS / NOT_APPLICABLE の項目もチェック解除で TODO になる(完全切替ではなく
- *   「完了済みかどうか」の単純トグル UX を優先)
- * - クリック中は `useTransition` で pending を可視化
+ * 状態と Server Action の呼び出しは親の `ChecklistItemRow` が持つ。
+ * チェック状態と取消線を同じ楽観値から描くため、ここでは状態を持たない。
  */
 export function StatusCheckbox({
-  slug,
-  projectId,
-  item,
+  checked,
+  onToggle,
   disabled,
+  label,
 }: {
-  slug: string;
-  projectId: string;
-  item: ChecklistItem;
+  checked: boolean;
+  onToggle: () => void;
   disabled?: boolean;
+  label: string;
 }) {
-  const [pending, startTransition] = useTransition();
-  const checked = item.status === 'DONE';
-
-  const handleToggle = () => {
-    if (disabled || pending) return;
-    const nextStatus: ItemStatus = checked ? 'TODO' : 'DONE';
-    startTransition(async () => {
-      const result = await toggleChecklistItemStatusAction(slug, projectId, item.id, nextStatus);
-      if (!result.ok && result.message) {
-        toast.error(result.message);
-      }
-    });
-  };
-
   return (
     <input
       type="checkbox"
       checked={checked}
-      onChange={handleToggle}
-      disabled={disabled || pending}
-      aria-label={`${item.title} を ${checked ? '未完了' : '完了'} にする`}
-      className={cn('size-4 shrink-0 cursor-pointer accent-emerald-600', pending && 'opacity-50')}
+      onChange={onToggle}
+      disabled={disabled}
+      aria-label={label}
+      className={cn('size-4 shrink-0 accent-emerald-600', !disabled && 'cursor-pointer')}
     />
   );
 }
