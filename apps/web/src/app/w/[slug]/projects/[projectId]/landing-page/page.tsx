@@ -133,7 +133,7 @@ export default async function LandingPagePreviewPage({
         <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-16 text-center">
           <LayoutTemplate className="text-muted-foreground/60 size-8" aria-hidden="true" />
           <p className="text-muted-foreground text-sm">まだランディングページがありません。</p>
-          <p className="text-muted-foreground/70 max-w-sm text-xs">
+          <p className="text-muted-foreground max-w-sm text-xs">
             {canWrite
               ? 'プロジェクトの概要や状態をもとに、AI がヒーロー・機能紹介・CTA などのブロックを生成します。'
               : '書き込み権限を持つメンバーが生成すると、ここにプレビューが表示されます。'}

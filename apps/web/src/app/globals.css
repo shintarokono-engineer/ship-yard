@@ -18,7 +18,9 @@
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
+  /* 二次テキストの既定色(--background 5.77:1 / --card 6.02:1)。
+     不透明度修飾(`/70` 等)を掛けると 3.12:1 まで落ちて WCAG AA を割るので掛けない。 */
+  --muted-foreground: oklch(0.5 0.016 285.938);
   /* hover 面 = indigo-50 / その上のテキスト = indigo-700。 */
   --accent: oklch(0.962 0.018 272.314);
   --accent-foreground: oklch(0.457 0.24 277.023);

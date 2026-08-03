@@ -10,7 +10,7 @@ export function CtaSection() {
         <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
           今日から、リリースを加速する。
         </h2>
-        <p className="text-primary-foreground/80 mx-auto mt-4 max-w-xl text-pretty">
+        <p className="text-primary-foreground/90 mx-auto mt-4 max-w-xl text-pretty">
           無料プランで、すぐに始められます。クレジットカードは必要ありません。
         </p>
         <SignUpButton mode="modal">

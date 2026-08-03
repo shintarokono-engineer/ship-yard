@@ -113,7 +113,7 @@ export default async function ProjectDetailPage({
             概要
           </h2>
           {project.description ? (
-            <p className="text-foreground/90 whitespace-pre-wrap text-sm">{project.description}</p>
+            <p className="whitespace-pre-wrap text-sm">{project.description}</p>
           ) : (
             <p className="text-muted-foreground/70 text-sm italic">(説明なし)</p>
           )}
@@ -142,9 +142,7 @@ export default async function ProjectDetailPage({
             )}
           </div>
           {readmePreview ? (
-            <p className="text-foreground/90 whitespace-pre-wrap text-sm leading-relaxed">
-              {readmePreview}
-            </p>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">{readmePreview}</p>
           ) : (
             <p className="text-muted-foreground/70 text-sm italic">(未作成)</p>
           )}
@@ -157,8 +155,11 @@ export default async function ProjectDetailPage({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {/* aria-label 未指定だと accessible name が「見出し + 件数 + 説明文」の連結になる。
+            値は可視の見出しと同一文字列にすること(WCAG 2.5.3 Label in Name)。 */}
         <Link
           href={`/w/${slug}/projects/${projectId}/checklist`}
+          aria-label="チェックリスト"
           className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
         >
           <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
@@ -181,6 +182,7 @@ export default async function ProjectDetailPage({
 
         <Link
           href={`/w/${slug}/projects/${projectId}/rag-qa`}
+          aria-label="AI 壁打ち"
           className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
         >
           <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
@@ -200,6 +202,7 @@ export default async function ProjectDetailPage({
 
         <Link
           href={`/w/${slug}/projects/${projectId}/announcements`}
+          aria-label="告知"
           className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
         >
           <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
@@ -219,6 +222,7 @@ export default async function ProjectDetailPage({
 
         <Link
           href={`/w/${slug}/projects/${projectId}/landing-page`}
+          aria-label="ランディングページ"
           className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
         >
           <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
@@ -245,6 +249,7 @@ export default async function ProjectDetailPage({
         {project.status === 'IDEA' ? (
           <Link
             href={`/w/${slug}/projects/${projectId}/idea-validations`}
+            aria-label="アイデア検証"
             className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
           >
             <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">
@@ -267,6 +272,7 @@ export default async function ProjectDetailPage({
         ) : (
           <Link
             href={`/w/${slug}/projects/${projectId}/diagnoses`}
+            aria-label="プロダクト診断"
             className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
           >
             <Card className="hover:border-primary/40 cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">

@@ -11,6 +11,7 @@ export function ProjectCard({ slug, project }: { slug: string; project: Project 
   return (
     <Link
       href={`/w/${slug}/projects/${project.id}`}
+      aria-label={project.name}
       className="focus-visible:ring-ring/50 block rounded-lg outline-none focus-visible:ring-[3px]"
     >
       <Card className="hover:border-primary/40 h-full cursor-pointer transition-all hover:shadow-sm [&_*]:cursor-pointer">

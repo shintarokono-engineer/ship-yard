@@ -41,7 +41,7 @@ export function EmptyState({
     >
       <Icon className="text-muted-foreground/60 size-8" aria-hidden="true" />
       <p className="text-muted-foreground text-sm">{title}</p>
-      {description && <p className="text-muted-foreground/70 text-xs">{description}</p>}
+      {description && <p className="text-muted-foreground text-xs">{description}</p>}
       {action && <div className="mt-2">{action}</div>}
       {hasLinkAction && (
         <Button asChild size="sm" variant="outline" className="mt-2">
