@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 
 import {
   AnnouncementStatus,
@@ -21,6 +21,7 @@ import type { BlogDeliveryContent, TwitterDeliveryContent } from './announcement
 import type { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import type { GenerateAnnouncementDto } from './dto/generate-announcement.dto';
 import type { UpdateAnnouncementDto } from './dto/update-announcement.dto';
+import { translateAIProviderError } from '../ai/ai-error';
 
 /** Prisma JSON 型へ Delivery.content を安全に入れるためのヘルパー。 */
 function toJson(value: TwitterDeliveryContent | BlogDeliveryContent): Prisma.InputJsonValue {
@@ -36,6 +37,8 @@ function toJson(value: TwitterDeliveryContent | BlogDeliveryContent): Prisma.Inp
  */
 @Injectable()
 export class AnnouncementService {
+  private readonly logger = new Logger(AnnouncementService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly aiUsage: AIUsageService,
@@ -337,7 +340,9 @@ export class AnnouncementService {
     } catch (err) {
       // AI 呼び出し / 永続化のいずれかが失敗したら予約を解放する(失敗生成で課金しない)。
       await this.aiUsage.releaseReservation(reservationId);
-      throw err;
+      // SDK 例外は既定フィルタで 500 + 汎用文言になり、クレジット枯渇のような運用側の
+      // 設定不備とコードのバグを区別できないため、ここで HTTP 例外へ翻訳する。
+      throw translateAIProviderError(err, 'ANNOUNCEMENT_GEN', this.logger);
     }
   }
 

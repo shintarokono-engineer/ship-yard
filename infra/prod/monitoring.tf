@@ -162,3 +162,72 @@ resource "aws_flow_log" "main" {
     Name = "${local.name_prefix}-vpc-flow-log"
   }
 }
+
+# ---------------------------------------------------------------------------
+# AI プロバイダのアカウント設定不備(クレジット枯渇 / API キー失効)の検知
+#
+# 2026-08-04 に本番で Anthropic のクレジットが枯渇し、LP 生成が全て失敗した。
+# **ユーザーには「生成に失敗しました」としか出ず、運営側も気付く手段が無かった**ため、
+# ログのマーカー文字列を拾って通知する。
+#
+# アプリから直接 SNS を publish しない理由:
+#   - インスタンスロールに sns:Publish の IAM 追加が必要になる
+#   - 障害時に通知経路自体が失敗しうる(AI が落ちている = 何かが不安定な状況)
+# ログ経由なら経路が独立し、アプリ側は Logger.error を出すだけで済む。
+#
+# マーカーは apps/api/src/ai/ai-error.ts の translateAIProviderError が出力する。
+# **文字列を変える場合は両方を同時に直すこと。**
+# ---------------------------------------------------------------------------
+
+resource "aws_cloudwatch_log_metric_filter" "ai_provider_account_error" {
+  count = var.enable_apprunner_service ? 1 : 0
+
+  name           = "${local.name_prefix}-ai-provider-account-error"
+  log_group_name = "/aws/apprunner/${local.name_prefix}-api/${aws_apprunner_service.api[0].service_id}/application"
+  pattern        = "AI_PROVIDER_ACCOUNT_ERROR"
+
+  metric_transformation {
+    name      = "AIProviderAccountError"
+    namespace = "Neorie/API"
+    value     = "1"
+    unit      = "Count"
+    # 発生が無いときは 0 を報告させる。これが無いと missing data 扱いになり、
+    # treat_missing_data の設定次第でアラームが INSUFFICIENT_DATA に落ちる。
+    default_value = "0"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "ai_provider_account_error" {
+  count = var.enable_apprunner_service ? 1 : 0
+
+  alarm_name        = "${local.name_prefix}-ai-provider-account-error"
+  alarm_description = <<-EOT
+    AI プロバイダのアカウント設定不備(クレジット残高切れ / API キー失効)を検知した。
+    ユーザーの AI 機能が全て停止しているので即対応が必要。
+
+    確認先:
+      Anthropic https://console.anthropic.com  → Plans & Billing
+      OpenAI    https://platform.openai.com/settings/organization/billing
+
+    キーを入れ直した場合は Secrets Manager 更新後に再デプロイが要る:
+      aws apprunner start-deployment --service-arn <ARN>
+  EOT
+
+  namespace           = "Neorie/API"
+  metric_name         = "AIProviderAccountError"
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  # 0 を default_value で報告しているので missing は起きない想定だが、
+  # 念のため「データ無し = 正常」に倒す(誤報より取りこぼしを避ける設計ではない)。
+  treat_missing_data = "notBreaching"
+
+  alarm_actions = [aws_sns_topic.alerts.arn]
+  ok_actions    = [aws_sns_topic.alerts.arn]
+
+  tags = {
+    Name = "${local.name_prefix}-ai-provider-account-error"
+  }
+}

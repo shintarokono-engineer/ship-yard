@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 
 import { Feature, type IdeaValidation, type Plan, type Prisma } from '@shipyard/db';
 
@@ -22,6 +22,7 @@ import {
 } from './validation.constants';
 import { parseValidationOutput, SUBMIT_IDEA_VALIDATION_TOOL } from './validation-schema';
 import type { ValidationOutput } from './validation-types';
+import { translateAIProviderError } from '../ai/ai-error';
 
 /**
  * アイデア検証(IDEA_VALIDATION、ADR-013 改訂版「2 モード化」)の Service。
@@ -32,6 +33,8 @@ import type { ValidationOutput } from './validation-types';
  */
 @Injectable()
 export class IdeaValidationService {
+  private readonly logger = new Logger(IdeaValidationService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly anthropic: AnthropicService,
@@ -288,7 +291,9 @@ export class IdeaValidationService {
     } catch (err) {
       // AI 呼び出し / パース / 永続化のいずれかが失敗したら予約を解放する(失敗検証で課金しない)。
       await this.aiUsage.releaseReservation(reservationId);
-      throw err;
+      // SDK 例外は既定フィルタで 500 + 汎用文言になり、クレジット枯渇のような運用側の
+      // 設定不備とコードのバグを区別できないため、ここで HTTP 例外へ翻訳する。
+      throw translateAIProviderError(err, 'IDEA_VALIDATION', this.logger);
     }
   }
 }

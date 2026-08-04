@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 
 import { Feature, type Plan, type Prisma, type ServiceScore } from '@shipyard/db';
 
@@ -19,6 +19,7 @@ import { formatStructuredBriefForPrompt } from '../projects/project-brief.consta
 import { formatRubricForPrompt } from './diagnosis.constants';
 import { parseDiagnosisOutput, SUBMIT_SERVICE_SCORE_TOOL } from './diagnosis-schema';
 import type { DiagnosisOutput } from './diagnosis-types';
+import { translateAIProviderError } from '../ai/ai-error';
 
 /**
  * プロダクト診断(PRODUCT_DIAGNOSIS、ADR-013)の Service。
@@ -29,6 +30,8 @@ import type { DiagnosisOutput } from './diagnosis-types';
  */
 @Injectable()
 export class ProductDiagnosisService {
+  private readonly logger = new Logger(ProductDiagnosisService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly anthropic: AnthropicService,
@@ -324,7 +327,9 @@ export class ProductDiagnosisService {
     } catch (err) {
       // AI 呼び出し / パース / 永続化のいずれかが失敗したら予約を解放する(失敗診断で課金しない)。
       await this.aiUsage.releaseReservation(reservationId);
-      throw err;
+      // SDK 例外は既定フィルタで 500 + 汎用文言になり、クレジット枯渇のような運用側の
+      // 設定不備とコードのバグを区別できないため、ここで HTTP 例外へ翻訳する。
+      throw translateAIProviderError(err, 'PRODUCT_DIAGNOSIS', this.logger);
     }
   }
 }

@@ -4,6 +4,7 @@ import { Feature, Plan } from '@shipyard/db';
 
 import { dayjs } from '../common/time';
 import { PrismaService } from '../prisma/prisma.service';
+import { translateAIProviderError } from './ai-error';
 import {
   ANNOUNCEMENT_MAX_PER_MONTH_PRO,
   FALLBACK_MODEL_CREDITS,
@@ -360,6 +361,11 @@ export class AIUsageService {
    *
    * `run` は AI 呼び出し(+ 必要な永続化)を行い、結果と実トークン数を返す。成功すれば tokens を確定、
    * 例外なら予約を解放して re-throw する。各 AI フローの呼び出し側の try/catch 重複を無くす。
+   *
+   * **全 AI フローがここを通るため、プロバイダ SDK 例外の翻訳もここで行う**
+   * (`translateAIProviderError`)。翻訳しないと SDK 例外が NestJS 既定フィルタで
+   * 500 + 汎用文言になり、クレジット枯渇のような**運用側の設定不備**とコードのバグを
+   * 区別できない(2026-08-04 に本番で実際に踏んだ)。
    */
   async withCreditReservation<T>(
     tenant: { id: string; plan: Plan },
@@ -373,7 +379,7 @@ export class AIUsageService {
       return value;
     } catch (err) {
       await this.releaseReservation(reservationId);
-      throw err;
+      throw translateAIProviderError(err, usage.feature, this.logger);
     }
   }
 
