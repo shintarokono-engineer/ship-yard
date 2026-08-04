@@ -6,14 +6,14 @@ MVP は **Web Intent 方式**(X API を叩かない)を採用しています。�
 
 - インフラ側の設定(X Developer Portal / Secrets Manager / Redis)は **不要**
 - ユーザーは各自の X アカウントで X 側にログインしていれば投稿できる
-- Shipyard 側は投稿内容(280 字以内)を Web Intent URL のクエリパラメータに埋めて新規タブで開くだけ
+- Neorie 側は投稿内容(280 字以内)を Web Intent URL のクエリパラメータに埋めて新規タブで開くだけ
 
 ## 1. 動作確認
 
 - [ ] 任意の Announcement を作成 → AI 文面生成
 - [ ] TwitterDeliveryCard の「**X で投稿する**」ボタンをクリック → 新規タブで X の投稿画面が開く
 - [ ] X 画面で「ツイートする」を押して実際に投稿
-- [ ] Shipyard に戻り「**送信完了**」ボタンを押す → 確認 dialog → 「送信完了とする」で `Delivery.status = SENT` 記録
+- [ ] Neorie に戻り「**送信完了**」ボタンを押す → 確認 dialog → 「送信完了とする」で `Delivery.status = SENT` 記録
 - [ ] DB で `Delivery.status = SENT` / `sentAt` セット / `externalRef = null` を確認
 
 ## 2. 監視すべき指標
@@ -23,9 +23,9 @@ Web Intent 方式では BE 側から見える情報は最小限:
 | 指標 | データソース | 意味 |
 |---|---|---|
 | `Delivery.status = SENT`(Twitter channel)件数 / 日 | DB | ユーザーがどれだけ「送信完了」を押しているか |
-| `Delivery` 状態が DRAFT で滞留する件数 | DB | X で投稿はしたが Shipyard 側で「送信完了」を押していないユーザー(UX 課題の指標) |
+| `Delivery` 状態が DRAFT で滞留する件数 | DB | X で投稿はしたが Neorie 側で「送信完了」を押していないユーザー(UX 課題の指標) |
 
-X API 側の rate limit / エラー率は Shipyard から観測不能(X 側の Free Tier 個人枠での投稿になるため)。
+X API 側の rate limit / エラー率は Neorie から観測不能(X 側の Free Tier 個人枠での投稿になるため)。
 
 ## 3. トラブルシューティング
 

@@ -312,7 +312,7 @@ Server Action(`_actions/announcements.ts`):
 - LP の公開ページ(`/p/:slug/:projectId`)と同じ装い:
   - ヘッダ:Project.name + ロゴ + 「LP に戻る」 リンク
   - 本文:title + publishedAt + Markdown レンダリング(`MarkdownViewer` 共通)
-  - フッタ:Powered by Shipyard(LP と統一)
+  - フッタ:Powered by Neorie(LP と統一)
 - `generateMetadata` で OG / Twitter Card(LP と同パターン)+ `canonical` URL(SEO)
 - 404:`publishedAt` 未セット or 不在の postSlug → `notFound()`
 
@@ -352,7 +352,7 @@ Server Action(`_actions/announcements.ts`):
 ### Twitter OAuth 2.0 PKCE フロー
 
 ```
-User              Shipyard FE         Shipyard BE         Upstash Redis      X (twitter.com)
+User              Neorie FE         Neorie BE         Upstash Redis      X (twitter.com)
  │                    │                    │                    │                    │
  │ 「X 連携」 click   │                    │                    │                    │
  ├───────────────────▶│ GET /integrations/twitter/authorize     │                    │
@@ -511,8 +511,8 @@ Delivery テーブル自体が監査ログを兼ねる:
 
 ### Rate limit と AbuseManagement
 
-- **Twitter API 側**:`POST /2/tweets` はユーザー個人の枠(月 1500 投稿、Free Tier)。Shipyard 側で消費する Tier はない(コスト 0)。429 を受けたら Delivery を FAILED + error メッセージに残す
-- **Shipyard 側**:`assertWithinAnnouncementQuota`(MVP は月 50 回上限)で AI 多チャネル生成の暴走を防ぐ
+- **Twitter API 側**:`POST /2/tweets` はユーザー個人の枠(月 1500 投稿、Free Tier)。Neorie 側で消費する Tier はない(コスト 0)。429 を受けたら Delivery を FAILED + error メッセージに残す
+- **Neorie 側**:`assertWithinAnnouncementQuota`(MVP は月 50 回上限)で AI 多チャネル生成の暴走を防ぐ
 - **Blog 公開ページ**:Vercel エッジで自然に分散される
 
 ### 環境変数追加(`apps/api/.env.example`)
@@ -626,7 +626,7 @@ export type AnnouncementDrafts = {
 | ----------------------------- | ------------------------------------------------------------------------------------------------------ |
 | 送信者情報                    | React Email の `SubscriberEmailLayout` 共通レイアウトの footer に **強制表示**                          |
 | 配信目的の明示                | 件名 or リード文に「【お知らせ】」 等のプレフィックス + footer に自動付与                                |
-| unsubscribe link              | footer に `https://shipyard.app/public/subscribers/unsubscribe/{token}` を **強制挿入**、1 クリック解除 |
+| unsubscribe link              | footer に `https://neorie.com/public/subscribers/unsubscribe/{token}` を **強制挿入**、1 クリック解除 |
 | ワンクリック unsubscribe(RFC) | メールヘッダに `List-Unsubscribe: <URL>` + `List-Unsubscribe-Post: List-Unsubscribe=One-Click`        |
 | 送信者ドメイン認証            | 既存 Resend の DKIM / SPF / DMARC 設定を流用(Day 17 + Week 5 本番 DNS で対応済)                       |
 | 件名に「広告」 マーク         | 法務レビュー結果次第                                                                                    |
@@ -734,7 +734,7 @@ E2E 結果サマリは `.claude/output/run-e2e/2026-MM-DD-day{56,57,58,59}-annou
 
 #### 4. 手動 E2E(MVP 公開前、Day 58-59)
 
-- 実 X アカウント(`shipyard_official` 想定)で OAuth → 実 tweet → 削除 の往復
+- 実 X アカウント(`neorie_official` 想定)で OAuth → 実 tweet → 削除 の往復
 - 公開ブログページのブラウザ確認(Chrome / Safari / モバイル Safari、OG プレビュー / OGP デバッガ)
 - 利用規約 update 同意導線の確認
 
@@ -760,7 +760,7 @@ E2E 結果サマリは `.claude/output/run-e2e/2026-MM-DD-day{56,57,58,59}-annou
 | Upstash Redis(state 保管用)の prod インスタンス確認 | Day 50   |
 | 利用規約 update(投稿はユーザー責任、X 規約への同意)| Day 59   |
 | `/p/.../blog/.*` を `robots.txt` で allow + sitemap に追加 | Day 59   |
-| 公開後 24h で実 tweet × 1 / 実 blog × 1 を Shipyard 自身でドッグフーディング | Day 59   |
+| 公開後 24h で実 tweet × 1 / 実 blog × 1 を Neorie 自身でドッグフーディング | Day 59   |
 
 ### 公開後の監視(Day 59 以降)
 

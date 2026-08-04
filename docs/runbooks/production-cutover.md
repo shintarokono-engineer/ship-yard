@@ -1,6 +1,6 @@
 # 本番切替 runbook(AWS + 外部 SaaS の初回構築)
 
-**目的**: ローカルのみで動いている Shipyard を、本番ドメインで一般公開できる状態にするまでの通し手順。
+**目的**: ローカルのみで動いている Neorie を、本番ドメインで一般公開できる状態にするまでの通し手順。
 **対象**: 初回の本番構築(2 回目以降のデプロイは GitHub Actions が自動で行う)。
 **方針**: **このファイルだけを上から実行すれば完了できる**ように書く。他ドキュメントは補足・トラブル時の深掘り用。
 
@@ -46,7 +46,7 @@
 | クレジットを使い切ったら | **アカウントが一時停止**           | 従量課金に移行       |
 | 初期クレジット          | あり                               | **あり(同額)**       |
 
-Shipyard の構成には**無料利用枠の対象外リソース**が含まれるため、無料プランでは Phase 2 の `terraform apply` が通らないか、運用開始後に停止します。
+Neorie の構成には**無料利用枠の対象外リソース**が含まれるため、無料プランでは Phase 2 の `terraform apply` が通らないか、運用開始後に停止します。
 
 - **App Runner**($11〜14/月)/ **Route53 ホストゾーン**($0.50)/ **Secrets Manager**($0.40)/ **Elastic IP**($3.7)
 
@@ -383,7 +383,7 @@ add_record "clk2._domainkey.example.app" CNAME "<Clerk が表示した値>"
 
 ```hcl
 # infra/prod/terraform.tfvars に追記
-mail_from = "Shipyard <noreply@example.app>"
+mail_from = "Neorie <noreply@example.app>"
 ```
 
 ```bash
@@ -411,14 +411,14 @@ Stripe Dashboard 右上の **「テスト環境」トグルをオフ**にしま�
 **Pro プラン**
 
 1. 商品カタログ → **商品を追加**
-2. 名前: `Shipyard Pro`
+2. 名前: `Neorie Pro`
 3. 料金: **¥1,480** / **月次** / **継続**(通貨 JPY)
 4. 保存 → 作成された **Price ID(`price_...`)を控える** → `STRIPE_PRICE_PRO`
 
 **Team プラン**
 
 1. 商品カタログ → **商品を追加**
-2. 名前: `Shipyard Team`
+2. 名前: `Neorie Team`
 3. 料金: **¥2,800** / **月次** / **継続**(通貨 JPY)
    - 人数課金は Checkout / Subscription 側で `quantity` を渡して実現します(ADR-004)。Price 側で段階制などを設定する必要はありません
 4. 保存 → **Price ID を控える** → `STRIPE_PRICE_TEAM`

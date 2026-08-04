@@ -90,14 +90,14 @@ apps/api/src/db/client.ts       # API 内のみで利用
 
 ### A を採用する核心理由
 
-1. **複数 consumer 対応**: Shipyard では DB を直接利用する consumer が API 以外にも複数存在する(Worker、Seed、管理 CLI、CI のマイグレーション、将来の admin app)。`packages/db` に配置することで全 consumer が同一の Prisma Client + Extension を共有できる
+1. **複数 consumer 対応**: Neorie では DB を直接利用する consumer が API 以外にも複数存在する(Worker、Seed、管理 CLI、CI のマイグレーション、将来の admin app)。`packages/db` に配置することで全 consumer が同一の Prisma Client + Extension を共有できる
 2. **Prisma Client Extension の再利用**: ADR-002 の tenantId 自動注入は Service 層で書かれるべきものではなく、Client 層で構造的に保証する設計。これを全 consumer で享受するためには共有パッケージが必要
 3. **型同期の最大化**: モノレポを採用する最大のメリットは「フロント↔バック間の型同期」。Prisma 型を `@shipyard/types` 経由で `apps/web` から参照可能にすることで、API 仕様変更を `apps/web` のビルドエラーで即座に検知できる
 4. **業界慣例**: Turborepo 公式テンプレート(`with-prisma`)、T3 Turbo、Cal.com 等のモダン monorepo は全て `packages/db` 配置。副業面談で「一般的な構成を理解している」と語れる
 
 ### B を棄却した理由
 
-- 「最初は API のみが利用」という前提が崩れた瞬間に再構成コストが発生する。Shipyard は Day 5 の時点で BullMQ Worker を別プロセスとして稼働させるため、すでに「単一 consumer」の前提が成立しない
+- 「最初は API のみが利用」という前提が崩れた瞬間に再構成コストが発生する。Neorie は Day 5 の時点で BullMQ Worker を別プロセスとして稼働させるため、すでに「単一 consumer」の前提が成立しない
 - 型共有のメリットを諦めるのは、モノレポを採用する意味が大きく毀損する
 
 ### C を棄却した理由

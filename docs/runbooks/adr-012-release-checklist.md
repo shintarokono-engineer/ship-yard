@@ -13,7 +13,7 @@
 ### Pro プラン
 
 - [ ] Stripe Dashboard → Products → **「+ Add product」**
-  - Name: `Shipyard Pro`
+  - Name: `Neorie Pro`
   - Description: `Pro プラン(個人開発者向け、AI クレジット 300/月)`
 - [ ] Price を追加:
   - Pricing model: **Standard pricing**
@@ -24,7 +24,7 @@
 ### Team プラン
 
 - [ ] Stripe Dashboard → Products → **「+ Add product」**
-  - Name: `Shipyard Team`
+  - Name: `Neorie Team`
   - Description: `Team プラン(2 人以上のチーム向け、AI クレジット 800/人・月)`
 - [ ] Price を追加:
   - Pricing model: **Standard pricing**

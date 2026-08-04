@@ -14,12 +14,12 @@
 
 ### A. サブドメイン方式
 
-- `acme.shipyard.app` のように各ワークスペースに独自サブドメイン
+- `acme.neorie.com` のように各ワークスペースに独自サブドメイン
 - 例: Slack、Notion、Zendesk
 
 ### B. サブパス方式
 
-- `shipyard.app/w/{slug}` のようにパス単位で識別
+- `neorie.com/w/{slug}` のようにパス単位で識別
 - 例: GitHub Organizations、Linear、Vercel Teams
 
 ### C. JWT 埋め込み方式
@@ -50,7 +50,7 @@
 ### 良い影響
 
 - インフラ構成シンプル、Vercel + ECS で完結
-- URL が直感的(`shipyard.app/w/devlog/projects/xxx`)
+- URL が直感的(`neorie.com/w/devlog/projects/xxx`)
 - スクリーンショット時にテナント context が判別可能
 - 招待リンク共有が URL コピーだけで完結
 

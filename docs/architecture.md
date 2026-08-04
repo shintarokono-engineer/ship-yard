@@ -2,7 +2,7 @@
 
 ## 概要
 
-C4 モデル(Context・Container)で Shipyard のシステム構成を可視化する。Component・Code レベルは省略し、必要に応じて個別の設計書で詳細化する。
+C4 モデル(Context・Container)で Neorie のシステム構成を可視化する。Component・Code レベルは省略し、必要に応じて個別の設計書で詳細化する。
 
 > **最終更新: 2026-07-25。** 本番構成は [ADR-011「軽量 AWS 構成」](adr/011-lightweight-aws-architecture.md)(2026-05-22 承認)に準拠する。ADR-001 で想定していた **ECS Fargate + Aurora Serverless v2 + ElastiCache + ALB は採用していない**(収益ゼロ期の固定費をフロア月 ~$100〜130 → ~$26 に圧縮するため、**Vercel + App Runner + RDS `db.t4g.micro` + NAT インスタンス**へ組み替え)。ADR-001 のインフラ節は ADR-011 に置き換えられている。
 
@@ -10,12 +10,12 @@ C4 モデル(Context・Container)で Shipyard のシステム構成を可視化�
 
 ```mermaid
 C4Context
-    title System Context Diagram for Shipyard
+    title System Context Diagram for Neorie
 
     Person(indieDev, "個人開発エンジニア", "副業/独立を視野に複数プロジェクトを管理")
     Person(teamMember, "チームメンバー", "招待されてレビュー・テストに参加")
 
-    System(shipyard, "Shipyard", "個人開発のリリース支援 SaaS<br/>マルチテナント+AI支援+課金")
+    System(shipyard, "Neorie", "個人開発のリリース支援 SaaS<br/>マルチテナント+AI支援+課金")
 
     System_Ext(clerk, "Clerk", "認証サービス<br/>サインアップ・ログイン・MFA")
     System_Ext(stripe, "Stripe", "決済サービス<br/>サブスクリプション課金")
@@ -52,11 +52,11 @@ C4Context
 
 ```mermaid
 C4Container
-    title Container Diagram for Shipyard
+    title Container Diagram for Neorie
 
     Person(user, "ユーザー", "個人開発エンジニア")
 
-    System_Boundary(shipyard, "Shipyard") {
+    System_Boundary(shipyard, "Neorie") {
         Container(webApp, "Web App", "Next.js (App Router) + React + TypeScript", "ユーザー向け UI<br/>Vercel にデプロイ")
         Container(apiServer, "API Server", "NestJS + TypeScript", "ビジネスロジック・Webhook 処理・AI 呼び出し<br/>AWS App Runner")
         ContainerDb(db, "Database", "PostgreSQL 16 + pgvector", "リレーショナル+ベクトル<br/>RDS db.t4g.micro (Single-AZ)")
@@ -207,7 +207,7 @@ flowchart TB
 
 ### CORS / CSRF
 
-- Web App と API Server は別ドメイン構成(`shipyard.app` / `api.shipyard.app`)
+- Web App と API Server は別ドメイン構成(`neorie.com` / `api.neorie.com`)
 - CORS は API 側で許可ドメインを明示
 - CSRF 対策: Same-Site Cookie + JWT を Authorization ヘッダーで送る
 

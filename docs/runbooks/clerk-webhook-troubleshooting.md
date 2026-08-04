@@ -4,7 +4,7 @@
 
 ## 0. 概要
 
-Clerk → Shipyard DB へのユーザー同期は **2 経路** で担保しています。
+Clerk → Neorie DB へのユーザー同期は **2 経路** で担保しています。
 
 | 経路 | トリガー | 用途 |
 | --- | --- | --- |
@@ -51,7 +51,7 @@ ngrok http 4000
 
 ### 1.4 Clerk Dashboard で Webhook Endpoint 登録
 
-1. https://dashboard.clerk.com → Shipyard の **Development** インスタンス
+1. https://dashboard.clerk.com → Neorie の **Development** インスタンス
 2. 左サイドバー **Configure** → **Webhooks** → **+ Add Endpoint**
 3. **Endpoint URL** = `<NGROK_URL>/webhooks/clerk`
 4. **Message Filtering** で **3 イベント全てにチェック**:
@@ -178,7 +178,7 @@ Clerk Issue [#6691](https://github.com/clerk/javascript/issues/6691) で **"Clos
 
 **復旧 / 予防(Clerk 公式ベストプラクティス、F1.5 実装後の運用)**:
 
-1. **Clerk Dashboard で Multi-session handling = OFF を確認**(デフォルト OFF、Sessions ページのトグル)。Shipyard は B2B SaaS = 1 ブラウザ 1 セッション運用のため Multi-session は不要。OFF なら `signOut()` 標準動作で唯一のセッションが無効化 → 原因 1 が構造的に発生しない
+1. **Clerk Dashboard で Multi-session handling = OFF を確認**(デフォルト OFF、Sessions ページのトグル)。Neorie は B2B SaaS = 1 ブラウザ 1 セッション運用のため Multi-session は不要。OFF なら `signOut()` 標準動作で唯一のセッションが無効化 → 原因 1 が構造的に発生しない
 2. **`<ClerkProvider afterSignOutUrl="/sign-out-cleanup">` でアプリ全体のサインアウト遷移先を集約**(`apps/web/src/app/layout.tsx`)。`<UserButton afterSignOutUrl>` は Clerk v6 で deprecated のため使わない
 3. **F1.5:`/sign-out-cleanup` 中間ページでクライアント側 cleanup**(`apps/web/src/app/sign-out-cleanup/page.tsx`):
    - LocalStorage の Clerk 関連キー(`__clerk_*` / `clerk_*`)をピンポイント削除
@@ -222,7 +222,7 @@ Clerk Issue [#6691](https://github.com/clerk/javascript/issues/6691) で **"Clos
 
 **症状**: サインアウト済(`__client_uat=0`)の状態で `/sign-up` または `/sign-in` を開き「Continue with Google」 を押すと、Google のアカウント選択画面が出ずに **直前ログインの Google アカウントで瞬時にサインイン**して `/w/{slug}` に遷移する。GitHub も同症状。
 
-**結論(2026-05-29)**: **Shipyard はこれを業界標準パターンとして受け入れる**(F1.7 撤回)。別アカウントを使いたいユーザーは Google 側で「Use a different account」 / ログアウト操作する前提とする。Slack / Notion / Linear / Vercel も同じ挙動。
+**結論(2026-05-29)**: **Neorie はこれを業界標準パターンとして受け入れる**(F1.7 撤回)。別アカウントを使いたいユーザーは Google 側で「Use a different account」 / ログアウト操作する前提とする。Slack / Notion / Linear / Vercel も同じ挙動。
 
 **調査経緯**:
 
@@ -237,12 +237,12 @@ Clerk Issue [#6691](https://github.com/clerk/javascript/issues/6691) で **"Clos
 - SDK が `oidcPrompt` を Frontend API に送信しない実装である限り、Custom Flow でも `<SignUp>`/`<SignIn>` 標準 UI でも `prompt=select_account` を Google OAuth URL に渡せない。
 - Clerk が「修正予定なし」 と明言しているため、Clerk SDK の改修待ちは見込めない。
 - 自前で Google OAuth Client を立てて Clerk バイパスする選択肢もあるが、Clerk の認証フロー外で動かす負債 + Day 50 リリーススケジュールを圧迫するため見送り。
-- 同症状を Slack / Notion / Linear / Vercel が業界標準として受け入れている = Shipyard 独自に解決する必要性は薄い。
+- 同症状を Slack / Notion / Linear / Vercel が業界標準として受け入れている = Neorie 独自に解決する必要性は薄い。
 
 **Help / FAQ で案内する内容(v1.x、F23 として新規起票候補)**:
 
 - Q: 「サインイン画面で別の Google アカウントを使いたい」
-- A: 「ブラウザの右上の Google アカウント切替で対象アカウントに切り替えてから Continue with Google を押す」 / または「[https://accounts.google.com](https://accounts.google.com) から Sign out → 改めて Shipyard でサインイン」 / または「Use a different account」 のリンクを利用する。
+- A: 「ブラウザの右上の Google アカウント切替で対象アカウントに切り替えてから Continue with Google を押す」 / または「[https://accounts.google.com](https://accounts.google.com) から Sign out → 改めて Neorie でサインイン」 / または「Use a different account」 のリンクを利用する。
 
 **Clerk SDK 改善を待つ場合の再開条件**:
 

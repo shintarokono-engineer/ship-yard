@@ -2,7 +2,7 @@
 
 ## 概要
 
-Shipyard の主要なユーザーフローを画面遷移図で示す。MVP 範囲のフローのみ記載し、将来追加機能は別途追記する。
+Neorie の主要なユーザーフローを画面遷移図で示す。MVP 範囲のフローのみ記載し、将来追加機能は別途追記する。
 
 ## URL 構造
 
@@ -10,16 +10,16 @@ ADR-003 のサブパス方式に基づく URL 体系。
 
 | パターン                  | 例                                 | 用途                         |
 | ------------------------- | ---------------------------------- | ---------------------------- |
-| `/`                       | shipyard.app/                      | ランディングページ           |
-| `/sign-in`                | shipyard.app/sign-in               | ログイン                     |
-| `/sign-up`                | shipyard.app/sign-up               | サインアップ                 |
-| `/onboarding`             | shipyard.app/onboarding            | 初回ワークスペース作成       |
-| `/w`                      | shipyard.app/w                     | ワークスペース一覧           |
-| `/w/{slug}`               | shipyard.app/w/devlog              | ワークスペースダッシュボード |
-| `/w/{slug}/projects/{id}` | shipyard.app/w/devlog/projects/abc | プロジェクト詳細             |
-| `/w/{slug}/settings`      | shipyard.app/w/devlog/settings     | ワークスペース設定           |
-| `/w/{slug}/billing`       | shipyard.app/w/devlog/billing      | 課金管理                     |
-| `/invite/{token}`         | shipyard.app/invite/xyz            | 招待受諾                     |
+| `/`                       | neorie.com/                      | ランディングページ           |
+| `/sign-in`                | neorie.com/sign-in               | ログイン                     |
+| `/sign-up`                | neorie.com/sign-up               | サインアップ                 |
+| `/onboarding`             | neorie.com/onboarding            | 初回ワークスペース作成       |
+| `/w`                      | neorie.com/w                     | ワークスペース一覧           |
+| `/w/{slug}`               | neorie.com/w/devlog              | ワークスペースダッシュボード |
+| `/w/{slug}/projects/{id}` | neorie.com/w/devlog/projects/abc | プロジェクト詳細             |
+| `/w/{slug}/settings`      | neorie.com/w/devlog/settings     | ワークスペース設定           |
+| `/w/{slug}/billing`       | neorie.com/w/devlog/billing      | 課金管理                     |
+| `/invite/{token}`         | neorie.com/invite/xyz            | 招待受諾                     |
 
 ## フロー1: オンボーディング(初回サインアップ)
 

@@ -1,4 +1,4 @@
-# Shipyard
+# Neorie
 
 ![Status](https://img.shields.io/badge/status-Week%206%20%2F%20Day%2042%20done-blue)
 ![Node](https://img.shields.io/badge/node-22-339933)

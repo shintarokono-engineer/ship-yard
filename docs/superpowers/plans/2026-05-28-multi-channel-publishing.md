@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** ユーザーのリリース告知 / アップデート告知を、Shipyard 内から Twitter(OAuth + API)+ 自前ブログ(`/p/{slug}/{projectId}/blog/{postSlug}` で公開)に一斉配信できる MVP を実装する。メール配信は v1.x 送り。
+**Goal:** ユーザーのリリース告知 / アップデート告知を、Neorie 内から Twitter(OAuth + API)+ 自前ブログ(`/p/{slug}/{projectId}/blog/{postSlug}` で公開)に一斉配信できる MVP を実装する。メール配信は v1.x 送り。
 
 **Architecture:** Project 配下に `Announcement` entity(複数)+ `Delivery` entity(channel ごと、`@@unique([announcementId, channel])`)。Sonnet 4 + Tool Use(`submit_announcement_drafts`)で Twitter 文 + Blog 本文を一括生成、`ANNOUNCEMENT_GEN` Feature で AIUsage 計上。Twitter は OAuth 2.0 PKCE で個人アカウント連携、token は AES-256-GCM 暗号化。Blog は ADR-009 LP の「アプリ内編集 + 公開 URL」 パターンを流用。
 
@@ -3318,7 +3318,7 @@ export default async function PublicBlogPage({
       </header>
       <MarkdownViewer source={post.body} />
       <footer className="text-muted-foreground border-t pt-4 text-xs">
-        Powered by Shipyard
+        Powered by Neorie
       </footer>
     </article>
   );
@@ -3465,7 +3465,7 @@ git commit -m "docs: Day 56-59 完了 + ADR-014 マルチチャネル告知配�
 5. Upstash Redis(state 保管用)の prod インスタンス確認
 6. 利用規約 update(投稿はユーザー責任)
 7. `/p/.../blog/.*` を robots.txt で allow + sitemap に追加(Task 19 で対応済)
-8. 公開後 24h で実 tweet × 1 / 実 blog × 1 を Shipyard 自身でドッグフーディング
+8. 公開後 24h で実 tweet × 1 / 実 blog × 1 を Neorie 自身でドッグフーディング
 
 各項目の完了を `docs/runbooks/adr-012-release-checklist.md` 等に転記(あれば)。
 
@@ -3480,7 +3480,7 @@ Expected: 全コミットが origin/main に反映。
 
 - [ ] **Step 4: 公開後ドッグフーディング**
 
-Shipyard 自身のプロジェクトで Announcement を 1 件作成 → 実 tweet 投稿 → 公開ブログ 1 件公開 → ユーザー視点で確認。
+Neorie 自身のプロジェクトで Announcement を 1 件作成 → 実 tweet 投稿 → 公開ブログ 1 件公開 → ユーザー視点で確認。
 
 - [ ] **Step 5: 公開アナウンス**
 

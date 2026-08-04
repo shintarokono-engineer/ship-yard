@@ -6,7 +6,7 @@
 
 ## 背景・問題
 
-Shipyard はトランザクショナルメール送信が必要であり、最優先の用途はメンバー招待(`screen-flow.md` フロー3、`InvitationToken` モデル)。将来用途として課金通知(Stripe イベント連動)、パスワードリセット補助、その他アカウント系通知がある。
+Neorie はトランザクショナルメール送信が必要であり、最優先の用途はメンバー招待(`screen-flow.md` フロー3、`InvitationToken` モデル)。将来用途として課金通知(Stripe イベント連動)、パスワードリセット補助、その他アカウント系通知がある。
 
 `screen-flow.md` フロー3の図には「SES 経由」と記述されているが、プロバイダの選定は未確定のままだった(`PROJECT_STATUS.md` §9.2)。
 
@@ -98,5 +98,5 @@ Resend のダッシュボードから CNAME / TXT レコードの値が自動生
 
 - `apps/api/src/mail/` に `MailService` インターフェースと `ResendMailService` 実装を作成する。プロバイダを差し替える際は `ResendMailService` を `SesMailService` に置き換えるだけで済む設計にする
 - 招待メールテンプレートを `packages/mail-templates/`(または `apps/api/src/mail/templates/`) に React Email コンポーネントとして作成する
-- shipyard.app ドメインの DNS に Resend 発行の SPF / DKIM / DMARC レコードを設定する(メール送信機能着手前に完了させる)
+- neorie.com ドメインの DNS に Resend 発行の SPF / DKIM / DMARC レコードを設定する(メール送信機能着手前に完了させる)
 - 月間送信数が 2,000 通を超えたタイミングで SES 移行の費用対効果を再評価する。移行時は `SesMailService` を実装して差し替える(新 ADR は不要、このフォローアップで意思決定を記録する)

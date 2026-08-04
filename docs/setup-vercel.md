@@ -82,7 +82,7 @@ Day 4 で Clerk 統合する際に以下を Vercel ダッシュボードに登�
 ### 6. カスタムドメイン設定(リリース直前、Week 3 想定)
 
 1. ダッシュボード → Project → Settings → Domains
-2. ドメイン追加(例: `shipyard.app`)
+2. ドメイン追加(例: `neorie.com`)
 3. 表示される DNS レコードをドメイン管理側(お名前.com、Cloudflare 等)に設定
 4. 数分〜数時間で SSL 証明書(Let's Encrypt)が自動発行
 
@@ -128,5 +128,5 @@ Day 4 で Next.js 導入後、以下を確認:
 ## 関連ドキュメント
 
 - [Vercel と自動デプロイの解説](../../学習ノート/開発環境/デプロイ.md)(個人学習ノート)
-- [`docs/architecture.md`](./architecture.md):Shipyard 全体のデプロイ構成
+- [`docs/architecture.md`](./architecture.md):Neorie 全体のデプロイ構成
 - [ADR-001: 技術スタック](./adr/001-tech-stack.md):Vercel 採用の根拠

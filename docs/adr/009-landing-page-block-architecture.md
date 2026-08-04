@@ -13,7 +13,7 @@ ADR-005(AI 戦略)では DRAFT_GEN の生成対象に「ランディングペー
 - 「LP は Markdown ではなく、システム内で作成して、ユーザーがそのまま使用できるようにしたい」
 - 現状の「Markdown 本文を返すだけ」では、ユーザーは Framer / Webflow / 自前 React 等へ手作業で流し込む必要があり、個人開発者の手間が本質的に変わらない
 
-そこで Shipyard 内で **LP を作成・編集・公開まで完結させる**(Framer / Carrd / Typedream と同じ「アプリ内 LP 作成 SaaS」モデル)方針が確定した。これを実現するには、LP を構造化データとして保持する必要がある。
+そこで Neorie 内で **LP を作成・編集・公開まで完結させる**(Framer / Carrd / Typedream と同じ「アプリ内 LP 作成 SaaS」モデル)方針が確定した。これを実現するには、LP を構造化データとして保持する必要がある。
 
 ### 解決すべき設計課題
 
@@ -151,7 +151,7 @@ LP は本 ADR で `LandingPage` テーブルへ移るため、`ProjectDocument` 
 | 1     | LP ブロック化(JSON 化 + AI Tool Use + アプリ内プレビュー / 編集 UI) | 3 日   | ✅ MVP(Day 30-32) |
 | 2     | 公開 URL(`/p/{slug}/{projectId}` + 公開トグル + OG メタ)            | 1.5 日 | ✅ MVP(Day 33)    |
 | 3     | 静的 HTML エクスポート(ZIP ダウンロード)                            | 2.5 日 | ❌ v2             |
-| 4     | カスタムドメイン(`your-product.com` を Shipyard に向ける)           | 大     | ❌ v2             |
+| 4     | カスタムドメイン(`your-product.com` を Neorie に向ける)           | 大     | ❌ v2             |
 
 実装の Day 配分(§6 Week 4 末):
 
@@ -181,10 +181,10 @@ LP は本 ADR で `LandingPage` テーブルへ移るため、`ProjectDocument` 
 
 ### 良い影響
 
-- ユーザーが Shipyard 内で LP を作成 → 編集 → 公開まで完結でき、外部ツールへの手作業流し込みが不要になる(§9.5 のユーザー要望を満たす)
+- ユーザーが Neorie 内で LP を作成 → 編集 → 公開まで完結でき、外部ツールへの手作業流し込みが不要になる(§9.5 のユーザー要望を満たす)
 - `ProjectDocument` 系の既存機能が無影響のまま LP 機能を追加できる
 - ブロックスキーマを TypeScript 型で一元管理し、AI 生成・編集 UI・レンダリングの 3 箇所で整合が取れる
-- 公開 URL により「個人開発者がプロダクトの LP を即座に持てる」という Shipyard の提供価値が具体化する
+- 公開 URL により「個人開発者がプロダクトの LP を即座に持てる」という Neorie の提供価値が具体化する
 
 ### 悪い影響・リスク
 

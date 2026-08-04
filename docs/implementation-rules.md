@@ -22,7 +22,7 @@
 
 ## テナント解決(ADR-003)
 
-- URL は **サブパス方式** `shipyard.app/w/{slug}` に統一(サブドメインではない)
+- URL は **サブパス方式** `neorie.com/w/{slug}` に統一(サブドメインではない)
 - Next.js middleware で slug を抽出し、API には `X-Tenant-Slug` ヘッダーで伝搬
 - 所属していない slug にアクセスした場合は 404(存在の有無を漏らさない)
 

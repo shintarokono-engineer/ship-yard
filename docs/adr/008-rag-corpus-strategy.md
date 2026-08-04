@@ -6,7 +6,7 @@
 
 ## 背景・問題
 
-ADR-005(AI 戦略)では「過去 `ProjectDocument` を pgvector で意味検索し、Sonnet 4 / Haiku 4.5 の生成に context 注入する」ことを Shipyard の独自性のコアとした。これは「使い込むほどユーザー固有のスタイルに収束する」体験を狙った設計だった。
+ADR-005(AI 戦略)では「過去 `ProjectDocument` を pgvector で意味検索し、Sonnet 4 / Haiku 4.5 の生成に context 注入する」ことを Neorie の独自性のコアとした。これは「使い込むほどユーザー固有のスタイルに収束する」体験を狙った設計だった。
 
 しかし Day 19 で `POST /workspaces`(テナント作成)を実装した段階で、以下の構造的問題が顕在化した。
 
@@ -17,7 +17,7 @@ ADR-005(AI 戦略)では「過去 `ProjectDocument` を pgvector で意味検索
 | 個人開発者             | 5〜10 件                | README + LP + リリースブログ + 告知文 = 4〜6 種 × version | 30〜60 件                            |
 | 小規模チーム(2〜10 人) | 10〜30 件               | 同上                                                      | 80〜200 件                           |
 
-→ **数十件オーダーで頭打ち**。RAG の質的優位(「似た過去事例から学ぶ」効果)が出るには本来「数百〜数千件」の蓄積が必要で、Shipyard のターゲット規模では構造的に達成不可能。
+→ **数十件オーダーで頭打ち**。RAG の質的優位(「似た過去事例から学ぶ」効果)が出るには本来「数百〜数千件」の蓄積が必要で、Neorie のターゲット規模では構造的に達成不可能。
 
 ### 結果として ADR-005 の前提崩壊
 
@@ -168,7 +168,7 @@ ADR-005 の RAG 部分は本 ADR で補強される(完全に置換するわけ�
   > **Source:** {source_url}
   > **License:** {license}
   > **Original Author:** {original_author}
-  > Reproduced as part of the Shipyard seed corpus (ADR-008).
+  > Reproduced as part of the Neorie seed corpus (ADR-008).
   ```
 
 - これにより RAG retrieved context にも attribution が乗り、Sonnet 4 への入力と生成物の双方で出典明示が可能(license 遵守 + 生成物の信頼性向上)

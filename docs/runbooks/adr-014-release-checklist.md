@@ -34,7 +34,7 @@ Twitter 関連 env はすべて不要になりました。ADR-014 分の追加 e
 
 | key | 値 |
 |---|---|
-| `NEXT_PUBLIC_API_URL` | 本番 API の URL(例:`https://api.shipyard.app`) |
+| `NEXT_PUBLIC_API_URL` | 本番 API の URL(例:`https://api.neorie.com`) |
 
 ## 3. コード反映(PR マージ)
 
@@ -73,7 +73,7 @@ Twitter 関連 env はすべて不要になりました。ADR-014 分の追加 e
 
 ## 6. ユーザーへの公開告知
 
-- [ ] Shipyard 自身の X / Zenn / マーケ LP で「マルチチャネル告知配信」機能の公開を告知
+- [ ] Neorie 自身の X / Zenn / マーケ LP で「マルチチャネル告知配信」機能の公開を告知
 - [ ] Help / FAQ:「X 投稿の使い方(Web Intent 方式)」「ブログ公開 URL の SEO 設定」
 
 ## 7. ロールバック(緊急時)

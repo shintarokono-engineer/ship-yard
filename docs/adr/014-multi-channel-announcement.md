@@ -9,7 +9,7 @@
 MVP 動作確認中に X API v2 の Free tier(2025 年前半に大幅制限)で **HTTP 402 CreditsDepleted** が発生し、実投稿が不可能であることが判明。Basic プラン($200/月)への即時アップグレードは公開前フェーズでコスト過大と判断し、以下の暫定方針に変更:
 
 **MVP(現在)**:
-- Twitter Delivery は **Web Intent 方式**(`https://twitter.com/intent/tweet?text=...` を FE で新規タブ表示、ユーザーが X 側で送信 → Shipyard で「送信完了」ボタンを押して SENT マーク)
+- Twitter Delivery は **Web Intent 方式**(`https://twitter.com/intent/tweet?text=...` を FE で新規タブ表示、ユーザーが X 側で送信 → Neorie で「送信完了」ボタンを押して SENT マーク)
 - X API 呼び出し / OAuth 連携基盤(`TwitterAccount` / `TokenEncryption` / `TwitterAuthService` / `TwitterClientService`)は削除
 - `apps/api/src/integrations/twitter/` / `apps/api/src/common/crypto/` / `apps/web/src/app/w/[slug]/settings/integrations/` を全削除
 - schema から `TwitterAccount` model 削除(migration `20260712060000_remove_twitter_account`)
@@ -32,16 +32,16 @@ MVP 動作確認中に X API v2 の Free tier(2025 年前半に大幅制限)で 
 
 ## 背景・問題
 
-Shipyard の §1 提供価値の 4 つ目「**初期ユーザー獲得**」 を支援する具体機能として、ユーザーがプロダクトのリリース告知 / アップデート告知を **Shipyard 内から直接 Twitter / ブログ / メールへ一斉配信** できる機能を実装する。
+Neorie の §1 提供価値の 4 つ目「**初期ユーザー獲得**」 を支援する具体機能として、ユーザーがプロダクトのリリース告知 / アップデート告知を **Neorie 内から直接 Twitter / ブログ / メールへ一斉配信** できる機能を実装する。
 
-既存の DRAFT_GEN(Day 29 で 6 種別に拡張済)では `TWEET` / `RELEASE_BLOG` / `EMAIL` の **ドラフト生成までは可能**だが、生成された Markdown / プレーンテキストをユーザーが手動で各サービスにコピペする必要があり、「個人開発者の手間を減らす」 という Shipyard のコア価値と整合していない。本 ADR では「ドラフト生成」 から「実配信」 までを Shipyard 内で完結させる方針を確定する。
+既存の DRAFT_GEN(Day 29 で 6 種別に拡張済)では `TWEET` / `RELEASE_BLOG` / `EMAIL` の **ドラフト生成までは可能**だが、生成された Markdown / プレーンテキストをユーザーが手動で各サービスにコピペする必要があり、「個人開発者の手間を減らす」 という Neorie のコア価値と整合していない。本 ADR では「ドラフト生成」 から「実配信」 までを Neorie 内で完結させる方針を確定する。
 
 ### 解決すべき設計課題
 
 1. **3 チャネルの関係性**: 別個 3 機能として実装するか / キャンペーン(1 告知 → 多チャネル展開)として統合するか
 2. **データモデル**: チャネル別テーブルに分けるか / Delivery 1 テーブル(Json ペイロード)に集約するか
 3. **配信先の方針**:
-    - ブログ:自前(Shipyard ドメイン下)/ 外部サービス連携(WordPress / はてな / Ghost)
+    - ブログ:自前(Neorie ドメイン下)/ 外部サービス連携(WordPress / はてな / Ghost)
     - メール:LP 購読フォーム + Subscriber テーブル(ニュースレター型)/ 内部メンバー手動指定(シンプル)
     - Twitter:Web Intent(OAuth 不要)/ X API + OAuth 2.0 PKCE(自動送信)
 4. **MVP スコープと公開時期**: 公開目標 Day 55 とのバランス、3 機能の Phase 分け
@@ -81,7 +81,7 @@ Shipyard の §1 提供価値の 4 つ目「**初期ユーザー獲得**」 を�
 
 | 案                                    | 採否      | 備考                                                                                                                                |
 | ------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 自前ブログ(Shipyard ドメイン下)        | ✅ 採用   | LP の公開 URL(`/p/{slug}/{projectId}`)パターン + ブロック型レンダリング(ADR-009)を流用、実装最軽量                                  |
+| 自前ブログ(Neorie ドメイン下)        | ✅ 採用   | LP の公開 URL(`/p/{slug}/{projectId}`)パターン + ブロック型レンダリング(ADR-009)を流用、実装最軽量                                  |
 | 外部サービス連携(WordPress / はてな等) | ❌ 不採用 | Zenn / Note は公式 API がなく対象外。OAuth + 認証情報保管の複雑さ +1 Day。MVP 後の v2 で再評価                                       |
 | 両方(自前を MVP / 外部を v2)         | △ 余地のみ | `BlogPost.publishTarget` の拡張余地は持つが、MVP では INTERNAL のみ実装                                                              |
 
@@ -98,7 +98,7 @@ Shipyard の §1 提供価値の 4 つ目「**初期ユーザー獲得**」 を�
 | 案                                       | 採否      | 備考                                                                                                          |
 | ---------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------- |
 | X API + OAuth 2.0 PKCE(自動送信)         | ✅ 採用   | 「告知ワンクリック」 体験の主役。送信ステータス検知 + 予約投稿 + スレッド対応の基盤になる                       |
-| Web Intent(OAuth 不要、X 画面を開くだけ) | ❌ 不採用 | API キー不要で軽量だが、Shipyard 側で送信完了を検知できず「送信済み」 チェックボックスで代替する形になる         |
+| Web Intent(OAuth 不要、X 画面を開くだけ) | ❌ 不採用 | API キー不要で軽量だが、Neorie 側で送信完了を検知できず「送信済み」 チェックボックスで代替する形になる         |
 | MVP は Intent、v2 で OAuth               | ❌ 不採用 | ユーザー判断で「Twitter は本格実装で MVP に含める」 が確定                                                    |
 
 ### 6. リリースタイミング
@@ -115,7 +115,7 @@ Shipyard の §1 提供価値の 4 つ目「**初期ユーザー獲得**」 を�
 ### MVP スコープ(Day 56-59、+4 Day シフトで公開目標 Day 55 → Day 59)
 
 1. **Announcement entity**(Project 直下、複数件)+ **Delivery entity**(チャネル別配信、1 Announcement × 1 channel)を新設
-2. **Twitter 配信**:OAuth 2.0 PKCE による個人アカウント連携、Shipyard が `POST /2/tweets` を代行
+2. **Twitter 配信**:OAuth 2.0 PKCE による個人アカウント連携、Neorie が `POST /2/tweets` を代行
 3. **自前ブログ**:`BlogPost` テーブル + 公開 URL `/p/{slug}/{projectId}/blog/{postSlug}`(LP の `/p/{slug}/{projectId}` パターン流用)+ ブロック型レンダリング
 4. **AI 多チャネル文面生成**:新規 `Feature.ANNOUNCEMENT_GEN`(Sonnet 4 + Tool Use)で 1 Announcement から Twitter(280 字)/ Blog 本文(Markdown)を一括生成
 
@@ -245,7 +245,7 @@ enum AnnouncementStatus { DRAFT READY EXECUTING DONE }
 | Team(¥2,800/人)                 | ✅ Pro 同様                               | seat × 800 cr 共有プール    |
 | Free フォールバック             | ❌ 配信不可(AI 機能停止と整合、ADR-012)   | -                          |
 
-`AIUsageService.assertWithinAnnouncementQuota({ tenantId, plan })` を新設(`assertWithinDiagnosisQuota` と同パターン)。Twitter 投稿そのものはユーザー個人の X Free Tier 枠(月 1500 投稿)を消費するため Shipyard 側のレート制限とは独立。
+`AIUsageService.assertWithinAnnouncementQuota({ tenantId, plan })` を新設(`assertWithinDiagnosisQuota` と同パターン)。Twitter 投稿そのものはユーザー個人の X Free Tier 枠(月 1500 投稿)を消費するため Neorie 側のレート制限とは独立。
 
 ### セキュリティ
 
@@ -280,17 +280,17 @@ enum AnnouncementStatus { DRAFT READY EXECUTING DONE }
 - AI 多チャネル最適化(`ANNOUNCEMENT_GEN`)が「1 Announcement → 3 ペイロード」 を 1 リクエストで返せる前提に乗せやすい
 - Delivery を別 entity にすることで、チャネル別に独立して成功 / 失敗 / 再送できる(Twitter は通ったが Blog 公開は後回し、等)
 
-### 自前ブログ(Shipyard ドメイン下)を採る根拠
+### 自前ブログ(Neorie ドメイン下)を採る根拠
 
 - LP の「アプリ内編集 + 公開 URL」 パターン(ADR-009)を流用でき、実装が最小(BlogPost テーブル + ブロック型レンダリングの再利用)
 - 外部連携は OAuth + 認証情報保管 + 各サービスの API 仕様吸収で +1 Day 以上、対応サービスも 1-3 に限定される(Zenn / Note は API なし)
-- 個人開発者ユーザーが Shipyard 上で「プロダクトサイト + リリースブログ」 をまとめて管理できる体験は Framer / Carrd と同じ方向で価値が分かりやすい
+- 個人開発者ユーザーが Neorie 上で「プロダクトサイト + リリースブログ」 をまとめて管理できる体験は Framer / Carrd と同じ方向で価値が分かりやすい
 
 ### Twitter OAuth + API(Web Intent ではなく)を採る根拠
 
-- 送信ステータスを Shipyard 側で検知できる(Web Intent では「送信済み」 チェックボックス手動チェックに頼ることになる)
+- 送信ステータスを Neorie 側で検知できる(Web Intent では「送信済み」 チェックボックス手動チェックに頼ることになる)
 - v1.x 以降の予約投稿・スレッド投稿・効果計測の基盤になる
-- ユーザー個人の X アカウントを使うため、Shipyard 側で X API 料金は発生しない(各ユーザーの Free Tier 月 1500 投稿枠を消費)
+- ユーザー個人の X アカウントを使うため、Neorie 側で X API 料金は発生しない(各ユーザーの Free Tier 月 1500 投稿枠を消費)
 
 ### メールを v1.x へ送る根拠
 
@@ -303,7 +303,7 @@ enum AnnouncementStatus { DRAFT READY EXECUTING DONE }
 ### 良い影響
 
 - 公開時の Hero / Features に「**リリース告知をワンクリックで Twitter + 自前ブログに一斉配信**」 を訴求できる(他の SaaS で「個人開発者向け統合告知ツール」 は空白領域)
-- LP の「アプリ内編集 + 公開 URL」 パターンを 2 度目に応用(LP / ブログ)することで、Shipyard の「Project 中心の SaaS 体験」 が一段強化される
+- LP の「アプリ内編集 + 公開 URL」 パターンを 2 度目に応用(LP / ブログ)することで、Neorie の「Project 中心の SaaS 体験」 が一段強化される
 - v1.x でメール配信を加えると「リスト形成 → Nurture → 告知」 のフル機能になり、Substack / ConvertKit 寄りの価値も付加できる(差別化軸の追加)
 - `ANNOUNCEMENT_GEN`(Sonnet 4 + Tool Use で 3 チャネル文面一括生成)は Pro プランの目玉機能として PRODUCT_DIAGNOSIS と並べられる
 - Zenn 記事のサブテーマに「OAuth 2.0 PKCE + Twitter API v2 + 暗号化トークン保管」 を加えられる(技術ネタとして強い)
@@ -311,10 +311,10 @@ enum AnnouncementStatus { DRAFT READY EXECUTING DONE }
 ### 悪い影響・リスク
 
 - **公開目標が Day 55 → Day 59 に +4 Day シフト**(Day 56-59 を新規割当、設計詳細はブレスト継続後に Day 単位の内訳確定)
-- **X API のアカウントサスペンドリスク**:Shipyard 開発者アカウントの Developer App が規約違反判定を受けると全テナントの Twitter 連携が停止する → 対策:利用規約に「投稿内容はユーザー責任」 明記、運用上の監視(投稿失敗率)
+- **X API のアカウントサスペンドリスク**:Neorie 開発者アカウントの Developer App が規約違反判定を受けると全テナントの Twitter 連携が停止する → 対策:利用規約に「投稿内容はユーザー責任」 明記、運用上の監視(投稿失敗率)
 - **Twitter token 暗号化の運用コスト**:Secrets Manager + AES-GCM の鍵ローテーション運用が必要(初期は手動、v1.x で自動化)
-- **Blog の SEO がユーザーの独自ドメインに乗らない**:`shipyard.app/p/{slug}/{projectId}/blog/...` ドメインなので、Shipyard 全体の SEO に貢献するがユーザー個別の SEO 資産にはならない → 対策:Phase 4 カスタムドメイン(ADR-009 v2)で将来解消
-- **Subscriber 0 で公開する選択(v1.x 送り)による初回告知の弱さ**:Shipyard 自身のリリース告知時は Twitter + Zenn を手動で実施することで補う(Day 52-53 既存予定)
+- **Blog の SEO がユーザーの独自ドメインに乗らない**:`neorie.com/p/{slug}/{projectId}/blog/...` ドメインなので、Neorie 全体の SEO に貢献するがユーザー個別の SEO 資産にはならない → 対策:Phase 4 カスタムドメイン(ADR-009 v2)で将来解消
+- **Subscriber 0 で公開する選択(v1.x 送り)による初回告知の弱さ**:Neorie 自身のリリース告知時は Twitter + Zenn を手動で実施することで補う(Day 52-53 既存予定)
 - **AI 多チャネル文面生成のコスト**:Sonnet 4 多チャネル 1 回 = 約 4 cr 想定(MVP 暴走防止枠で月 50 回上限を設定)
 
 ### フォローアップ
