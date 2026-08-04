@@ -183,7 +183,41 @@ add_txt    "_dmarc.neorie.com" "v=DMARC1; p=none;"
 ```
 
 - [ ] Resend が `Verified` になった
-- [ ] **送信専用 API キーは変更不要**(ドメインに紐づかない)
+- [ ] **⚠ API キーを再発行した**(下記)
+
+> ⚠ **送信専用 API キーはドメインに紐づく。ドメインを変えたら再発行が必要。**
+>
+> 当初この手順書に「送信専用 API キーは変更不要(ドメインに紐づかない)」と書いていたが**誤り**だった。
+> 2026-08-04 の疎通テストで、`neorie.com` の Verify は通っているのに送信が 400 で拒否された。
+>
+> ```
+> 400 "The associated domain with your API key is not verified.
+>      Please, create a new API key with full access or with a verified domain."
+> ```
+>
+> Resend の API キーは発行時に**対象ドメインを指定**でき、送信専用キーはそのドメインからしか
+> 送れない。旧ドメイン用のキーが残っていたため拒否された。**気付かないと Team プラン契約者が
+> 出た瞬間に招待メールが全滅する。**
+>
+> 対処:
+>
+> 1. [resend.com/api-keys](https://resend.com/api-keys) → **Create API Key**
+> 2. Permission = `Sending access`(送信専用のまま)、Domain = **新ドメイン**を選択
+> 3. `RESEND_API_KEY` を Secrets Manager へ投入
+> 4. **App Runner を再デプロイ**(シークレットは起動時に解決されるため)
+>
+> ```bash
+> aws apprunner start-deployment --service-arn "$(terraform output -raw apprunner_service_arn)"
+> ```
+>
+> 検証は実際に送るしかない(送信専用キーではドメイン一覧 API が 401 になる)。
+>
+> ```bash
+> curl -X POST https://api.resend.com/emails \
+>   -H "Authorization: Bearer <re_...>" -H "Content-Type: application/json" \
+>   -d '{"from":"Neorie <noreply@neorie.com>","to":["<自分のアドレス>"],
+>        "subject":"疎通確認","text":"test"}'
+> ```
 
 ### A-6. AWS を apply する
 
