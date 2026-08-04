@@ -83,7 +83,7 @@ export class ClerkWebhookService {
    * イベント種別ごとの処理。
    *
    * - `user.created` / `user.updated`: `clerkUserId` をキーに `User` を upsert
-   *   (Clerk → Shipyard DB へのミラー。更新時は `deletedAt` を null に戻し、再アクティブ化も兼ねる)
+   *   (Clerk → Neorie DB へのミラー。更新時は `deletedAt` を null に戻し、再アクティブ化も兼ねる)
    * - `user.deleted`: 論理削除。`TenantMember` / `Project` 等の既存リレーションを破壊しないため
    *   物理削除はせず `deletedAt` をセットする(レコードが既に無ければ no-op)
    * - その他: ログのみ(将来 `session.*` や `organization.*` を扱う余地を残す)
@@ -113,10 +113,8 @@ export class ClerkWebhookService {
     if (!email) {
       // Clerk の SMS-only 認証等 email が無い構成だと毎回ここに来て再送ループになる。
       // throw せず warn + skip にし、`ClerkWebhookEvent` 側は PROCESSED 扱いで終わらせる
-      // (運用上、Shipyard では email 必須のため Clerk 側設定で email を必須化する前提)。
-      this.logger.warn(
-        `Clerk user ${clerkUserId} has no primary email address; skipping upsert`,
-      );
+      // (運用上、Neorie では email 必須のため Clerk 側設定で email を必須化する前提)。
+      this.logger.warn(`Clerk user ${clerkUserId} has no primary email address; skipping upsert`);
       return;
     }
 

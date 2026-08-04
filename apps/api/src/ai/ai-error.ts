@@ -4,9 +4,9 @@ import { BadGatewayException, Logger, ServiceUnavailableException } from '@nestj
  * AI プロバイダ(Anthropic / OpenAI)からの応答が期待形式ではなかった、
  * またはプロバイダ側の障害で処理が完結しなかったことを表す例外(Day 16、Bad Gateway = 502)。
  *
- * **なぜ 502 か(500 ではなく)**: AI プロバイダは Shipyard の上流依存であり、
+ * **なぜ 502 か(500 ではなく)**: AI プロバイダは Neorie の上流依存であり、
  * 上流依存の問題で処理が完結しない場合は意味論的に 502 Bad Gateway が正しい。
- * 500 だと「Shipyard 側のコードのバグ」と区別がつかず、運用上の切り分けが困難になる。
+ * 500 だと「Neorie 側のコードのバグ」と区別がつかず、運用上の切り分けが困難になる。
  *
  * **使い分け**:
  * - Tool_use ブロック欠落・空 content・JSON スキーマ不一致 等の **不正レスポンス** → 本クラスを `throw`

@@ -7,9 +7,9 @@ describe('parseLpBlocks — footer の空ブロック抑止', () => {
   });
 
   it('copyright があれば footer を残す', () => {
-    const out = parseLpBlocks([{ type: 'footer', copyright: '© 2026 Shipyard', items: [] }]);
+    const out = parseLpBlocks([{ type: 'footer', copyright: '© 2026 Neorie', items: [] }]);
     expect(out).toHaveLength(1);
-    expect(out[0]).toMatchObject({ type: 'footer', copyright: '© 2026 Shipyard' });
+    expect(out[0]).toMatchObject({ type: 'footer', copyright: '© 2026 Neorie' });
   });
 });
 
@@ -46,7 +46,13 @@ describe('parseLpBlocks — URL サニタイズ(BE 多層防御)', () => {
 
   it('hero の image が http(s) なら保持する', () => {
     const out = parseLpBlocks([
-      { type: 'hero', heading: 'h', ctaText: 'c', ctaHref: '/x', image: 'https://cdn.example/x.png' },
+      {
+        type: 'hero',
+        heading: 'h',
+        ctaText: 'c',
+        ctaHref: '/x',
+        image: 'https://cdn.example/x.png',
+      },
     ]);
     expect((out[0] as { image?: string }).image).toBe('https://cdn.example/x.png');
   });

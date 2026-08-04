@@ -186,7 +186,7 @@ export class InvitationsService {
     if (!user) {
       // Clerk JWT は通っているが User テーブルに同期されていない or 論理削除済みのケース。
       // Webhook 未到達時の JIT は workspace 作成側でのみ実施するため、招待承諾側は 403 にする。
-      throw new ForbiddenException('User not registered in Shipyard');
+      throw new ForbiddenException('User not registered in Neorie');
     }
 
     const invitation = await this.prisma.invitationToken.findUnique({

@@ -31,7 +31,7 @@ export default function SignOutCleanupPage() {
   useEffect(() => {
     // ① LocalStorage の Clerk 関連キーをピンポイント削除(他機能を巻き込まない)。
     //    Clerk が使うキーは `__clerk_*`(主)or `clerk_*` で固定なので prefix で十分。
-    //    `includes('clerk')` だと第三者ライブラリや将来の Shipyard 命名(例:`workspace_clerk_config`)
+    //    `includes('clerk')` だと第三者ライブラリや将来の Neorie 命名(例:`workspace_clerk_config`)
     //    を巻き込みうるため、prefix に絞る。
     try {
       for (const k of Object.keys(localStorage)) {

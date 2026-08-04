@@ -198,7 +198,7 @@ export class WorkspacesService {
         `JIT user provisioning failed: cannot fetch Clerk user ${clerkUserId}`,
         err instanceof Error ? err.stack : undefined,
       );
-      throw new ForbiddenException('User not registered in Shipyard');
+      throw new ForbiddenException('User not registered in Neorie');
     }
 
     const email =
@@ -212,9 +212,8 @@ export class WorkspacesService {
     );
     const name = nameParts.length > 0 ? nameParts.join(' ') : null;
     // Clerk SDK 経由の URL は信頼できるが Defense in Depth で http(s) に限定。
-    const image = clerkUser.imageUrl && /^https?:\/\//i.test(clerkUser.imageUrl)
-      ? clerkUser.imageUrl
-      : null;
+    const image =
+      clerkUser.imageUrl && /^https?:\/\//i.test(clerkUser.imageUrl) ? clerkUser.imageUrl : null;
 
     // 並行で Webhook の `user.deleted` が先に走って `deletedAt` をセットした場合に、
     // ここで `deletedAt: null` を update で書き戻して復活させない設計

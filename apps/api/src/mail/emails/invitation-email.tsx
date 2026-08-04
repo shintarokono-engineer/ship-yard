@@ -60,7 +60,7 @@ export function InvitationEmail({
 
           <Section>
             <Text style={textStyle}>
-              {inviterName} さんから、 Shipyard ワークスペース「{workspaceName}
+              {inviterName} さんから、 Neorie ワークスペース「{workspaceName}
               」への招待が届いています。
             </Text>
             <Text style={textStyle}>

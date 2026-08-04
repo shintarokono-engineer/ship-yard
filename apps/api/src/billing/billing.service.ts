@@ -172,7 +172,7 @@ export class BillingService {
       return existing.stripeCustomerId;
     }
 
-    // 【Stripe API 呼び出し】Customer(= Shipyard のワークスペース 1 個)を Stripe 側に作成する。
+    // 【Stripe API 呼び出し】Customer(= Neorie のワークスペース 1 個)を Stripe 側に作成する。
     // email/name は表示用にオーナーの値を入れる。metadata.tenantId を持たせて Webhook 側から逆引きできるようにする。
     //
     // idempotencyKey を tenant.id 基準で付与する。customers.create 成功後に下の subscription.create が
