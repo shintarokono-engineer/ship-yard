@@ -1,7 +1,7 @@
 import { cache } from 'react';
 
 import { apiFetch } from './client';
-import { ApiError } from './errors';
+import { ApiError, nullOnNotFound } from './errors';
 import type {
   AskRagQaResult,
   CategoryDomain,
@@ -43,8 +43,7 @@ export const fetchWorkspace = cache(async (slug: string): Promise<Workspace | nu
   try {
     return await apiFetch<Workspace>(`/workspaces/${encodeURIComponent(slug)}`);
   } catch (e) {
-    if (e instanceof ApiError && (e.status === 404 || e.status === 401)) return null;
-    throw e;
+    return nullOnNotFound(e);
   }
 });
 
@@ -53,6 +52,11 @@ export const fetchWorkspace = cache(async (slug: string): Promise<Workspace | nu
  *
  * オンボーディング判定とルート `/` での所属 fallback 用。`React.cache` で同一リクエスト内 dedup。
  * 未認証 / User 行未同期は空配列(API 側で空配列を返す設計)。
+ *
+ * **ここだけは 401 を空配列に倒してよい**(他の fetch は `nullOnNotFound` で
+ * `SessionExpiredError` に変換する)。この関数は「所属ワークスペースが 0 件ならオンボーディングへ」
+ * という分岐に使われ、**サインアップ直後は User 行の同期待ちで一時的に 401 になりうる**ため。
+ * ここで throw するとサインアップ直後にエラー画面が出てオンボーディングに入れない。
  */
 export const listMyWorkspaces = cache(async (): Promise<MyWorkspaceListItem[]> => {
   try {
@@ -135,8 +139,7 @@ export const fetchProject = cache(
         `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}`,
       );
     } catch (e) {
-      if (e instanceof ApiError && (e.status === 404 || e.status === 401)) return null;
-      throw e;
+      return nullOnNotFound(e);
     }
   },
 );
@@ -305,8 +308,7 @@ export const fetchDocument = cache(
         `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}`,
       );
     } catch (e) {
-      if (e instanceof ApiError && (e.status === 404 || e.status === 401)) return null;
-      throw e;
+      return nullOnNotFound(e);
     }
   },
 );
@@ -494,8 +496,7 @@ export const fetchRagQaSession = cache(
         `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/qa/sessions/${encodeURIComponent(sessionId)}`,
       );
     } catch (e) {
-      if (e instanceof ApiError && (e.status === 404 || e.status === 401)) return null;
-      throw e;
+      return nullOnNotFound(e);
     }
   },
 );
@@ -537,8 +538,7 @@ export const fetchLandingPage = cache(
         `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/landing-page`,
       );
     } catch (e) {
-      if (e instanceof ApiError && (e.status === 404 || e.status === 401)) return null;
-      throw e;
+      return nullOnNotFound(e);
     }
   },
 );

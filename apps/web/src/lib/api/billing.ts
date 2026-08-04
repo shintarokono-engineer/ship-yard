@@ -1,7 +1,7 @@
 import { cache } from 'react';
 
 import { apiFetch } from './client';
-import { ApiError } from './errors';
+import { ApiError, nullOnNotFound } from './errors';
 import type { BillingDetail, PaidPlan } from './types';
 
 /**
@@ -16,10 +16,10 @@ export const fetchBilling = cache(async (slug: string): Promise<BillingDetail | 
   try {
     return await apiFetch<BillingDetail>(`/workspaces/${encodeURIComponent(slug)}/billing`);
   } catch (e) {
-    if (e instanceof ApiError && (e.status === 401 || e.status === 403 || e.status === 404)) {
-      return null;
-    }
-    throw e;
+    // 403(OWNER 以外)は「請求情報を見せない」が正しい挙動なので null に倒す。
+    // 401 は nullOnNotFound が SessionExpiredError に変換する(404 と混同しない)。
+    if (e instanceof ApiError && e.status === 403) return null;
+    return nullOnNotFound(e);
   }
 });
 

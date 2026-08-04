@@ -1,7 +1,7 @@
 import { cache } from 'react';
 
 import { apiFetch } from './client';
-import { ApiError } from './errors';
+import { nullOnNotFound } from './errors';
 import type { AnnouncementDetail, AnnouncementListItem, DeliveryChannel, Paginated } from './types';
 
 /**
@@ -49,8 +49,7 @@ export const fetchAnnouncement = cache(
       );
     } catch (e) {
       // 既存 fetchWorkspace / fetchProject 等と同じく 404 / 401(未所属)も null に変換する。
-      if (e instanceof ApiError && (e.status === 404 || e.status === 401)) return null;
-      throw e;
+      return nullOnNotFound(e);
     }
   },
 );

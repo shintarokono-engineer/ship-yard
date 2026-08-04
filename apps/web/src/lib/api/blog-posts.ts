@@ -1,7 +1,7 @@
 import { cache } from 'react';
 
 import { apiFetch } from './client';
-import { ApiError } from './errors';
+import { ApiError, nullOnNotFound } from './errors';
 import type { BlogPost, PublicBlogPost } from './types';
 
 /**
@@ -27,8 +27,7 @@ export const fetchBlogPost = cache(
       return await apiFetch<BlogPost>(`${base(slug, projectId)}/${encodeURIComponent(id)}`);
     } catch (e) {
       // 既存 fetchWorkspace / fetchProject 等と同じく 404 / 401(未所属)も null に変換する。
-      if (e instanceof ApiError && (e.status === 404 || e.status === 401)) return null;
-      throw e;
+      return nullOnNotFound(e);
     }
   },
 );
@@ -77,11 +76,7 @@ export async function listPublishedBlogPosts(): Promise<PublishedBlogPostRef[]> 
  * `React.cache` でリクエスト内 dedup(`generateMetadata` と page の双方から呼んでも HTTP 1 回)。
  */
 export const fetchPublicBlogPost = cache(
-  async (
-    slug: string,
-    projectId: string,
-    postSlug: string,
-  ): Promise<PublicBlogPost | null> => {
+  async (slug: string, projectId: string, postSlug: string): Promise<PublicBlogPost | null> => {
     try {
       return await apiFetch<PublicBlogPost>(
         `/public/blog-posts/${encodeURIComponent(slug)}/${encodeURIComponent(projectId)}/${encodeURIComponent(postSlug)}`,
