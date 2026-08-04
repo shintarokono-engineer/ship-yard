@@ -46,9 +46,12 @@ export default async function WorkspaceLayout({
               deprecated のため使わない。Multi-session handling は Clerk Dashboard で OFF に
               設定する前提(Sessions ページ、デフォルト OFF)= 1 ブラウザ 1 セッションで
               `signOut()` 標準動作で全セッション無効化となる。 */}
+          {/* `apiKeysProps.hide` は設定 → プロフィールの `<UserProfile>` と揃える必要がある。
+              ここから開くモーダルも同じ UserProfile なので、片方だけだと API キータブが
+              残る(Neorie はユーザー向け API を提供していないため隠す)。 */}
           <div className="flex items-center gap-1">
             <ThemeToggle />
-            <UserButton />
+            <UserButton userProfileProps={{ apiKeysProps: { hide: true } }} />
           </div>
         </div>
         <WorkspaceNav slug={workspace.slug} />
