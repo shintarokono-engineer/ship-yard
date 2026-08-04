@@ -11,7 +11,7 @@ export function CtaSection() {
           今日から、リリースを加速する。
         </h2>
         <p className="text-primary-foreground/90 mx-auto mt-4 max-w-xl text-pretty">
-          無料プランで、すぐに始められます。クレジットカードは必要ありません。
+          7 日間の無料トライアルで、すぐに始められます。クレジットカードは必要ありません。
         </p>
         <SignUpButton mode="modal">
           <Button

@@ -29,7 +29,7 @@ export function HeroSection() {
             </SignInButton>
           </div>
           <p className="text-muted-foreground mt-4 text-sm">
-            クレジットカード不要 — 無料プランですぐに開始できます
+            クレジットカード不要 — 7 日間の無料トライアルですぐに開始できます
           </p>
         </div>
         <AppPreview />
