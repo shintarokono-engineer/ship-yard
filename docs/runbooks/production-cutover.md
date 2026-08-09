@@ -10,21 +10,21 @@
 
 ## 進行表
 
-| Phase | 内容                              | 実作業  | 待ち時間      | 累計コスト/月 |
-| ----- | --------------------------------- | ------- | ------------- | ------------- |
-| 0     | 事前準備(アカウント・ツール)      | 30 分   | —             | $0            |
-| 1     | ドメイン取得 + state バケット     | 30 分   | **〜数時間**  | ~$1.5         |
-| 2     | `prod` apply(App Runner 除く)     | 15 分   | 〜15 分(RDS)  | ~$32          |
-| 3     | DNS 委任 + Clerk / Resend 検証    | 40 分   | **〜数時間**  | ~$32          |
-| 4     | Stripe 本番設定                   | 30 分   | —             | ~$32          |
-| 5     | Secrets Manager 投入              | 20 分   | —             | ~$32          |
-| 6     | DB migration                      | 20 分   | —             | ~$32          |
-| 7     | ECR push + App Runner 有効化      | 30 分   | 〜10 分       | ~$38〜42      |
-| 8     | Clerk webhook 登録                | 15 分   | —             | ~$38〜42      |
-| 9     | Vercel 本番設定                   | 20 分   | 〜30 分(DNS)  | ~$38〜42      |
-| 10    | GitHub Actions 有効化             | 15 分   | —             | ~$38〜42      |
-| 11    | 本番疎通テスト                    | 1〜2 h  | —             | ~$38〜42      |
-| 12    | 公開前の最終設定                  | 20 分   | —             | ~$38〜42      |
+| Phase | 内容                           | 実作業 | 待ち時間     | 累計コスト/月 |
+| ----- | ------------------------------ | ------ | ------------ | ------------- |
+| 0     | 事前準備(アカウント・ツール)   | 30 分  | —            | $0            |
+| 1     | ドメイン取得 + state バケット  | 30 分  | **〜数時間** | ~$1.5         |
+| 2     | `prod` apply(App Runner 除く)  | 15 分  | 〜15 分(RDS) | ~$32          |
+| 3     | DNS 委任 + Clerk / Resend 検証 | 40 分  | **〜数時間** | ~$32          |
+| 4     | Stripe 本番設定                | 30 分  | —            | ~$32          |
+| 5     | Secrets Manager 投入           | 20 分  | —            | ~$32          |
+| 6     | DB migration                   | 20 分  | —            | ~$32          |
+| 7     | ECR push + App Runner 有効化   | 30 分  | 〜10 分      | ~$38〜42      |
+| 8     | Clerk webhook 登録             | 15 分  | —            | ~$38〜42      |
+| 9     | Vercel 本番設定                | 20 分  | 〜30 分(DNS) | ~$38〜42      |
+| 10    | GitHub Actions 有効化          | 15 分  | —            | ~$38〜42      |
+| 11    | 本番疎通テスト                 | 1〜2 h | —            | ~$38〜42      |
+| 12    | 公開前の最終設定               | 20 分  | —            | ~$38〜42      |
 
 **待ち時間があるのは Phase 1 と 3(DNS)です。ここを最初に着手し、待っている間に他の作業を進めてください。**
 
@@ -40,17 +40,17 @@
 
 新規作成時に **「無料アカウントプラン」/「有料アカウントプラン」**の選択があります。**必ず有料アカウントプランを選んでください。**
 
-| | 無料アカウントプラン | 有料アカウントプラン |
-| ----------------------- | ---------------------------------- | -------------------- |
-| 使えるサービス          | **無料利用枠の対象サービスに限定** | 制限なし             |
+|                          | 無料アカウントプラン               | 有料アカウントプラン |
+| ------------------------ | ---------------------------------- | -------------------- |
+| 使えるサービス           | **無料利用枠の対象サービスに限定** | 制限なし             |
 | クレジットを使い切ったら | **アカウントが一時停止**           | 従量課金に移行       |
-| 初期クレジット          | あり                               | **あり(同額)**       |
+| 初期クレジット           | あり                               | **あり(同額)**       |
 
 Neorie の構成には**無料利用枠の対象外リソース**が含まれるため、無料プランでは Phase 2 の `terraform apply` が通らないか、運用開始後に停止します。
 
 - **App Runner**($11〜14/月)/ **Route53 ホストゾーン**($0.50)/ **Secrets Manager**($0.40)/ **Elastic IP**($3.7)
 
-> **「有料」を選んでも即座に課金されるわけではありません。** 初期クレジット($100〜200)は有料プランでも同額付与され、その範囲内なら請求は $0 です。有料プランの違いは「クレジットを使い切っても止まらない」ことだけで、初期数ヶ月の支払いは無料プランと変わりません。
+> **「有料」を選んでも即座に課金されるわけではありません。** 初期クレジットは有料プランでも同額付与され、その範囲内なら請求は $0 です(本プロジェクトの実績は $140、内訳は [`../infrastructure-cost.md`](../infrastructure-cost.md) §2.7)。有料プランの違いは「クレジットを使い切っても止まらない」ことだけで、初期数ヶ月の支払いは無料プランと変わりません。
 
 - [ ] **有料アカウントプラン**で作成した
 - [ ] **サポートプランは Basic(無料)のまま**にした(変更しない限り課金されません)
@@ -59,12 +59,12 @@ Neorie の構成には**無料利用枠の対象外リソース**が含まれる
 
 コンソール右上の**アカウント名メニュー → 「請求とコスト管理」**(Billing and Cost Management)から開きます。
 
-| 用途                            | 直リンク                                                            |
-| ------------------------------- | ------------------------------------------------------------------- |
-| 請求ダッシュボード              | `https://console.aws.amazon.com/billing/`                           |
-| **クレジット**(残額・有効期限)  | `https://console.aws.amazon.com/billing/home#/credits`              |
-| Cost Explorer                   | `https://console.aws.amazon.com/cost-management/home#/cost-explorer` |
-| Budgets                         | `https://console.aws.amazon.com/budgets/`                           |
+| 用途                           | 直リンク                                                             |
+| ------------------------------ | -------------------------------------------------------------------- |
+| 請求ダッシュボード             | `https://console.aws.amazon.com/billing/`                            |
+| **クレジット**(残額・有効期限) | `https://console.aws.amazon.com/billing/home#/credits`               |
+| Cost Explorer                  | `https://console.aws.amazon.com/cost-management/home#/cost-explorer` |
+| Budgets                        | `https://console.aws.amazon.com/budgets/`                            |
 
 - [ ] 初期クレジットの**実額と有効期限を控えた**(Phase 12.3 でカレンダーに登録する)
 
@@ -80,15 +80,15 @@ Neorie の構成には**無料利用枠の対象外リソース**が含まれる
 
 各ツールが**何をするもので、この手順のどこで必要になるか**は次のとおりです。
 
-| ツール                   | 何をするもの                                                   | この手順での用途                              |
-| ------------------------ | -------------------------------------------------------------- | --------------------------------------------- |
-| **tfenv**                | Terraform 本体のバージョンを切り替える管理ツール(下記参照)     | Terraform を正しいバージョンで入れる          |
-| **Terraform**            | インフラをコードから作成・変更する IaC ツール(ADR-010)         | Phase 1・2・7・12 の `apply`                  |
-| **AWS CLI**              | AWS をコマンドラインから操作する                               | 全 Phase(出力確認・Secrets 投入・デプロイ)   |
-| **session-manager-plugin** | AWS CLI に SSM セッション機能を足すプラグイン                  | Phase 6 で Private Subnet の RDS に接続する    |
-| **Docker**               | API のコンテナイメージをビルドする                             | Phase 7 の ECR push                           |
-| **jq**                   | JSON を加工するコマンド                                        | Route53 レコード追加 / Secrets の部分更新      |
-| **GitHub CLI**(`gh`)     | GitHub をコマンドラインから操作する(任意、画面操作でも可)      | Phase 10 の Secrets / Variables 登録           |
+| ツール                     | 何をするもの                                               | この手順での用途                            |
+| -------------------------- | ---------------------------------------------------------- | ------------------------------------------- |
+| **tfenv**                  | Terraform 本体のバージョンを切り替える管理ツール(下記参照) | Terraform を正しいバージョンで入れる        |
+| **Terraform**              | インフラをコードから作成・変更する IaC ツール(ADR-010)     | Phase 1・2・7・12 の `apply`                |
+| **AWS CLI**                | AWS をコマンドラインから操作する                           | 全 Phase(出力確認・Secrets 投入・デプロイ)  |
+| **session-manager-plugin** | AWS CLI に SSM セッション機能を足すプラグイン              | Phase 6 で Private Subnet の RDS に接続する |
+| **Docker**                 | API のコンテナイメージをビルドする                         | Phase 7 の ECR push                         |
+| **jq**                     | JSON を加工するコマンド                                    | Route53 レコード追加 / Secrets の部分更新   |
+| **GitHub CLI**(`gh`)       | GitHub をコマンドラインから操作する(任意、画面操作でも可)  | Phase 10 の Secrets / Variables 登録        |
 
 #### tfenv とは / なぜ必要か
 
@@ -486,18 +486,18 @@ echo "$SECRET_ARN"
 
 **1 つでも `REPLACE_ME` のままだと、起動はしても該当機能が壊れます。**
 
-| キー                    | 値の取得元                                                        |
-| ----------------------- | ----------------------------------------------------------------- |
+| キー                    | 値の取得元                                                             |
+| ----------------------- | ---------------------------------------------------------------------- |
 | `DATABASE_URL`          | **Phase 6.6 で確定**(ここでは仮値でよい。Phase 7 の起動には影響しない) |
-| `CLERK_SECRET_KEY`      | Phase 3.2 の `sk_live_...`                                         |
-| `CLERK_WEBHOOK_SECRET`  | **Phase 8 を先取りして今すぐ取得する**(仮値のままにしない)        |
-| `STRIPE_SECRET_KEY`     | Phase 4.5 の `sk_live_...`                                         |
-| `STRIPE_WEBHOOK_SECRET` | Phase 4.4 の `whsec_...`                                           |
-| `STRIPE_PRICE_PRO`      | Phase 4.2 の `price_...`                                           |
-| `STRIPE_PRICE_TEAM`     | Phase 4.2 の `price_...`                                           |
-| `ANTHROPIC_API_KEY`     | https://console.anthropic.com                                      |
-| `OPENAI_API_KEY`        | https://platform.openai.com/api-keys(要事前チャージ)             |
-| `RESEND_API_KEY`        | Phase 3.3 の `re_...`                                              |
+| `CLERK_SECRET_KEY`      | Phase 3.2 の `sk_live_...`                                             |
+| `CLERK_WEBHOOK_SECRET`  | **Phase 8 を先取りして今すぐ取得する**(仮値のままにしない)             |
+| `STRIPE_SECRET_KEY`     | Phase 4.5 の `sk_live_...`                                             |
+| `STRIPE_WEBHOOK_SECRET` | Phase 4.4 の `whsec_...`                                               |
+| `STRIPE_PRICE_PRO`      | Phase 4.2 の `price_...`                                               |
+| `STRIPE_PRICE_TEAM`     | Phase 4.2 の `price_...`                                               |
+| `ANTHROPIC_API_KEY`     | https://console.anthropic.com                                          |
+| `OPENAI_API_KEY`        | https://platform.openai.com/api-keys(要事前チャージ)                   |
+| `RESEND_API_KEY`        | Phase 3.3 の `re_...`                                                  |
 
 ローカルに一時ファイルを作って一括投入します(**投入後に必ず削除**)。
 
@@ -637,10 +637,10 @@ SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';
 >
 > あわせて、アプリがテーブルを DROP できる権限を持つ必要もありません。**役割を分けます。**
 
-| 用途 | 接続ユーザー | パスワード |
-| --- | --- | --- |
-| migration(DDL)= 手元から都度実行 | マスターユーザー | AWS 管理。実行のたびに §6.1 で取得するので変わってよい |
-| **アプリ実行時(DML)= 常時接続** | **`shipyard_app`** | **自分で決める。誰も勝手に変えない** |
+| 用途                             | 接続ユーザー       | パスワード                                             |
+| -------------------------------- | ------------------ | ------------------------------------------------------ |
+| migration(DDL)= 手元から都度実行 | マスターユーザー   | AWS 管理。実行のたびに §6.1 で取得するので変わってよい |
+| **アプリ実行時(DML)= 常時接続**  | **`shipyard_app`** | **自分で決める。誰も勝手に変えない**                   |
 
 ポートフォワードを張ったまま、マスターユーザーで接続して作成します(`psql` が無ければ `brew install libpq` 等)。
 
@@ -801,13 +801,13 @@ aws logs tail "/aws/apprunner/shipyard-prod-api/$(aws apprunner describe-service
   --query 'Service.ServiceId' --output text)/application" --follow
 ```
 
-- [ ] `/health` が 200 を返した
+- [x] `/health` が 200 を返した
 
 ### 7.4 メモリ使用率を確認する
 
 既定を **0.5 vCPU / 1 GB** に下げているため、初回デプロイ後に確認します。
 
-- [ ] App Runner のメトリクスでメモリ使用率が慢性的に 80% を超えていない
+- [ ] App Runner のメトリクスでメモリ使用率が慢性的に 80% を超えていない(0.5 vCPU / 1 GB に下げているため公開後に要監視)
 - [ ] OOM による再起動が発生していない
 
 超えている場合は戻します。
@@ -826,7 +826,7 @@ apprunner_memory = "2048"
 curl -i "https://api.example.app/health"
 ```
 
-- [ ] `api.example.app` で 200 が返った
+- [x] `api.example.app` で 200 が返った
 
 ---
 
@@ -862,7 +862,7 @@ aws apprunner start-deployment \
 
 7. Clerk Dashboard の **Send test event** が **2xx** を返すことを確認
 
-- [ ] テストイベントが 2xx
+- [x] テストイベントが 2xx
 
 > 切り分けは [`clerk-webhook-troubleshooting.md`](./clerk-webhook-troubleshooting.md) を参照。
 
@@ -874,18 +874,18 @@ aws apprunner start-deployment \
 
 Vercel → プロジェクト → Settings → **Environment Variables**(対象は **Production**)
 
-| 変数                                              | 値                          |
-| ------------------------------------------------- | --------------------------- |
+| 変数                                              | 値                        |
+| ------------------------------------------------- | ------------------------- |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`               | `pk_live_...`(Phase 3.2)  |
 | `CLERK_SECRET_KEY`                                | `sk_live_...`(Phase 3.2)  |
-| `API_URL`                                         | `https://api.example.app`   |
-| `SITE_URL`                                        | `https://example.app`       |
-| `NEXT_PUBLIC_CLERK_SIGN_IN_URL`                   | `/sign-in`                  |
-| `NEXT_PUBLIC_CLERK_SIGN_UP_URL`                   | `/sign-up`                  |
-| `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` | `/`                         |
-| `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` | `/`                         |
+| `API_URL`                                         | `https://api.example.app` |
+| `SITE_URL`                                        | `https://example.app`     |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL`                   | `/sign-in`                |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_URL`                   | `/sign-up`                |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` | `/`                       |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` | `/`                       |
 
-- [ ] 8 変数を設定した
+- [x] 8 変数を設定した
 
 ### 9.2 カスタムドメインを設定する
 
@@ -901,19 +901,19 @@ add_record "www.example.app" CNAME "<Vercel が表示した値>"
 
 3. Vercel の画面でドメインが **Valid** になるまで待つ
 
-- [ ] `https://example.app` が表示された
+- [x] `https://example.app` が表示された
 
 ### 9.3 プランは Hobby のまま
 
 [`../infrastructure-cost.md`](../infrastructure-cost.md) §3.2 C の方針により、**公開時点では Hobby を継続**します。**初回課金が成立した時点で Pro へ切り替える**(ダッシュボード操作で即時反映、再デプロイ・DNS 変更は不要)。
 
-- [ ] Hobby のままであることを確認した
+- [x] Hobby のままであることを確認した
 
 ### 9.4 再デプロイする
 
 環境変数は**ビルド時に取り込まれる**ため、設定後に再デプロイが必要です。
 
-- [ ] Vercel → Deployments → 最新を **Redeploy**
+- [x] Vercel → Deployments → 最新を **Redeploy**
 
 ---
 
@@ -930,13 +930,13 @@ gh variable set AWS_BOOTSTRAPPED    --body "true"
 
 コンソールで行う場合: GitHub → Settings → Secrets and variables → Actions
 
-| 種別     | 名前                    | 値                                            |
-| -------- | ----------------------- | --------------------------------------------- |
+| 種別     | 名前                    | 値                                             |
+| -------- | ----------------------- | ---------------------------------------------- |
 | Secret   | `AWS_DEPLOY_ROLE_ARN`   | `terraform output -raw github_deploy_role_arn` |
 | Secret   | `APPRUNNER_SERVICE_ARN` | `terraform output -raw apprunner_service_arn`  |
 | Variable | `AWS_BOOTSTRAPPED`      | `true`                                         |
 
-- [ ] 3 つ登録した
+- [x] 3 つ登録した
 
 ### 10.2 デプロイを実行して確認する
 
@@ -955,7 +955,7 @@ aws apprunner describe-service \
 # → 10 キーが並ぶこと(空配列なら設定が飛んでいる)
 ```
 
-- [ ] 10 キーが残っている
+- [x] 10 キーが残っている
 
 > **前提**: `deploy.yml` の App Runner 更新は、`describe-service` で現在の `SourceConfiguration` を取得し `ImageIdentifier` だけを差し替える方式です(2026-07-25 修正)。UpdateService の `SourceConfiguration` は**マージではなく置き換え**のため、イメージタグだけを渡すと env / secrets / アクセスロールが消えます。ワークフローにはシークレットが 0 件なら更新を中止するガードも入っています。
 >
@@ -971,38 +971,38 @@ aws apprunner describe-service \
 
 ### 11.1 認証・オンボーディング
 
-- [ ] `https://example.app` からサインアップできる
-- [ ] Clerk webhook が発火し、`User` 行が作られる(403「同期待ち」にならない)
-- [ ] `/onboarding` からワークスペースを作成できる
-- [ ] 作成直後が **`Tenant.plan = PRO` / `Subscription.status = TRIALING`**(7 日トライアル)
-- [ ] 設定 → 利用状況に「Pro / 300 cr」、Billing に「トライアル終了: {日付}」が出る
+- [x] `https://example.app` からサインアップできる
+- [x] Clerk webhook が発火し、`User` 行が作られる(403「同期待ち」にならない)
+- [x] `/onboarding` からワークスペースを作成できる
+- [x] 作成直後が **`Tenant.plan = PRO` / `Subscription.status = TRIALING`**(7 日トライアル)
+- [x] 設定 → 利用状況に「Pro / 300 cr」、Billing に「トライアル終了: {日付}」が出る
 
 ### 11.2 AI 機能
 
 - [ ] README 生成(Haiku)が成功する
-- [ ] プロダクト診断 / アイデア検証(Sonnet + Web Search)が成功し、`competitorRefs` が入る
-- [ ] AI クレジットが消費され、利用状況の残数に反映される
-- [ ] **診断 / 検証の所要時間を実測して記録する**(ブラウザの DevTools → Network で該当リクエストの Time を見る)
+- [x] プロダクト診断 / アイデア検証(Sonnet + Web Search)が成功し、`competitorRefs` が入る
+- [x] AI クレジットが消費され、利用状況の残数に反映される(実測: アイデア検証 6cr / LP 生成 3cr、残数がダイアログに表示される)
+- [x] **診断 / 検証の所要時間を実測して記録する** → **2026-08-04 実測: アイデア検証は 53〜113 秒**(Sonnet 2-step + Web Search)。Hobby の上限に近いため各ページに `maxDuration = 60`、`apiFetch` に 55 秒のタイムアウトを入れた。超え始めたら `architecture.md` トリガー 1 に従いキュー導入へ
 
 > ⚠ **これは単なる性能確認ではなく、設計判断のための計測です。** 診断 / 検証は Sonnet の 2-step + Web Search で数十秒かかり、`apps/web` には `maxDuration` の指定が無いため **Vercel の関数実行上限(プラン依存、Hobby は Pro より短い)に当たる可能性**があります。上限に近い、あるいはタイムアウトする場合は、`maxDuration` の引き上げか非同期化(キュー導入)の判断が必要です。判断基準は [`../architecture.md`](../architecture.md) の「非同期処理基盤(キュー)をいつ導入するか」トリガー 1 を参照。
 
 ### 11.3 メール
 
-- [ ] メンバー招待を送ると**実際にメールが届く**(送信元が `noreply@example.app` になっている)
-- [ ] 招待リンクから承諾できる
+- [x] メンバー招待を送ると**実際にメールが届く**(送信元が `noreply@example.app` になっている)
+- [ ] 招待リンクから承諾できる(**招待は Team プラン限定のため未検証**。Resend の送信自体は疎通確認済み)
 
 ### 11.4 課金(Stripe)
 
-- [ ] Billing → 「Stripe Customer Portal を開く」で Portal に遷移する(BIL-12)
-- [ ] **Checkout**(BIL-23): `plan = FREE` の状態でプラン比較に「Pro にアップグレード」が出る → 決済完走 → `checkout.session.completed` → `Tenant.plan = PRO` + AI 機能が再開
+- [x] Billing → 「Stripe Customer Portal を開く」で Portal に遷移する(BIL-12)
+- [ ] **Checkout**(BIL-23、**実カード決済が要るため未検証**): `plan = FREE` の状態でプラン比較に「Pro にアップグレード」が出る → 決済完走 → `checkout.session.completed` → `Tenant.plan = PRO` + AI 機能が再開
 - [ ] トライアル中 / 有料中はアップグレードボタンが出ない(BIL-24、二重契約の防止)
 - [ ] Stripe Dashboard の Webhook ログが 2xx
 
 ### 11.5 公開ページ・SEO
 
-- [ ] `https://example.app/p/{slug}/{projectId}` が匿名で表示される
+- [ ] `https://example.app/p/{slug}/{projectId}` が匿名で表示される(**公開済み LP が 0 件のため未検証**。API は 200 + 空配列を返すことを確認済み)
 - [ ] `https://example.app/p/{slug}/{projectId}/blog/{postSlug}` が匿名で表示される
-- [ ] `https://example.app/robots.txt` / `sitemap.xml` が返る
+- [x] `https://example.app/robots.txt` / `sitemap.xml` が返る
 
 ### 11.6 告知配信
 
@@ -1024,11 +1024,11 @@ db_skip_final_snapshot = false
 cd "$REPO/infra/prod" && terraform apply
 ```
 
-- [ ] 適用した
+- [x] 適用した
 
 ### 12.2 アラートを受け取れる状態にする
 
-- [ ] `budget_alert_email` 宛に届いた **SNS の購読確認メールを Confirm** する ← 未確認だとアラートが一切届きません
+- [x] `budget_alert_email` 宛に届いた **SNS の購読確認メールを Confirm** する ← 未確認だとアラートが一切届きません
 
 ```bash
 aws sns list-subscriptions-by-topic \
@@ -1037,12 +1037,12 @@ aws sns list-subscriptions-by-topic \
 # SubscriptionArn が "PendingConfirmation" でないこと
 ```
 
-- [ ] AWS Cost Anomaly Detection(無料)を有効化する
+- [x] AWS Cost Anomaly Detection(無料)を有効化する
 
 ### 12.3 コスト管理の初期設定
 
-- [ ] **初期クレジットの有効期限をカレンダーに登録**する(実額は §0.1 で控えた値。Billing コンソール → Credits)
-- [ ] Cost Explorer を有効化し、**クレジット適用前の請求額**を見られるようにする
+- [x] **初期クレジットの有効期限をカレンダーに登録**する(実額は §0.1 で控えた値。Billing コンソール → Credits)
+- [x] Cost Explorer を有効化し、**クレジット適用前の請求額**を見られるようにする(§2.7「請求画面での見え方に注意」を参照。Cost Explorer の既定は値引き後の額)
 
 > **AWS Budgets はクレジット適用後の実請求額で判定される**ため、クレジットが残っている間はアラートが鳴りません。クレジットで隠れている本来のコストは Cost Explorer で確認してください([`../infrastructure-cost.md`](../infrastructure-cost.md) §2.7)。
 >
@@ -1088,44 +1088,44 @@ aws apprunner resume-service --service-arn "$(cd "$REPO/infra/prod" && terraform
 
 ## 14. よくある詰まりどころ
 
-| 症状                                              | 原因 / 対処                                                                                             |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| App Runner が `exec format error` で起動しない    | **arm64 でビルドしている**。`docker buildx build --platform linux/amd64` で作り直す(§7.1)               |
-| App Runner が `CREATE_FAILED` + ログに `Base64Coder: incorrect characters` | **`CLERK_WEBHOOK_SECRET` がプレースホルダ**。svix が base64 デコードに失敗する。Phase 8 を先取りして実値を入れる(§5.2) |
-| App Runner が起動しない(その他)                   | Secrets が `REPLACE_ME` のまま / ECR タグが存在しない / インスタンスロールに Secrets 読取権が無い        |
-| App Runner が起動直後に落ちる                     | メモリ不足の可能性。`apprunner_memory` を `2048` に戻す(§7.4)                                           |
-| API から外部 API(Anthropic 等)に出られない        | NAT インスタンスと Private Subnet のルートを確認。VPC Flow Logs(`REJECT`)に拒否が出ていないか            |
-| `POST /webhooks/clerk` が 500                     | `CLERK_WEBHOOK_SECRET` 未設定 / 更新後に再デプロイしていない(§8-6)                                      |
-| サインアップしても 403「同期待ち」                | Clerk webhook が届いていない。Clerk Dashboard の配信ログを確認(§8)                                      |
-| Stripe Portal が 400                              | Customer Portal が Activate されていない(§4.3)                                                          |
-| Checkout で「価格が見つかりません」               | `STRIPE_PRICE_*` がテストモードの Price ID になっている(§4.2)                                           |
-| 招待メールが届かない                              | Resend のドメイン検証未完了 / `mail_from` が独自ドメインなのに未 verify(§3.3)                          |
-| `terraform apply` で NAT の AMI が見つからない    | `nat_ami_id` を明示指定する(§2.1)                                                                       |
-| ホストゾーンが 2 つある                           | Route53 でドメイン登録した際の自動作成分。import するか削除する(§1.3)                                   |
-| 予算アラートが毎月鳴る / 全く鳴らない             | 閾値が固定フロアと不整合 / クレジット期間中で実請求が 0(§12.3)                                          |
-| SSM ポートフォワードは張れるが DB がタイムアウト   | **RDS の SG が NAT からの 5432 を許可していない**。`enable_admin_db_access = true` で apply する(§6.0) |
-| 公開から数日後に突然 `password authentication failed` で DB 全断 | **`DATABASE_URL` にマスターパスワードを埋めている**。AWS が 7 日ごとに自動ローテーションするため。`shipyard_app` の認証情報に切り替える(§6.5) |
-| migration 後にアプリから新テーブルが見えない | `ALTER DEFAULT PRIVILEGES` が未実行、または既存テーブルへの `GRANT` 漏れ(§6.5) |
-| SSM セッション自体が張れない                      | `session-manager-plugin` 未インストール(§0.3)/ NAT の SSM エージェント未起動(`aws ssm describe-instance-information` で確認) |
-| `Too many command line arguments` / `Found invalid choice '#'` | **zsh は既定で対話シェルの `#` をコメント扱いしない**。コマンドの行末にコメントを付けて実行すると引数として渡る。本書はコメントを行の上に置いているのでそのままコピペできる |
-| `cd: no such file or directory` | 相対パスで移動している。本書は `$REPO`(§0.3 で `export`)からの絶対パスを使う。ターミナルを開き直したら `export REPO=...` を再実行する |
-| `AccessDenied ... no identity-based policy allows` | IAM ユーザーにポリシーが付いていない。IAM → ユーザー → 許可を追加 → **許可を直接アタッチする** → `AdministratorAccess`(認証は成功しているので `aws configure` は正しい) |
-| import で `resource address ... does not exist in the configuration` | `infra/prod` 以外のディレクトリで実行している(`aws_route53_zone.main` は `infra/prod/route53.tf` の定義) |
-| `zsh: command not found: tfenv` / `terraform`     | `brew install tfenv` 後、**`cd infra` してから** `tfenv install`(§0.3)。`.terraform-version` は `infra/` 配下にあり、tfenv は親方向にしか探さない |
-| `terraform apply` が権限エラーで通らない          | **無料アカウントプラン**で作成している可能性。App Runner / Route53 / Secrets Manager は無料利用枠の対象外(§0.1) |
-| Billing コンソールが「アクセスが拒否されました」  | IAM ユーザーでログインしている。ルートユーザーで「IAM ユーザー/ロールによる請求情報へのアクセス」を有効化(§0.1) |
+| 症状                                                                       | 原因 / 対処                                                                                                                                                                 |
+| -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| App Runner が `exec format error` で起動しない                             | **arm64 でビルドしている**。`docker buildx build --platform linux/amd64` で作り直す(§7.1)                                                                                   |
+| App Runner が `CREATE_FAILED` + ログに `Base64Coder: incorrect characters` | **`CLERK_WEBHOOK_SECRET` がプレースホルダ**。svix が base64 デコードに失敗する。Phase 8 を先取りして実値を入れる(§5.2)                                                      |
+| App Runner が起動しない(その他)                                            | Secrets が `REPLACE_ME` のまま / ECR タグが存在しない / インスタンスロールに Secrets 読取権が無い                                                                           |
+| App Runner が起動直後に落ちる                                              | メモリ不足の可能性。`apprunner_memory` を `2048` に戻す(§7.4)                                                                                                               |
+| API から外部 API(Anthropic 等)に出られない                                 | NAT インスタンスと Private Subnet のルートを確認。VPC Flow Logs(`REJECT`)に拒否が出ていないか                                                                               |
+| `POST /webhooks/clerk` が 500                                              | `CLERK_WEBHOOK_SECRET` 未設定 / 更新後に再デプロイしていない(§8-6)                                                                                                          |
+| サインアップしても 403「同期待ち」                                         | Clerk webhook が届いていない。Clerk Dashboard の配信ログを確認(§8)                                                                                                          |
+| Stripe Portal が 400                                                       | Customer Portal が Activate されていない(§4.3)                                                                                                                              |
+| Checkout で「価格が見つかりません」                                        | `STRIPE_PRICE_*` がテストモードの Price ID になっている(§4.2)                                                                                                               |
+| 招待メールが届かない                                                       | Resend のドメイン検証未完了 / `mail_from` が独自ドメインなのに未 verify(§3.3)                                                                                               |
+| `terraform apply` で NAT の AMI が見つからない                             | `nat_ami_id` を明示指定する(§2.1)                                                                                                                                           |
+| ホストゾーンが 2 つある                                                    | Route53 でドメイン登録した際の自動作成分。import するか削除する(§1.3)                                                                                                       |
+| 予算アラートが毎月鳴る / 全く鳴らない                                      | 閾値が固定フロアと不整合 / クレジット期間中で実請求が 0(§12.3)                                                                                                              |
+| SSM ポートフォワードは張れるが DB がタイムアウト                           | **RDS の SG が NAT からの 5432 を許可していない**。`enable_admin_db_access = true` で apply する(§6.0)                                                                      |
+| 公開から数日後に突然 `password authentication failed` で DB 全断           | **`DATABASE_URL` にマスターパスワードを埋めている**。AWS が 7 日ごとに自動ローテーションするため。`shipyard_app` の認証情報に切り替える(§6.5)                               |
+| migration 後にアプリから新テーブルが見えない                               | `ALTER DEFAULT PRIVILEGES` が未実行、または既存テーブルへの `GRANT` 漏れ(§6.5)                                                                                              |
+| SSM セッション自体が張れない                                               | `session-manager-plugin` 未インストール(§0.3)/ NAT の SSM エージェント未起動(`aws ssm describe-instance-information` で確認)                                                |
+| `Too many command line arguments` / `Found invalid choice '#'`             | **zsh は既定で対話シェルの `#` をコメント扱いしない**。コマンドの行末にコメントを付けて実行すると引数として渡る。本書はコメントを行の上に置いているのでそのままコピペできる |
+| `cd: no such file or directory`                                            | 相対パスで移動している。本書は `$REPO`(§0.3 で `export`)からの絶対パスを使う。ターミナルを開き直したら `export REPO=...` を再実行する                                       |
+| `AccessDenied ... no identity-based policy allows`                         | IAM ユーザーにポリシーが付いていない。IAM → ユーザー → 許可を追加 → **許可を直接アタッチする** → `AdministratorAccess`(認証は成功しているので `aws configure` は正しい)     |
+| import で `resource address ... does not exist in the configuration`       | `infra/prod` 以外のディレクトリで実行している(`aws_route53_zone.main` は `infra/prod/route53.tf` の定義)                                                                    |
+| `zsh: command not found: tfenv` / `terraform`                              | `brew install tfenv` 後、**`cd infra` してから** `tfenv install`(§0.3)。`.terraform-version` は `infra/` 配下にあり、tfenv は親方向にしか探さない                           |
+| `terraform apply` が権限エラーで通らない                                   | **無料アカウントプラン**で作成している可能性。App Runner / Route53 / Secrets Manager は無料利用枠の対象外(§0.1)                                                             |
+| Billing コンソールが「アクセスが拒否されました」                           | IAM ユーザーでログインしている。ルートユーザーで「IAM ユーザー/ロールによる請求情報へのアクセス」を有効化(§0.1)                                                             |
 
 ---
 
 ## 関連ドキュメント
 
-| ドキュメント                                                              | 用途                                     |
-| ------------------------------------------------------------------------- | ---------------------------------------- |
-| [`../infrastructure-cost.md`](../infrastructure-cost.md)                  | コスト構造・削減方針・クレジットの実態   |
-| [`../../infra/README.md`](../../infra/README.md)                          | Terraform の構成とリソース一覧           |
-| [`adr-012-release-checklist.md`](./adr-012-release-checklist.md)          | Stripe / プラン構造の背景と既知の制約    |
-| [`adr-014-release-checklist.md`](./adr-014-release-checklist.md)          | 告知配信の公開後確認                     |
-| [`adr-014-twitter-integration.md`](./adr-014-twitter-integration.md)      | Twitter(Web Intent 方式)の運用           |
-| [`clerk-webhook-troubleshooting.md`](./clerk-webhook-troubleshooting.md)  | Clerk webhook の詳細な切り分け           |
-| [`../acceptance-test-spec.md`](../acceptance-test-spec.md)                | 受入検証(Phase 11 の元ネタ)              |
-| [`../adr/010-iac-tool.md`](../adr/010-iac-tool.md) / [`011-lightweight-aws-architecture.md`](../adr/011-lightweight-aws-architecture.md) | インフラ構成の決定経緯 |
+| ドキュメント                                                                                                                             | 用途                                   |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| [`../infrastructure-cost.md`](../infrastructure-cost.md)                                                                                 | コスト構造・削減方針・クレジットの実態 |
+| [`../../infra/README.md`](../../infra/README.md)                                                                                         | Terraform の構成とリソース一覧         |
+| [`adr-012-release-checklist.md`](./adr-012-release-checklist.md)                                                                         | Stripe / プラン構造の背景と既知の制約  |
+| [`adr-014-release-checklist.md`](./adr-014-release-checklist.md)                                                                         | 告知配信の公開後確認                   |
+| [`adr-014-twitter-integration.md`](./adr-014-twitter-integration.md)                                                                     | Twitter(Web Intent 方式)の運用         |
+| [`clerk-webhook-troubleshooting.md`](./clerk-webhook-troubleshooting.md)                                                                 | Clerk webhook の詳細な切り分け         |
+| [`../acceptance-test-spec.md`](../acceptance-test-spec.md)                                                                               | 受入検証(Phase 11 の元ネタ)            |
+| [`../adr/010-iac-tool.md`](../adr/010-iac-tool.md) / [`011-lightweight-aws-architecture.md`](../adr/011-lightweight-aws-architecture.md) | インフラ構成の決定経緯                 |

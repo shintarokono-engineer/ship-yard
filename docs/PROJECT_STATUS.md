@@ -19,6 +19,31 @@ Neorie プロジェクトの単一の真実の源(Single Source of Truth)。こ�
 >
 > 移行手順と経緯の詳細は [`runbooks/rename-to-neorie.md`](./runbooks/rename-to-neorie.md)。
 
+> **2026-08-04: 本番環境の構築と疎通テスト(`runbooks/production-cutover.md` Phase 0〜12)が完了した。**
+>
+> `https://neorie.com`(Vercel)と `https://api.neorie.com`(App Runner)が稼働し、サインアップ →
+> Clerk webhook で `User` 作成 → オンボーディング → AI 生成 → トライアル付与 → メール送信 →
+> Stripe Portal までを本番で実測して確認済み。**§9.10 の MVP ブロッカー(Clerk webhook)は解消した。**
+>
+> **本番でしか露見しない不具合を 7 件見つけて修正した。** いずれもローカルでは再現しない類:
+>
+> | 事象                              | 原因                                                                                         |
+> | --------------------------------- | -------------------------------------------------------------------------------------------- |
+> | API が起動しない                  | Secrets のプレースホルダ `REPLACE_ME` を svix が base64 デコードできず bootstrap ごと落ちる  |
+> | デプロイで env / secrets が消える | App Runner の `UpdateService` は SourceConfiguration を**マージではなく置換**する            |
+> | デプロイをリトライできない        | ECR が IMMUTABLE タグのため同一 SHA の push が弾かれる                                       |
+> | SEO / OG が無効                   | `robots.txt` / `sitemap.xml` / `opengraph-image` が middleware で認証必須になっていた        |
+> | AI 生成後に 404                   | fetch ヘルパーが 401 と 404 を同じ `null` に潰し、セッション切れが `notFound()` になっていた |
+> | AI エラーが 500                   | プロバイダの SDK 例外を翻訳しておらず、クレジット枯渇を「コードのバグ」と誤認させる          |
+> | 招待メールが送れない              | Resend の**送信専用 API キーはドメインに紐づく**ため、ドメイン移行時に再発行が必要           |
+>
+> **積み残し**: 診断 / アイデア検証の所要時間が **53〜113 秒**で Vercel Hobby の上限に近い。
+> `maxDuration = 60` と 55 秒のタイムアウトで凌いでいるが、超え始めたら
+> [`architecture.md`](./architecture.md)「非同期処理基盤(キュー)をいつ導入するか」トリガー 1 に従って非同期化する。
+>
+> **AWS 初期クレジットは実績 $140**(2027-07-25 期限)。ただし**残高が期限より先に尽きる**見込みで、
+> 2026 年 11 月頃から月 $36〜40 が実費化する([`infrastructure-cost.md`](./infrastructure-cost.md) §2.7)。
+
 ### 更新ルール
 
 - 重要な決定が出たら即時追記する
