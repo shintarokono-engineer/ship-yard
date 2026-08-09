@@ -1,6 +1,6 @@
 # Neorie
 
-![Status](https://img.shields.io/badge/status-公開準備中-blue)
+![Status](https://img.shields.io/badge/status-公開中-brightgreen)
 ![Node](https://img.shields.io/badge/node-22-339933)
 ![Next.js](https://img.shields.io/badge/Next.js-15-black)
 ![NestJS](https://img.shields.io/badge/NestJS-11-E0234E)
@@ -8,9 +8,9 @@
 
 個人開発者および小規模開発チーム(2〜10 人)向けの、「アイデア → 設計 → 開発 → リリース → 初期ユーザー獲得」までを一元管理する AI 支援付き B2B SaaS です。
 
-> **現在のステータス**: 公開準備中。機能実装(マルチテナント / 課金 / AI 一式 / RAG / LP ブロック化と公開 URL / マルチチャネル告知配信 / チーム機能)と本番インフラ構築(AWS + Vercel、Terraform)は完了し、公開前の最終確認を進めています。
+> **現在のステータス**: 公開中(2026-08-09 リリース)。マルチテナント / 課金 / AI 一式 / RAG / LP ブロック化と公開 URL / マルチチャネル告知配信 / チーム機能を実装し、AWS + Vercel(Terraform)で本番稼働しています。
 
-**本番サイト**: <https://neorie.com>(公開準備中)
+**本番サイト**: <https://neorie.com>
 
 ## デモ
 
@@ -297,7 +297,8 @@ GitHub Actions で以下を自動実行します。
 - ✅ Week 4: AI 機能 UI / Stripe フロント / RAG コールドスタート対策 / RAG_QA / LP ブロック化
 - ✅ Week 5: AWS インフラ(Terraform、ADR-011 軽量構成)
 - ✅ Week 6: マーケティング LP / アイデア検証 + プロダクト診断(ADR-013)/ Clerk webhook / マルチチャネル告知配信(ADR-014)/ 本番環境構築 + 疎通確認 / UI 刷新(ダークモード対応)
-- 🚧 **公開準備**: デモ動画 + スクリーンショット / 受け入れテストの残り消化 / 公開リリース
+- ✅ **公開**: デモ + スクリーンショット / **2026-08-09 リリース**
+- 🚧 **公開後**: 受け入れテストの残り消化 / ユーザーフィードバック対応 / v1.x フォローアップ
 
 詳細は [docs/PROJECT_STATUS.md §6](./docs/PROJECT_STATUS.md) を参照してください。
 
