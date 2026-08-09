@@ -1,6 +1,6 @@
 # Neorie
 
-![Status](https://img.shields.io/badge/status-Week%206%20%2F%20Day%2042%20done-blue)
+![Status](https://img.shields.io/badge/status-公開準備中-blue)
 ![Node](https://img.shields.io/badge/node-22-339933)
 ![Next.js](https://img.shields.io/badge/Next.js-15-black)
 ![NestJS](https://img.shields.io/badge/NestJS-11-E0234E)
@@ -8,24 +8,20 @@
 
 個人開発者および小規模開発チーム(2〜10 人)向けの、「アイデア → 設計 → 開発 → リリース → 初期ユーザー獲得」までを一元管理する AI 支援付き B2B SaaS です。
 
-> **現在のステータス**: Week 6 進行中(Day 42 完了 / 公開目標 Day 49)。マルチテナント基盤・課金基盤・AI 基盤・RAG・LP ブロック化と公開 URL・AWS インフラ(Terraform、ADR-011 軽量構成)・マーケティングランディングページ・OG 画像・PRODUCT_DIAGNOSIS の設計確定(ADR-013、Day 43-46 で実装)までを完了済。
+> **現在のステータス**: 公開準備中。機能実装(マルチテナント / 課金 / AI 一式 / RAG / LP ブロック化と公開 URL / マルチチャネル告知配信 / チーム機能)と本番インフラ構築(AWS + Vercel、Terraform)は完了し、公開前の最終確認を進めています。
 
-<!-- TODO: Day 37 で本番ドメイン取得・Day 44 公開後にリンク差し替え -->
-
-**本番サイト**: (Day 44 公開時に追加)
-**デモ動画**: (Day 41 で Loom リンクを追加)
+**本番サイト**: <https://neorie.com>(公開準備中)
+**デモ動画**: (準備中)
 
 ## スクリーンショット
 
-<!-- TODO: pnpm dev で起動して撮影し、docs/screenshots/ に配置(Day 41) -->
+| ランディング                                    | プロジェクト詳細                                           | アイデア検証                                            |
+| ----------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------- |
+| ![ランディング](./docs/screenshots/landing.jpg) | ![プロジェクト詳細](./docs/screenshots/project-detail.jpg) | ![アイデア検証](./docs/screenshots/idea-validation.jpg) |
 
-| ランディング | ダッシュボード | AI 壁打ち |
-| ------------ | -------------- | --------- |
-| _準備中_     | _準備中_       | _準備中_  |
-
-| プロジェクト詳細 | LP ブロックエディタ | 公開 LP  |
-| ---------------- | ------------------- | -------- |
-| _準備中_         | _準備中_            | _準備中_ |
+| プロダクト診断                                              | LP ブロックエディタ                                            | 告知配信                                         |
+| ----------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------ |
+| ![プロダクト診断](./docs/screenshots/product-diagnosis.jpg) | ![LP ブロックエディタ](./docs/screenshots/lp-block-editor.jpg) | ![告知配信](./docs/screenshots/announcement.jpg) |
 
 ## プロダクトについて
 
@@ -36,25 +32,30 @@
 
 ### 何ができるか
 
+Lean Startup の各段階に対応した AI 機能を、1 つのプロジェクト管理の中に置いています。
+
 - **マルチプロジェクト管理**: 複数の個人開発プロジェクトを並列で管理
-- **AI 文書生成**: README / LP / 競合調査 / 告知文 / ロードマップ / リリースノート の 6 種を Claude Sonnet 4 + Tool Use で自動ドラフト
+- **アイデア検証(IDEA_VALIDATION)**: 発案段階のアイデアを Web 検索で類似プロダクトごと調べ、Problem-Solution Fit を軸ごとに採点して GO / PIVOT / NO_GO を返す(Sonnet 4 + Web Search Tool + Tool Use、ADR-013 改訂版)
+- **プロダクト診断(PRODUCT_DIAGNOSIS)**: 開発中〜リリース済みのプロダクトを競合と比較し、サービスレベルをスコア化して改善提案を返す(Sonnet 4 + Web Search Tool + Tool Use、ADR-013)
+- **README 自動生成(DRAFT_GEN)**: プロジェクト情報から README をドラフト(Sonnet 4)。LP は ADR-009、告知文は ADR-014 の専用フローに分離済み
 - **AI チェックリスト**: リリース前チェックリストの一括生成(Haiku 4.5) + 親タスクを最大 10 件のサブタスクに分解(TASK_SPLIT)
 - **AI ドキュメント推敲**: 既存ドキュメントを Sonnet 4 で推敲し、append-only で新版を作成(REFINE_DOC、過去版は保持)
 - **AI 壁打ち(RAG_QA)**: プロジェクト固有の文脈で対話、セッション履歴と参照元を永続化
-- **過去資産の RAG**: 過去のプロジェクトドキュメントを pgvector でベクトル検索し、新規生成時にコンテキスト注入。コールドスタート対策として OSS README 6 件(Hono / Zod / Drizzle / Astro / tRPC / Trigger.dev、MIT / Apache-2.0)を seed コーパスとして同梱
-- **LP ブロック化 + 公開 URL**: ランディングページを構造化ブロック(hero / features / stats / testimonial / cta / footer)で生成・編集、`/p/{slug}/{projectId}` で公開
-- **チーム機能(Team プラン)**: メンバー招待 / 6 種ロール(OWNER / ADMIN / DEVELOPER / REVIEWER / TESTER / VIEWER)/ 共同編集 / レビュー / 監査ログ
+- **過去資産の RAG**: 過去のプロジェクトドキュメントを pgvector でベクトル検索し、新規生成時にコンテキスト注入。コールドスタート対策として OSS README 6 件(Hono / Zod / Drizzle / Astro / tRPC / Trigger.dev、MIT / Apache-2.0)を seed コーパスとして同梱(ADR-008)
+- **LP ブロック化 + 公開 URL**: ランディングページを構造化ブロック(hero / features / stats / testimonial / cta / footer)で生成・編集、`/p/{slug}/{projectId}` で公開(ADR-009)
+- **マルチチャネル告知配信(ANNOUNCEMENT_GEN)**: 1 つの告知から X 投稿文と自前ブログ記事を一括生成し、ブログは `/p/{slug}/{projectId}/blog/{postSlug}` で公開、X は Web Intent で投稿画面へ引き渡す(ADR-014)
+- **チーム機能(Team プラン)**: メンバー招待 / 6 種ロール(OWNER / ADMIN / DEVELOPER / REVIEWER / TESTER / VIEWER)。共同編集・レビュー・監査ログは**近日提供**(`AuditLog` / `Comment` は未実装。LP の料金表でも「近日提供」と明示しています)
 - **Stripe セルフサーブ課金**: Customer Portal に委譲し、支払い方法 / 請求書履歴 / プラン変更 / 解約を完結
 
 ### プラン(ADR-012)
 
-| プラン                       | 料金            | 主な対象                                                  |
-| ---------------------------- | --------------- | --------------------------------------------------------- |
-| **新規登録(7 日トライアル)** | ¥0              | Pro 全機能を 7 日間お試し(クレカ不要)                     |
-| **Pro**                      | ¥1,480 / 月     | 本格的に作る個人開発者(AI クレジット 300 / 月)            |
-| **Team**                     | ¥2,800 / 人・月 | 2 人以上のチーム(共同編集・レビュー・監査ログ、800 cr/人) |
+| プラン                       | 料金            | 主な対象                                                 |
+| ---------------------------- | --------------- | -------------------------------------------------------- |
+| **新規登録(7 日トライアル)** | ¥0              | Pro 全機能を 7 日間お試し(クレカ不要)                    |
+| **Pro**                      | ¥1,480 / 月     | 本格的に作る個人開発者(AI クレジット 300 / 月)           |
+| **Team**                     | ¥2,800 / 人・月 | 2 人以上のチーム(メンバー招待 + 6 段階ロール、800 cr/人) |
 
-AI クレジットはモデル別の従量制で計算します(Haiku 4.5 = 1 cr / Sonnet 4 = 3 cr)。トライアル終了 / 解約後は `Tenant.plan = FREE` のフォールバック状態に入り、AI 機能が停止します(プロジェクトの閲覧は可能)。
+AI クレジットはモデル別の従量制で計算します(Haiku 4.5 = 1 cr / Sonnet 4 = 3 cr)。Web 検索を伴うアイデア検証 / プロダクト診断は調査 + 採点の 2 ターン構成のため 6 cr、告知文生成は 4 cr です(`apps/api/src/ai/ai.constants.ts` に集約)。トライアル終了 / 解約後は `Tenant.plan = FREE` のフォールバック状態に入り、AI 機能が停止します(プロジェクトの閲覧は可能)。
 
 > プランの細目(メンバー上限・AI 上限など)は `docs/adr/004-billing-plans.md` および `docs/PROJECT_STATUS.md` §9.8 を参照。
 
@@ -139,11 +140,11 @@ pnpm dev
 
 ### 環境変数
 
-| ファイル              | 主なキー                                                                                                                                                                                                                           |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/web/.env.local` | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` / `API_URL` / `SITE_URL`                                                                                                                                                  |
-| `apps/api/.env.local` | `DATABASE_URL` / `CLERK_SECRET_KEY` / `PORT` / `APP_BASE_URL` / `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `STRIPE_PRICE_PRO` / `STRIPE_PRICE_TEAM` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `RESEND_API_KEY` / `MAIL_FROM` |
-| `packages/db/.env`    | `DATABASE_URL`(Prisma CLI 用)                                                                                                                                                                                                      |
+| ファイル              | 主なキー                                                                                                                                                                                                                                                    |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web/.env.local` | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` / `API_URL` / `SITE_URL`                                                                                                                                                                           |
+| `apps/api/.env.local` | `DATABASE_URL` / `CLERK_SECRET_KEY` / `CLERK_WEBHOOK_SECRET` / `PORT` / `APP_BASE_URL` / `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `STRIPE_PRICE_PRO` / `STRIPE_PRICE_TEAM` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `RESEND_API_KEY` / `MAIL_FROM` |
+| `packages/db/.env`    | `DATABASE_URL`(Prisma CLI 用)                                                                                                                                                                                                                               |
 
 - Clerk: <https://clerk.com> で Application を作成
 - Stripe: <https://dashboard.stripe.com>(テストモード)で Product / Price を作成
@@ -184,14 +185,14 @@ Checkout 動作確認は `POST /workspaces/{slug}/checkout-session`(Clerk JWT �
 
 ADR-014 Day 56 で Vitest を導入。`apps/api/src/**/*.spec.ts` を対象に実行する。
 
-| コマンド                                            | 内容                                                                       |
-| --------------------------------------------------- | -------------------------------------------------------------------------- |
-| `pnpm test`                                         | Turborepo 経由で全 workspace の test を実行                                |
-| `pnpm test:api`                                     | API の Vitest を 1 回実行(CI 想定)                                         |
-| `pnpm test:watch:api`                               | ファイル変更を監視して自動再実行(開発中)                                   |
-| `pnpm test:coverage:api`                            | coverage レポート生成(`apps/api/coverage/index.html`)                       |
-| `pnpm --filter @shipyard/api test <path>`           | 特定ファイルのみ(例:`src/common/crypto/token-encryption.spec.ts`)            |
-| `pnpm --filter @shipyard/api test -t '<pattern>'`   | テスト名でフィルタ(例:`'改ざん'` で `it('改ざん...')` のみ実行)                |
+| コマンド                                          | 内容                                                              |
+| ------------------------------------------------- | ----------------------------------------------------------------- |
+| `pnpm test`                                       | Turborepo 経由で全 workspace の test を実行                       |
+| `pnpm test:api`                                   | API の Vitest を 1 回実行(CI 想定)                                |
+| `pnpm test:watch:api`                             | ファイル変更を監視して自動再実行(開発中)                          |
+| `pnpm test:coverage:api`                          | coverage レポート生成(`apps/api/coverage/index.html`)             |
+| `pnpm --filter @shipyard/api test <path>`         | 特定ファイルのみ(例:`src/common/crypto/token-encryption.spec.ts`) |
+| `pnpm --filter @shipyard/api test -t '<pattern>'` | テスト名でフィルタ(例:`'改ざん'` で `it('改ざん...')` のみ実行)   |
 
 設定は `apps/api/vitest.config.ts`(globals 有効、Node 環境)。`describe / it / expect / beforeEach` は import 不要。Jest API 互換のため、既存の Jest コードからの移行コストは最小。
 
@@ -272,6 +273,7 @@ shipyard/
 | [011](./docs/adr/011-lightweight-aws-architecture.md)    | 軽量 AWS 構成(App Runner + db.t4g.micro + Upstash)                                     |
 | [012](./docs/adr/012-plan-structure-revision.md)         | プラン構造の全面見直し(Free 廃止 + 7 日 Pro トライアル + Pro ¥1,480 + AI クレジット制) |
 | [013](./docs/adr/013-product-diagnosis.md)               | PRODUCT_DIAGNOSIS(競合調査 + サービスレベルスコア化、Sonnet 4 + Web Search + Tool Use) |
+| [014](./docs/adr/014-multi-channel-announcement.md)      | マルチチャネル告知配信(X + 自前ブログ、ANNOUNCEMENT_GEN)                               |
 
 ADR は承認済の方針を表すため、方針転換が必要な場合は新しい ADR を [docs/adr/000-template.md](./docs/adr/000-template.md) に従って起こします。
 
@@ -288,11 +290,12 @@ GitHub Actions で以下を自動実行します。
 
 - ✅ Week 1〜3: 設計 / 基盤 / マルチテナント / Stripe / AI 基盤
 - ✅ Week 4: AI 機能 UI / Stripe フロント / RAG コールドスタート対策 / RAG_QA / LP ブロック化
-- ✅ Week 5: AWS インフラ(Terraform、ADR-011 軽量構成、`apply` は AWS アカウント作成後)
-- 🚧 **Week 6**: マーケティング LP(✅ Day 40)/ README 強化 + デモ動画(🚧 Day 41)/ Zenn 記事 / 告知準備 / **Day 44 公開**
+- ✅ Week 5: AWS インフラ(Terraform、ADR-011 軽量構成)
+- ✅ Week 6: マーケティング LP / アイデア検証 + プロダクト診断(ADR-013)/ Clerk webhook / マルチチャネル告知配信(ADR-014)/ 本番環境構築 + 疎通確認 / UI 刷新(ダークモード対応)
+- 🚧 **公開準備**: デモ動画 + スクリーンショット / 受け入れテストの残り消化 / 公開リリース
 
 詳細は [docs/PROJECT_STATUS.md §6](./docs/PROJECT_STATUS.md) を参照してください。
 
 ## ライセンス
 
-[MIT License](./LICENSE)
+ライセンス未設定(All rights reserved)。本リポジトリのコードは商用 SaaS の実装であり、再配布・改変・商用利用の許諾は行っていません。
