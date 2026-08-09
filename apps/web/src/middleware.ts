@@ -27,6 +27,9 @@ const isPublicRoute = createRouteMatcher([
   '/robots.txt',
   '/sitemap.xml',
   '/opengraph-image',
+  // 法的ページ。未認証の訪問者(と Stripe の審査)が見られないと掲示した意味がない。
+  '/privacy',
+  '/tokushoho',
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/sign-out-cleanup',

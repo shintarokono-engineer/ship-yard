@@ -32,6 +32,20 @@ export function SiteFooter() {
           >
             サインイン
           </Link>
+          {/* 有料サービスのため掲示が要る(特商法 11 条 / 個人情報保護法 21 条)。
+              Stripe も加盟店に特商法表記の掲示を求めるため、リンクを外さないこと。 */}
+          <Link
+            href="/privacy"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            プライバシー
+          </Link>
+          <Link
+            href="/tokushoho"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            特商法表記
+          </Link>
         </nav>
       </div>
       <div className="border-t py-4">
