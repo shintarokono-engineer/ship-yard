@@ -89,6 +89,14 @@ export async function runValidationAction(
           instructions: parsed.instructions,
         };
       }
+      // 504(タイムアウト)/ 503(プロバイダ障害)。文言は classifyAiApiError が持つ。
+      if (classified.kind === 'timeout' || classified.kind === 'unavailable') {
+        return {
+          ok: false,
+          formError: classified.messages[0],
+          instructions: parsed.instructions,
+        };
+      }
       return {
         ok: false,
         formError: `アイデア検証の実行に失敗しました (HTTP ${e.status})`,

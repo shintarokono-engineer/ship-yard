@@ -16,6 +16,13 @@ import { GenerateLpDialog } from './_components/generate-lp-dialog';
 import { PublishToggle } from './_components/publish-toggle';
 
 /**
+ * AI 処理を伴う Server Action は呼び出し元ページのセグメント設定を継承するため、上限はここで
+ * 指定する(`_actions/*.ts` では効かない)。60 は Hobby プランの上限。定数参照は Next.js の
+ * 静的解析が解決できないため数値で書く。
+ */
+export const maxDuration = 60;
+
+/**
  * `/w/{slug}/projects/{projectId}/landing-page` — LP ブロックのプレビュー(ADR-009、Day 31)。
  *
  * `LandingPage.blocks` を `LpRenderer` で実際の見た目に近い形で描画する。LP 未生成なら空状態、

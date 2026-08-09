@@ -16,6 +16,13 @@ import { GenerateAnnouncementDialog } from './_components/generate-announcement-
 import { TwitterDeliveryCard } from './_components/twitter-delivery-card';
 
 /**
+ * AI 処理を伴う Server Action は呼び出し元ページのセグメント設定を継承するため、上限はここで
+ * 指定する(`_actions/*.ts` では効かない)。60 は Hobby プランの上限。定数参照は Next.js の
+ * 静的解析が解決できないため数値で書く。
+ */
+export const maxDuration = 60;
+
+/**
  * `/w/{slug}/projects/{projectId}/announcements/{id}` — 告知詳細 / 編集ページ(ADR-014)。
  *
  * - タイトル + 状態 + 削除 + AI 生成 Dialog をヘッダに配置

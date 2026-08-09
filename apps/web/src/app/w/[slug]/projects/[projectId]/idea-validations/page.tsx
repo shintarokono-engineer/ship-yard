@@ -18,6 +18,13 @@ import { formatDateTime } from '@/lib/format';
 import { RunValidationDialog } from './_components/run-validation-dialog';
 
 /**
+ * AI 処理を伴う Server Action は呼び出し元ページのセグメント設定を継承するため、上限はここで
+ * 指定する(`_actions/*.ts` では効かない)。60 は Hobby プランの上限。定数参照は Next.js の
+ * 静的解析が解決できないため数値で書く。
+ */
+export const maxDuration = 60;
+
+/**
  * `/w/{slug}/projects/{projectId}/idea-validations` — アイデア検証(IDEA_VALIDATION)履歴一覧。
  *
  * 閲覧は全テナントメンバー、実行は WRITER_ROLES のみ(`isWriterRole` で出し分け、BE 側でも 403 ガード)。

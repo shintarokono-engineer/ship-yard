@@ -62,6 +62,10 @@ export async function generateLandingPageAction(
       if (classified.kind === 'bad_response') {
         return { ok: false, formError: classified.messages[0], fields: parsed.fields };
       }
+      // 504(タイムアウト)/ 503(プロバイダ障害)。文言は classifyAiApiError が持つ。
+      if (classified.kind === 'timeout' || classified.kind === 'unavailable') {
+        return { ok: false, formError: classified.messages[0], fields: parsed.fields };
+      }
       return {
         ok: false,
         formError: `ランディングページの生成に失敗しました (HTTP ${e.status})`,

@@ -1,9 +1,8 @@
 /**
- * AI 機能(DRAFT_GEN / CHECKLIST_GEN / TASK_SPLIT / REFINE_DOC)の Server Action 群で共有する
- * 定数・エラー振り分けヘルパー。
+ * AI を呼ぶ Server Action 群で共有する定数・エラー振り分けヘルパー。文言をここに集約する。
  *
- * 個別の form モジュール(`documents/_shared/generate-document-form.ts` 等)からはここを参照し、
- * 上限超過 / 権限不足 / 不正リクエスト / AI 502 をユーザーに表示する文言に揃える。
+ * **status を足すときは `AiErrorKind` / `classifyAiApiError` / 各 Server Action の分岐の
+ * 3 箇所を揃えること。** 分岐を漏らすとフォールバックに落ちて「HTTP 5xx」と表示される。
  */
 
 import { extractValidationMessages, type ApiError } from '@/lib/api/errors';
@@ -29,6 +28,8 @@ export type AiErrorKind =
   | 'not_found'
   | 'bad_request'
   | 'bad_response'
+  | 'timeout'
+  | 'unavailable'
   | 'unknown';
 
 /**
@@ -39,7 +40,11 @@ export type AiErrorKind =
  * - Free フォールバック → 「AI 機能は停止」
  * - Pro / Team クレジット超過 → 「AI クレジット」
  */
-export function classifyAiApiError(e: ApiError): { kind: AiErrorKind; messages: string[] } {
+export function classifyAiApiError(e: ApiError): {
+  kind: AiErrorKind;
+  /** 表示用メッセージ。`unknown` / `not_found` / `bad_request` はバリデーション由来のため空になりうる。 */
+  messages: string[];
+} {
   const validation = extractValidationMessages(e.body);
   const fallback =
     e.body && typeof e.body === 'object' && 'message' in e.body
@@ -62,6 +67,28 @@ export function classifyAiApiError(e: ApiError): { kind: AiErrorKind; messages: 
     return {
       kind: 'bad_response',
       messages: ['AI 応答エラーが発生しました。少し時間を置いて再度お試しください。'],
+    };
+  }
+  // 504 = `apiFetch` のタイムアウト。API 側では処理が続いている可能性があるため、
+  // 再実行(クレジット二重消費)ではなく再読み込みを促す。
+  if (e.status === 504) {
+    return {
+      kind: 'timeout',
+      messages: [
+        '処理に時間がかかりすぎたため中断しました。ページを再読み込みすると結果が保存されている場合があります。',
+      ],
+    };
+  }
+  // 503 = AI プロバイダのアカウント不備 / レート制限。API 側が整形済みの文言をそのまま出す。
+  if (e.status === 503) {
+    // `fallback` は該当なしのとき空文字。`??` では既定文言に落ちないので `||` を使う。
+    return {
+      kind: 'unavailable',
+      messages: [
+        validation[0] ||
+          fallback ||
+          'AI 機能が一時的に利用できません。少し時間を置いてお試しください。',
+      ],
     };
   }
   return { kind: 'unknown', messages: validation };

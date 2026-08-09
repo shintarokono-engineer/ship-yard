@@ -84,6 +84,14 @@ export async function generateAnnouncementAction(
           fields: { topic, channels },
         };
       }
+      // 504(タイムアウト)/ 503(プロバイダ障害)。文言は classifyAiApiError が持つ。
+      if (classified.kind === 'timeout' || classified.kind === 'unavailable') {
+        return {
+          ok: false,
+          formError: classified.messages[0],
+          fields: { topic, channels },
+        };
+      }
       return {
         ok: false,
         formError: `告知文面の生成に失敗しました (HTTP ${e.status})`,
