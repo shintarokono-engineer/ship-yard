@@ -50,7 +50,8 @@ export async function executeDeliveryAction(
       if (e.status === 502) {
         return {
           ok: false,
-          formError: msgs[0] || '外部サービスへの配信に失敗しました。時間を置いて再度お試しください。',
+          formError:
+            msgs[0] || '外部サービスへの配信に失敗しました。時間を置いて再度お試しください。',
         };
       }
       return {

@@ -20,10 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { MonthlyUsageSummary } from '@/lib/api/types';
 
 import { refineReadmeAction, type RefineReadmeFormState } from '../_actions/refine-readme';
-import {
-  GOAL_MAX_LENGTH,
-  INITIAL_REFINE_README_FORM_STATE,
-} from '../_shared/refine-readme-form';
+import { GOAL_MAX_LENGTH, INITIAL_REFINE_README_FORM_STATE } from '../_shared/refine-readme-form';
 
 /**
  * REFINE_DOC(AI で既存 README を推敲)Dialog。

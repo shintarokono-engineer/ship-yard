@@ -30,10 +30,7 @@ export class OwnershipController {
   @Post('transfer-ownership')
   @Roles(Role.OWNER)
   @HttpCode(HttpStatus.OK)
-  transferOwnership(
-    @CurrentWorkspace() ws: WorkspaceAccess,
-    @Body() dto: TransferOwnershipDto,
-  ) {
+  transferOwnership(@CurrentWorkspace() ws: WorkspaceAccess, @Body() dto: TransferOwnershipDto) {
     return this.members.transferOwnership(
       ws.tenantId,
       { userId: ws.userId, role: ws.role },

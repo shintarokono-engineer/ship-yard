@@ -10,12 +10,12 @@ ADR-014 で確定した「マルチチャネル告知配信」 機能の **実�
 
 ### スコープの境界
 
-| Phase    | 範囲                                                                                          |
-| -------- | --------------------------------------------------------------------------------------------- |
-| **MVP**  | Twitter(OAuth + API)+ 自前ブログ(`/p/{slug}/{projectId}/blog/{postSlug}` で公開)         |
-| v1.x.1   | メール配信(`Subscriber` + LP 購読フォーム + Double opt-in + unsubscribe + 特送法対応)        |
-| v1.x.2   | 配信ログ詳細(Resend Webhook で開封率 / クリック率 / バウンス収集)+ テスト送信 + プレビュー  |
-| v2       | 外部ブログ連携 / Twitter スレッド・予約投稿 / 効果計測ダッシュボード / Campaign Hub          |
+| Phase   | 範囲                                                                                       |
+| ------- | ------------------------------------------------------------------------------------------ |
+| **MVP** | Twitter(OAuth + API)+ 自前ブログ(`/p/{slug}/{projectId}/blog/{postSlug}` で公開)           |
+| v1.x.1  | メール配信(`Subscriber` + LP 購読フォーム + Double opt-in + unsubscribe + 特送法対応)      |
+| v1.x.2  | 配信ログ詳細(Resend Webhook で開封率 / クリック率 / バウンス収集)+ テスト送信 + プレビュー |
+| v2      | 外部ブログ連携 / Twitter スレッド・予約投稿 / 効果計測ダッシュボード / Campaign Hub        |
 
 ### 公開目標への影響
 
@@ -162,10 +162,10 @@ enum AnnouncementStatus { DRAFT READY EXECUTING DONE }
 
 > **§9.12.3(2026-05-29)で更新**:本 ADR で `ANNOUNCEMENT_GEN` を導入した結果、DRAFT_GEN が単一 DocType で生成していた `RELEASE_BLOG` / `TWEET` / `PRODUCT_HUNT` / `EMAIL` は配信用文面として `ANNOUNCEMENT_GEN` に完全統合された。`DocType` enum はユーザー判断で `README` / `OTHER` の **2 値に縮小** し、`DRAFT_GEN` は README 専用に限定する(§9.12.1 LP 削除と同じ「型レベルから構造的に除去」 パターン)。表中「既存 DRAFT_GEN」 は履歴のため残置するが、`GENERATABLE_DOC_TYPES` は `[README]` のみ。
 
-| 機能                      | 用途                                                       | 保存先                     | 呼び出し点                                        |
-| ------------------------- | ---------------------------------------------------------- | -------------------------- | ------------------------------------------------- |
-| 既存 DRAFT_GEN(README のみ)| README の単発ドラフト生成(§9.12.3 で告知系 4 値を分離後) | `ProjectDocument`(append-only)| `POST .../documents/generate { kind: 'README' }` |
-| 新規 ANNOUNCEMENT_GEN     | **キャンペーン単位で多チャネル文面を一括生成**(Twitter + Blog、v1.x で EMAIL 追加)| `Delivery.content`(Json)   | `POST .../announcements/:id/generate`             |
+| 機能                        | 用途                                                                               | 保存先                         | 呼び出し点                                       |
+| --------------------------- | ---------------------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------ |
+| 既存 DRAFT_GEN(README のみ) | README の単発ドラフト生成(§9.12.3 で告知系 4 値を分離後)                           | `ProjectDocument`(append-only) | `POST .../documents/generate { kind: 'README' }` |
+| 新規 ANNOUNCEMENT_GEN       | **キャンペーン単位で多チャネル文面を一括生成**(Twitter + Blog、v1.x で EMAIL 追加) | `Delivery.content`(Json)       | `POST .../announcements/:id/generate`            |
 
 - **役割分担**:DRAFT_GEN は「README という長期資産を作る」、ANNOUNCEMENT_GEN は「配信用の文面を仕上げる」
 - **流用**:Announcement 編集時に「既存の TWEET ドラフトを下敷きにする」 オプションは v1.x(MVP は ANNOUNCEMENT_GEN 一択、DRAFT_GEN 側に TWEET ドラフトが存在しなくなったため流用元もない)
@@ -180,9 +180,9 @@ export type AnnouncementDrafts = {
     text: string; // 280 字以内、絵文字込み、hashtag は AI 判断
   };
   blog: {
-    title: string;       // 60 字以内(SEO 推奨)
-    body: string;        // Markdown 本文(500〜2000 字目安)
-    summary: string;     // OG description 用、120 字以内
+    title: string; // 60 字以内(SEO 推奨)
+    body: string; // Markdown 本文(500〜2000 字目安)
+    summary: string; // OG description 用、120 字以内
   };
   // v1.x:email: { subject: string, htmlBody: string, plainTextBody: string }
 };
@@ -205,14 +205,14 @@ Tool Use の `input_schema` に JSON Schema として記述、`tool_choice: { ty
 
 ### モデル設定
 
-| 要素             | 値                                                                                  |
-| ---------------- | ----------------------------------------------------------------------------------- |
-| モデル           | `AI_MODEL_SONNET`(既存 DRAFT_GEN と同モデル)                                       |
-| max_tokens       | 3072(Twitter 100 tok + Blog 2500 tok + 余裕)                                       |
-| temperature      | 0.7(訴求文のバリエーション重視、DRAFT_GEN と同等水準)                              |
-| Tool Use         | `submit_announcement_drafts` を強制                                                 |
-| 1 回の想定コスト | 約 4-6 円(input ~2000 tok + output ~2500 tok、Sonnet 4 単価で計算)               |
-| AI クレジット     | 4 cr(v1.0.1〜、ADR-012 のクレジット制で `ANNOUNCEMENT_GEN` の重みを 4 と設定)  |
+| 要素             | 値                                                                            |
+| ---------------- | ----------------------------------------------------------------------------- |
+| モデル           | `AI_MODEL_SONNET`(既存 DRAFT_GEN と同モデル)                                  |
+| max_tokens       | 3072(Twitter 100 tok + Blog 2500 tok + 余裕)                                  |
+| temperature      | 0.7(訴求文のバリエーション重視、DRAFT_GEN と同等水準)                         |
+| Tool Use         | `submit_announcement_drafts` を強制                                           |
+| 1 回の想定コスト | 約 4-6 円(input ~2000 tok + output ~2500 tok、Sonnet 4 単価で計算)            |
+| AI クレジット    | 4 cr(v1.0.1〜、ADR-012 のクレジット制で `ANNOUNCEMENT_GEN` の重みを 4 と設定) |
 
 ### 再生成 vs 編集
 
@@ -233,33 +233,33 @@ Tool Use の `input_schema` に JSON Schema として記述、`tool_choice: { ty
 
 #### Announcement CRUD + 生成 + 実行
 
-| Method | パス                                                                                       | 用途                                                                                                                            | 認可                              |
-| ------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| POST   | `/workspaces/:slug/projects/:projectId/announcements`                                      | 空の Announcement 作成(title のみ、status=DRAFT、Delivery 0 件)                                                              | WRITER_ROLES                      |
-| GET    | `/workspaces/:slug/projects/:projectId/announcements`                                      | 一覧(createdAt 降順、軽量レスポンス `{ id, title, status, deliveryStatuses: { TWITTER, BLOG } }`)                            | 全テナントメンバー                |
-| GET    | `/workspaces/:slug/projects/:projectId/announcements/:id`                                  | 詳細(Delivery 全件 + content 全文)                                                                                            | 全テナントメンバー                |
-| PATCH  | `/workspaces/:slug/projects/:projectId/announcements/:id`                                  | title 編集 + Delivery.content 編集(Twitter 280 字 / Blog Markdown は BE バリデーション)                                       | WRITER_ROLES                      |
-| DELETE | `/workspaces/:slug/projects/:projectId/announcements/:id`                                  | 物理削除(Delivery 連鎖削除、BlogPost は `deliveryId` SET NULL で残置 = 公開 URL は維持)                                       | WRITER_ROLES                      |
-| POST   | `/workspaces/:slug/projects/:projectId/announcements/:id/generate`                         | **`ANNOUNCEMENT_GEN`** 実行(Sonnet 4 + Tool Use)。Body: `{ topic: string, channels?: ['TWITTER', 'BLOG'] }`(部分再生成可) | WRITER_ROLES + クレジット枠       |
-| POST   | `/workspaces/:slug/projects/:projectId/announcements/:id/deliveries/:deliveryId/execute`   | Delivery 実行(MVP は同期即時)。Twitter = POST /2/tweets / Blog = BlogPost.publishedAt セット                                  | WRITER_ROLES                      |
+| Method | パス                                                                                     | 用途                                                                                                                      | 認可                        |
+| ------ | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| POST   | `/workspaces/:slug/projects/:projectId/announcements`                                    | 空の Announcement 作成(title のみ、status=DRAFT、Delivery 0 件)                                                           | WRITER_ROLES                |
+| GET    | `/workspaces/:slug/projects/:projectId/announcements`                                    | 一覧(createdAt 降順、軽量レスポンス `{ id, title, status, deliveryStatuses: { TWITTER, BLOG } }`)                         | 全テナントメンバー          |
+| GET    | `/workspaces/:slug/projects/:projectId/announcements/:id`                                | 詳細(Delivery 全件 + content 全文)                                                                                        | 全テナントメンバー          |
+| PATCH  | `/workspaces/:slug/projects/:projectId/announcements/:id`                                | title 編集 + Delivery.content 編集(Twitter 280 字 / Blog Markdown は BE バリデーション)                                   | WRITER_ROLES                |
+| DELETE | `/workspaces/:slug/projects/:projectId/announcements/:id`                                | 物理削除(Delivery 連鎖削除、BlogPost は `deliveryId` SET NULL で残置 = 公開 URL は維持)                                   | WRITER_ROLES                |
+| POST   | `/workspaces/:slug/projects/:projectId/announcements/:id/generate`                       | **`ANNOUNCEMENT_GEN`** 実行(Sonnet 4 + Tool Use)。Body: `{ topic: string, channels?: ['TWITTER', 'BLOG'] }`(部分再生成可) | WRITER_ROLES + クレジット枠 |
+| POST   | `/workspaces/:slug/projects/:projectId/announcements/:id/deliveries/:deliveryId/execute` | Delivery 実行(MVP は同期即時)。Twitter = POST /2/tweets / Blog = BlogPost.publishedAt セット                              | WRITER_ROLES                |
 
 #### Twitter 連携
 
-| Method | パス                                                            | 用途                                                                                                  | 認可             |
-| ------ | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ---------------- |
-| GET    | `/workspaces/:slug/integrations/twitter/authorize`              | OAuth 開始。PKCE verifier 生成 → Upstash Redis 保存(5 分 TTL)→ X 認可ページへ 302               | OWNER / ADMIN    |
-| GET    | `/webhooks/twitter/callback`                                    | OAuth callback。state + code → token 交換 → AES-GCM 暗号化 → `TwitterAccount` upsert → 設定画面へ 302 | 認証不要(state 検証で代替) |
-| GET    | `/workspaces/:slug/integrations/twitter`                        | 連携アカウント一覧(handle / connectedBy / expiresAt のみ、token は返さない)                        | 全テナントメンバー |
-| DELETE | `/workspaces/:slug/integrations/twitter/:accountId`             | 切断(`TwitterAccount` 物理削除 + 任意で X 側 revoke API 呼び出し)                                  | OWNER / ADMIN    |
+| Method | パス                                                | 用途                                                                                                  | 認可                       |
+| ------ | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------- |
+| GET    | `/workspaces/:slug/integrations/twitter/authorize`  | OAuth 開始。PKCE verifier 生成 → Upstash Redis 保存(5 分 TTL)→ X 認可ページへ 302                     | OWNER / ADMIN              |
+| GET    | `/webhooks/twitter/callback`                        | OAuth callback。state + code → token 交換 → AES-GCM 暗号化 → `TwitterAccount` upsert → 設定画面へ 302 | 認証不要(state 検証で代替) |
+| GET    | `/workspaces/:slug/integrations/twitter`            | 連携アカウント一覧(handle / connectedBy / expiresAt のみ、token は返さない)                           | 全テナントメンバー         |
+| DELETE | `/workspaces/:slug/integrations/twitter/:accountId` | 切断(`TwitterAccount` 物理削除 + 任意で X 側 revoke API 呼び出し)                                     | OWNER / ADMIN              |
 
 #### BlogPost
 
-| Method | パス                                                                          | 用途                                                                                                    | 認可                  |
-| ------ | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------- |
-| GET    | `/workspaces/:slug/projects/:projectId/blog-posts`                            | 一覧(管理画面用、publishedAt 降順)                                                                    | 全テナントメンバー    |
-| GET    | `/workspaces/:slug/projects/:projectId/blog-posts/:id`                        | 詳細(編集画面用)                                                                                      | 全テナントメンバー    |
-| PATCH  | `/workspaces/:slug/projects/:projectId/blog-posts/:id`                        | 編集(title / slug / body / publishedAt のトグル)                                                      | WRITER_ROLES          |
-| GET    | `/public/blog-posts/:slug/:projectId/:postSlug`                               | 未認証公開 API(BlogPost + Project.name + LP テーマ色を返す、`publishedAt` セット済みのみ、404 ガード) | 認証不要              |
+| Method | パス                                                   | 用途                                                                                                  | 認可               |
+| ------ | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- | ------------------ |
+| GET    | `/workspaces/:slug/projects/:projectId/blog-posts`     | 一覧(管理画面用、publishedAt 降順)                                                                    | 全テナントメンバー |
+| GET    | `/workspaces/:slug/projects/:projectId/blog-posts/:id` | 詳細(編集画面用)                                                                                      | 全テナントメンバー |
+| PATCH  | `/workspaces/:slug/projects/:projectId/blog-posts/:id` | 編集(title / slug / body / publishedAt のトグル)                                                      | WRITER_ROLES       |
+| GET    | `/public/blog-posts/:slug/:projectId/:postSlug`        | 未認証公開 API(BlogPost + Project.name + LP テーマ色を返す、`publishedAt` セット済みのみ、404 ガード) | 認証不要           |
 
 > 注:BlogPost の POST は **Announcement.generate 経由でのみ作成**(手動 BlogPost 作成は v1.x)。MVP では「Announcement 中心の動線」 が一本化され、UI の入り口が分散しない。
 
@@ -335,15 +335,15 @@ Server Action(`_actions/announcements.ts`):
 
 ### 既存パターンの再利用
 
-| 既存パターン                                                                              | 流用箇所                                                                                    |
-| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `_shared/<form>.ts` + `_actions/<feature>.ts` + `_components/<feature>-dialog.tsx` 3 層構成(Day 23) | `announcements/_shared/announcement-form.ts` 等                                            |
-| `classifyAiApiError`(Day 23)                                                              | `AnnouncementGenerateDialog` のエラー分岐                                                    |
-| `useOptimistic` + Server Action + `revalidatePath`(Day 28)                                | `DeliveryExecuteButton` の「実行中」 表示                                                    |
-| `MarkdownViewer`(Day 28、`apps/web/src/components/`)                                       | Blog プレビュー + 公開ページ本文                                                             |
-| `safeHref`(ADR-009)                                                                       | Blog 本文中の Markdown リンク + Tweet 本文中の URL                                          |
-| `assertWithinDiagnosisQuota` パターン(ADR-013)                                            | `assertWithinAnnouncementQuota({ tenantId, plan })`(Free フォールバック 403 / 月次上限) |
-| `ALTER TYPE Feature ADD VALUE` 単独 migration(Day 14 / 27 / 43 / 49)                      | `Feature.ANNOUNCEMENT_GEN` 追加                                                              |
+| 既存パターン                                                                                        | 流用箇所                                                                                |
+| --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `_shared/<form>.ts` + `_actions/<feature>.ts` + `_components/<feature>-dialog.tsx` 3 層構成(Day 23) | `announcements/_shared/announcement-form.ts` 等                                         |
+| `classifyAiApiError`(Day 23)                                                                        | `AnnouncementGenerateDialog` のエラー分岐                                               |
+| `useOptimistic` + Server Action + `revalidatePath`(Day 28)                                          | `DeliveryExecuteButton` の「実行中」 表示                                               |
+| `MarkdownViewer`(Day 28、`apps/web/src/components/`)                                                | Blog プレビュー + 公開ページ本文                                                        |
+| `safeHref`(ADR-009)                                                                                 | Blog 本文中の Markdown リンク + Tweet 本文中の URL                                      |
+| `assertWithinDiagnosisQuota` パターン(ADR-013)                                                      | `assertWithinAnnouncementQuota({ tenantId, plan })`(Free フォールバック 403 / 月次上限) |
+| `ALTER TYPE Feature ADD VALUE` 単独 migration(Day 14 / 27 / 43 / 49)                                | `Feature.ANNOUNCEMENT_GEN` 追加                                                         |
 
 ---
 
@@ -407,8 +407,8 @@ User              Neorie FE         Neorie BE         Upstash Redis      X (twit
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 
 const ALGORITHM = 'aes-256-gcm';
-const IV_LENGTH = 12;        // GCM 推奨 96bit
-const TAG_LENGTH = 16;       // GCM 認証タグ 128bit
+const IV_LENGTH = 12; // GCM 推奨 96bit
+const TAG_LENGTH = 16; // GCM 認証タグ 128bit
 
 // 暗号化結果のフォーマット:base64url(iv || tag || ciphertext)
 // 1 つの文字列カラムで保管できるよう連結。先頭 12B = IV、次 16B = tag、残り = ciphertext
@@ -446,9 +446,9 @@ export class TokenEncryptionService {
 
 #### Master key 運用
 
-| 環境           | master key 保管                                                                                                                 |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| local          | `apps/api/.env.local` に `TWITTER_TOKEN_ENCRYPTION_KEY=<base64>`(`openssl rand -base64 32` で生成、`.gitignore` 済)             |
+| 環境           | master key 保管                                                                                                                                    |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| local          | `apps/api/.env.local` に `TWITTER_TOKEN_ENCRYPTION_KEY=<base64>`(`openssl rand -base64 32` で生成、`.gitignore` 済)                                |
 | staging / prod | AWS Secrets Manager `shipyard/twitter/token-encryption-key`(`infra/prod/secrets.tf` に追加)→ App Runner の runtime_environment_secrets で env 注入 |
 
 - **鍵ローテーション**:MVP では手動。v1.x で「新 key で再暗号化」 バッチを実装
@@ -499,15 +499,15 @@ Delivery テーブル自体が監査ログを兼ねる:
 
 ### Blog 公開ページのセキュリティ
 
-| 観点                 | 対策                                                                                                                                |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 観点                 | 対策                                                                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | XSS                  | Markdown レンダリング時に DOMPurify、`MarkdownViewer` 共通コンポーネントに集約。href は `safeHref`(ADR-009)で `javascript:` 等を除去 |
-| CSP                  | Next.js middleware で `Content-Security-Policy: default-src 'self'; img-src 'self' https: data:; script-src 'self'`                |
-| Clerk 認証バイパス   | `apps/web/src/middleware.ts` の `publicRoutes` に `/p/(.*)` を既に追加済(LP 公開ページと共通)→ Blog も自動的に通る              |
-| SQL Injection        | Prisma 経由のみ                                                                                                                     |
-| rate limit           | MVP は Vercel 標準の DDoS 防御で十分。Pro 移行で Vercel Pro の Bot Protection を有効化(v1.x で必要なら)                            |
+| CSP                  | Next.js middleware で `Content-Security-Policy: default-src 'self'; img-src 'self' https: data:; script-src 'self'`                  |
+| Clerk 認証バイパス   | `apps/web/src/middleware.ts` の `publicRoutes` に `/p/(.*)` を既に追加済(LP 公開ページと共通)→ Blog も自動的に通る                   |
+| SQL Injection        | Prisma 経由のみ                                                                                                                      |
+| rate limit           | MVP は Vercel 標準の DDoS 防御で十分。Pro 移行で Vercel Pro の Bot Protection を有効化(v1.x で必要なら)                              |
 | robots.txt / sitemap | `apps/web/src/app/robots.txt` + `apps/web/src/app/sitemap.ts` で `/p/*` を index 可、`/w/*` を Disallow                              |
-| canonical URL        | `generateMetadata` で `alternates: { canonical: ${APP_BASE_URL}/p/${slug}/${projectId}/blog/${postSlug} }` を設定                  |
+| canonical URL        | `generateMetadata` で `alternates: { canonical: ${APP_BASE_URL}/p/${slug}/${projectId}/blog/${postSlug} }` を設定                    |
 
 ### Rate limit と AbuseManagement
 
@@ -535,25 +535,25 @@ UPSTASH_REDIS_REST_TOKEN=...
 
 ### MVP で意図的に作らないもの(v1.x 送り)
 
-| 項目                           | v1.x 送りの理由                                                                          |
-| ------------------------------ | ---------------------------------------------------------------------------------------- |
-| `Subscriber` テーブル           | リスト 0 件で公開しても価値が顕在化しない                                                  |
-| LP の購読フォームブロック       | Subscriber と一蓮托生(購読フォームだけあって受け皿なしは UX 崩壊)                       |
-| Double opt-in / unsubscribe   | 特送法対応とセットで一括実装(法務レビューも要るためまとめて)                            |
-| Email Delivery 編集 UI         | Announcement 編集画面の Email タブ追加 = v1.x で UI 拡張                                 |
-| 設定画面「購読者管理」 タブ      | Subscriber と一蓮托生                                                                    |
-| 配信ログ / 開封率追跡           | Resend Webhook 連携が必要、v1.x.2 で追加                                                |
+| 項目                        | v1.x 送りの理由                                                   |
+| --------------------------- | ----------------------------------------------------------------- |
+| `Subscriber` テーブル       | リスト 0 件で公開しても価値が顕在化しない                         |
+| LP の購読フォームブロック   | Subscriber と一蓮托生(購読フォームだけあって受け皿なしは UX 崩壊) |
+| Double opt-in / unsubscribe | 特送法対応とセットで一括実装(法務レビューも要るためまとめて)      |
+| Email Delivery 編集 UI      | Announcement 編集画面の Email タブ追加 = v1.x で UI 拡張          |
+| 設定画面「購読者管理」 タブ | Subscriber と一蓮托生                                             |
+| 配信ログ / 開封率追跡       | Resend Webhook 連携が必要、v1.x.2 で追加                          |
 
 ### MVP で素地として用意するもの
 
-| 素地                                                  | 内容                                                                                                                                                                                  |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`Delivery.channel` enum の構造**                    | `enum DeliveryChannel { TWITTER BLOG }`(MVP) → v1.x で `ALTER TYPE "DeliveryChannel" ADD VALUE 'EMAIL'` 単独 migration 1 本で足せる                                                  |
-| **`Delivery.content` を Json で持つ**                  | TWITTER / BLOG の現状の Json カラムに、v1.x で EMAIL を足すだけ。schema 変更不要                                                                                                       |
-| **`Feature.ANNOUNCEMENT_GEN` の 1 つの enum 値**       | Email 文面生成も同 Feature で計上(channel 別に enum を増やさない)                                                                                                                    |
-| **`MailService` の機能特化メソッドパターン(ADR-007)** | 既存 `sendInvitation` のみ。v1.x で `sendAnnouncementToSubscribers` 等を **メソッド追加するだけ**                                                                                      |
-| **LP ブロック型(ADR-009)**                            | v1.x で `subscribe_form` ブロックを追加するのは `LP_BLOCK_TYPES` に 1 種追加 + レンダリングコンポーネント追加で完結                                                                    |
-| **`assertWithinAnnouncementQuota`**                   | Email Delivery も同 quota 枠で計上(別 quota 枠を作らない)。channel 数に依存しない設計                                                                                                |
+| 素地                                                  | 内容                                                                                                                                |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **`Delivery.channel` enum の構造**                    | `enum DeliveryChannel { TWITTER BLOG }`(MVP) → v1.x で `ALTER TYPE "DeliveryChannel" ADD VALUE 'EMAIL'` 単独 migration 1 本で足せる |
+| **`Delivery.content` を Json で持つ**                 | TWITTER / BLOG の現状の Json カラムに、v1.x で EMAIL を足すだけ。schema 変更不要                                                    |
+| **`Feature.ANNOUNCEMENT_GEN` の 1 つの enum 値**      | Email 文面生成も同 Feature で計上(channel 別に enum を増やさない)                                                                   |
+| **`MailService` の機能特化メソッドパターン(ADR-007)** | 既存 `sendInvitation` のみ。v1.x で `sendAnnouncementToSubscribers` 等を **メソッド追加するだけ**                                   |
+| **LP ブロック型(ADR-009)**                            | v1.x で `subscribe_form` ブロックを追加するのは `LP_BLOCK_TYPES` に 1 種追加 + レンダリングコンポーネント追加で完結                 |
+| **`assertWithinAnnouncementQuota`**                   | Email Delivery も同 quota 枠で計上(別 quota 枠を作らない)。channel 数に依存しない設計                                               |
 
 ### MVP で素地として作らない方が良いもの(よくある罠)
 
@@ -591,13 +591,13 @@ enum SubscriberStatus { PENDING CONFIRMED UNSUBSCRIBED }
 
 ### v1.x で追加する API endpoints(参考)
 
-| Method | パス                                                                          | 用途                                                                       |
-| ------ | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| POST   | `/public/projects/:projectId/subscribers`                                     | LP 購読フォームから登録(未認証可)→ PENDING で INSERT + 確認メール送信  |
-| GET    | `/public/subscribers/confirm/:confirmToken`                                   | 確認メールの link → CONFIRMED に更新                                       |
-| GET    | `/public/subscribers/unsubscribe/:unsubscribeToken`                           | unsubscribe link → UNSUBSCRIBED に更新                                     |
-| GET    | `/workspaces/:slug/projects/:projectId/subscribers`                           | 一覧(購読者管理画面用)                                                    |
-| DELETE | `/workspaces/:slug/projects/:projectId/subscribers/:id`                       | 削除(物理削除、GDPR 対応)                                                |
+| Method | パス                                                    | 用途                                                                  |
+| ------ | ------------------------------------------------------- | --------------------------------------------------------------------- |
+| POST   | `/public/projects/:projectId/subscribers`               | LP 購読フォームから登録(未認証可)→ PENDING で INSERT + 確認メール送信 |
+| GET    | `/public/subscribers/confirm/:confirmToken`             | 確認メールの link → CONFIRMED に更新                                  |
+| GET    | `/public/subscribers/unsubscribe/:unsubscribeToken`     | unsubscribe link → UNSUBSCRIBED に更新                                |
+| GET    | `/workspaces/:slug/projects/:projectId/subscribers`     | 一覧(購読者管理画面用)                                                |
+| DELETE | `/workspaces/:slug/projects/:projectId/subscribers/:id` | 削除(物理削除、GDPR 対応)                                             |
 
 ### v1.x で `ANNOUNCEMENT_GEN` の Tool スキーマ拡張(差分)
 
@@ -622,14 +622,14 @@ export type AnnouncementDrafts = {
 
 ### 特送法対応の予定方針(v1.x 法務レビュー前)
 
-| 要件                          | v1.x 実装方針                                                                                          |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------ |
-| 送信者情報                    | React Email の `SubscriberEmailLayout` 共通レイアウトの footer に **強制表示**                          |
-| 配信目的の明示                | 件名 or リード文に「【お知らせ】」 等のプレフィックス + footer に自動付与                                |
+| 要件                          | v1.x 実装方針                                                                                         |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 送信者情報                    | React Email の `SubscriberEmailLayout` 共通レイアウトの footer に **強制表示**                        |
+| 配信目的の明示                | 件名 or リード文に「【お知らせ】」 等のプレフィックス + footer に自動付与                             |
 | unsubscribe link              | footer に `https://neorie.com/public/subscribers/unsubscribe/{token}` を **強制挿入**、1 クリック解除 |
 | ワンクリック unsubscribe(RFC) | メールヘッダに `List-Unsubscribe: <URL>` + `List-Unsubscribe-Post: List-Unsubscribe=One-Click`        |
 | 送信者ドメイン認証            | 既存 Resend の DKIM / SPF / DMARC 設定を流用(Day 17 + Week 5 本番 DNS で対応済)                       |
-| 件名に「広告」 マーク         | 法務レビュー結果次第                                                                                    |
+| 件名に「広告」 マーク         | 法務レビュー結果次第                                                                                  |
 
 ### MVP 実装で守るべき境界線(v1.x が新規追加のみで済むように)
 
@@ -646,43 +646,43 @@ export type AnnouncementDrafts = {
 
 #### 1. AI 生成失敗(`ANNOUNCEMENT_GEN`)
 
-| エラー                                       | 対応                                                                                                            |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Tool Use ブロック欠落 / Anthropic API 502    | `AIBadResponseError`(502)→ `classifyAiApiError` で `bad_response` 分類 → ダイアログ内 Alert で再試行案内       |
-| `twitter.text` が 280 字超(LLM の規約破り)   | Service 層で長さチェック → 502 `AIBadResponseError`(LLM 制御失敗、自動再生成はしない)                          |
-| AI クレジット枠超過                          | `assertWithinAnnouncementQuota` で 403 → `classifyAiApiError` で `quota` 分類 → アップグレード CTA を表示       |
-| Anthropic API タイムアウト                   | NestJS の Axios timeout(60 秒)→ 504 → `bad_response` 扱い                                                      |
+| エラー                                     | 対応                                                                                                      |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| Tool Use ブロック欠落 / Anthropic API 502  | `AIBadResponseError`(502)→ `classifyAiApiError` で `bad_response` 分類 → ダイアログ内 Alert で再試行案内  |
+| `twitter.text` が 280 字超(LLM の規約破り) | Service 層で長さチェック → 502 `AIBadResponseError`(LLM 制御失敗、自動再生成はしない)                     |
+| AI クレジット枠超過                        | `assertWithinAnnouncementQuota` で 403 → `classifyAiApiError` で `quota` 分類 → アップグレード CTA を表示 |
+| Anthropic API タイムアウト                 | NestJS の Axios timeout(60 秒)→ 504 → `bad_response` 扱い                                                 |
 
 #### 2. Twitter API 失敗(`POST /2/tweets`)
 
-| HTTP / 状況                       | 対応                                                                                                                             |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| 401(token 失効)                  | 即座に refresh フロー実行 → 再 POST。refresh も失敗なら UI に「再連携してください」 表示                                          |
-| 403(suspended / 規約違反)        | Delivery.status = FAILED + error「X アカウントが利用制限を受けています」 + 再実行ボタン disabled                                  |
-| 429(rate limit)                  | Delivery.status = FAILED + error「X 投稿の上限に達しました(月 {limit} 件)」 + 「{retryAfter} 後に再実行可」                     |
-| 500-503(X 側障害)               | Delivery.status = FAILED + 「X 側で一時的な障害が発生しています」 + 再実行ボタン有効                                              |
-| ネットワークタイムアウト         | 同上(冪等性は X 側で担保されないため自動リトライしない)                                                                          |
+| HTTP / 状況               | 対応                                                                                                        |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 401(token 失効)           | 即座に refresh フロー実行 → 再 POST。refresh も失敗なら UI に「再連携してください」 表示                    |
+| 403(suspended / 規約違反) | Delivery.status = FAILED + error「X アカウントが利用制限を受けています」 + 再実行ボタン disabled            |
+| 429(rate limit)           | Delivery.status = FAILED + error「X 投稿の上限に達しました(月 {limit} 件)」 + 「{retryAfter} 後に再実行可」 |
+| 500-503(X 側障害)         | Delivery.status = FAILED + 「X 側で一時的な障害が発生しています」 + 再実行ボタン有効                        |
+| ネットワークタイムアウト  | 同上(冪等性は X 側で担保されないため自動リトライしない)                                                     |
 
 Delivery.error に **ユーザー向け文言**(日本語)を保存。原文の Twitter API response は CloudWatch Logs に残し DB には保存しない(PII / トークン漏洩防止)。
 
 #### 3. Blog 公開失敗
 
-| 状況                              | 対応                                                                                              |
-| --------------------------------- | ------------------------------------------------------------------------------------------------- |
-| slug 衝突(同 Project 内)         | `@@unique([tenantId, projectId, slug])` で 409 → 「この slug は既に使われています」 を inline 表示 |
-| body 0 字 / title 0 字            | DTO validation で 400 → 編集画面 inline エラー                                                    |
-| BlogPost INSERT 中に DB 障害      | Delivery.status = FAILED + error「データベースに保存できませんでした」 + 再実行ボタン有効          |
-| 公開ページ生成失敗(Next.js 側)  | Vercel が 500 を返す → 公開済 BlogPost.publishedAt は変更しない(ロールバック不要)                |
+| 状況                           | 対応                                                                                               |
+| ------------------------------ | -------------------------------------------------------------------------------------------------- |
+| slug 衝突(同 Project 内)       | `@@unique([tenantId, projectId, slug])` で 409 → 「この slug は既に使われています」 を inline 表示 |
+| body 0 字 / title 0 字         | DTO validation で 400 → 編集画面 inline エラー                                                     |
+| BlogPost INSERT 中に DB 障害   | Delivery.status = FAILED + error「データベースに保存できませんでした」 + 再実行ボタン有効          |
+| 公開ページ生成失敗(Next.js 側) | Vercel が 500 を返す → 公開済 BlogPost.publishedAt は変更しない(ロールバック不要)                  |
 
 #### 4. OAuth callback 失敗
 
-| 状況                                  | 対応                                                                                                          |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| state Redis 不在(期限切れ / リプレイ) | 400「リンクが無効か期限切れです」 → 設定画面へリダイレクト(エラー toast)                                     |
-| `code` で token 交換失敗(400 / 401)  | 同上 + ログに詳細記録                                                                                          |
-| scope 不足(`tweet.write` 欠落)       | 400「必要な権限が付与されていません」 + ログ + 再認可へのリンク                                                |
-| `xUserId` 重複                        | 409「この X アカウントは既に別のワークスペースで連携されています」 → 設定画面へ                                |
-| AES-GCM 暗号化失敗(master key 不正) | 500(ブート時 fail-fast していれば実行時には起きない) + アラート通知(Day 39 の SNS + CloudWatch Alarm)     |
+| 状況                                  | 対応                                                                                                  |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| state Redis 不在(期限切れ / リプレイ) | 400「リンクが無効か期限切れです」 → 設定画面へリダイレクト(エラー toast)                              |
+| `code` で token 交換失敗(400 / 401)   | 同上 + ログに詳細記録                                                                                 |
+| scope 不足(`tweet.write` 欠落)        | 400「必要な権限が付与されていません」 + ログ + 再認可へのリンク                                       |
+| `xUserId` 重複                        | 409「この X アカウントは既に別のワークスペースで連携されています」 → 設定画面へ                       |
+| AES-GCM 暗号化失敗(master key 不正)   | 500(ブート時 fail-fast していれば実行時には起きない) + アラート通知(Day 39 の SNS + CloudWatch Alarm) |
 
 #### 5. 部分実行失敗の扱い
 
@@ -696,28 +696,28 @@ Delivery は channel ごとに独立した status を持つため、**部分成�
 
 #### 1. 単体テスト(`*.spec.ts`、jest 既存)
 
-| 対象                                       | 内容                                                                                          |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| `TokenEncryptionService`                   | encrypt → decrypt の往復、IV 毎回ランダム、不正な暗号文 → 例外                                |
-| Tool Use 抽出ヘルパー                      | Tool Use なし / 空 input / 不正 input → `AIBadResponseError`                                 |
-| Delivery channel 別 dispatcher             | TWITTER → twitterClient.postTweet 呼び出し、BLOG → BlogPost.publish 呼び出し(モック)        |
-| `assertWithinAnnouncementQuota`            | Free フォールバック 403 / トライアル 200 / Pro 上限内 200 / Pro 上限到達 403                |
-| Announcement status 遷移ロジック           | DRAFT → READY → EXECUTING → DONE / 失敗時 EXECUTING で停留                                  |
+| 対象                             | 内容                                                                                 |
+| -------------------------------- | ------------------------------------------------------------------------------------ |
+| `TokenEncryptionService`         | encrypt → decrypt の往復、IV 毎回ランダム、不正な暗号文 → 例外                       |
+| Tool Use 抽出ヘルパー            | Tool Use なし / 空 input / 不正 input → `AIBadResponseError`                         |
+| Delivery channel 別 dispatcher   | TWITTER → twitterClient.postTweet 呼び出し、BLOG → BlogPost.publish 呼び出し(モック) |
+| `assertWithinAnnouncementQuota`  | Free フォールバック 403 / トライアル 200 / Pro 上限内 200 / Pro 上限到達 403         |
+| Announcement status 遷移ロジック | DRAFT → READY → EXECUTING → DONE / 失敗時 EXECUTING で停留                           |
 
 #### 2. E2E テスト(`/run-e2e` skill、実 API 叩く既存パターン)
 
-| シナリオ                                                              | 実 API or モック                                                                                          |
-| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Announcement CRUD                                                     | 実 DB                                                                                                     |
-| ANNOUNCEMENT_GEN 実行(twitter + blog 両出力、AIUsage 記録 2 件)        | 実 Anthropic API(Sonnet 4)+ 実 DB                                                                       |
-| Delivery 実行 — TWITTER 成功                                          | **テスト用 X アカウント**で実 API 叩く → 実 tweet 投稿 → tweet id 記録 → 手動削除                        |
-| Delivery 実行 — TWITTER 401(token 失効)                              | **モック**:`TwitterClient` を test double に差し替え(refresh フロー検証)                              |
-| Delivery 実行 — BLOG 公開                                             | 実 DB + 公開ページの HTTP fetch で 200 / title 確認                                                        |
-| OAuth フロー全体                                                      | **手動 E2E のみ**(X が redirect する性質上、自動化困難)→ runbook に手順記載                            |
-| Token 暗号化往復                                                      | 単体テストで担保 + E2E は「DB の accessToken カラムが base64url の暗号文として保存」 を確認のみ          |
-| プラン制限(Free フォールバック 403 / トライアル 200 / Pro 上限 403) | 実 DB + AIUsage 偽データ作成(PRODUCT_DIAGNOSIS と同パターン)                                            |
-| 部分実行失敗(Twitter 成功 + Blog 失敗)                              | **モック**:BlogPost.publish を強制失敗 → Announcement.status = EXECUTING 残留 + 再実行で SENT 確認     |
-| 認可マトリクス(VIEWER 閲覧可 / VIEWER 作成不可 / OWNER 切断のみ)    | 実 DB + JWT 切替                                                                                          |
+| シナリオ                                                            | 実 API or モック                                                                                   |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Announcement CRUD                                                   | 実 DB                                                                                              |
+| ANNOUNCEMENT_GEN 実行(twitter + blog 両出力、AIUsage 記録 2 件)     | 実 Anthropic API(Sonnet 4)+ 実 DB                                                                  |
+| Delivery 実行 — TWITTER 成功                                        | **テスト用 X アカウント**で実 API 叩く → 実 tweet 投稿 → tweet id 記録 → 手動削除                  |
+| Delivery 実行 — TWITTER 401(token 失効)                             | **モック**:`TwitterClient` を test double に差し替え(refresh フロー検証)                           |
+| Delivery 実行 — BLOG 公開                                           | 実 DB + 公開ページの HTTP fetch で 200 / title 確認                                                |
+| OAuth フロー全体                                                    | **手動 E2E のみ**(X が redirect する性質上、自動化困難)→ runbook に手順記載                        |
+| Token 暗号化往復                                                    | 単体テストで担保 + E2E は「DB の accessToken カラムが base64url の暗号文として保存」 を確認のみ    |
+| プラン制限(Free フォールバック 403 / トライアル 200 / Pro 上限 403) | 実 DB + AIUsage 偽データ作成(PRODUCT_DIAGNOSIS と同パターン)                                       |
+| 部分実行失敗(Twitter 成功 + Blog 失敗)                              | **モック**:BlogPost.publish を強制失敗 → Announcement.status = EXECUTING 残留 + 再実行で SENT 確認 |
+| 認可マトリクス(VIEWER 閲覧可 / VIEWER 作成不可 / OWNER 切断のみ)    | 実 DB + JWT 切替                                                                                   |
 
 E2E 結果サマリは `.claude/output/run-e2e/2026-MM-DD-day{56,57,58,59}-announcement.md` に集約。
 
@@ -740,27 +740,27 @@ E2E 結果サマリは `.claude/output/run-e2e/2026-MM-DD-day{56,57,58,59}-annou
 
 ### 工数内訳(Day 56-59)
 
-| Day      | 担当                                                                                                                                                                                                   | 目安工数 |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
-| **Day 56** BE 基盤 + データモデル | `Announcement` / `Delivery` / `BlogPost` / `TwitterAccount` model + migration / `Feature.ANNOUNCEMENT_GEN` 追加 migration / `TokenEncryptionService` 実装 + 単体テスト / `assertWithinAnnouncementQuota`(`AIUsageService` に追加)/ DTO 一式 | 1 Day    |
-| **Day 57** BE Service + Controller | `AnnouncementService`(CRUD + generate + executeDelivery)+ `AnnouncementController`(7 endpoints)/ `IntegrationsTwitterController`(OAuth authorize / callback / list / delete = 4 endpoints)/ `TwitterAuthService` + `TwitterClient`(refresh + postTweet) / `BlogPostController`(管理画面 3 + 公開 API 1 = 4 endpoints)+ `BlogPostService` / **計 15 endpoints / 4 Controller**、認可マトリクス / E2E 一式 / セルフレビュー(`security-reviewer` 重点) | 1 Day    |
-| **Day 58** FE 編集動線              | `/w/.../announcements` 一覧 + 新規 Dialog / `/w/.../announcements/:id` 編集ページ(Twitter タブ / Blog タブ / Delivery ステータスパネル)/ AI 生成ダイアログ(`AnnouncementGenerateDialog`)/ Server Action 一式 / Project Card に「告知配信」 追加 | 1 Day    |
-| **Day 59** FE 連携 + 公開ページ + 公開 | `/w/.../settings/integrations`(Twitter 連携 UI)/ `/p/:slug/:projectId/blog/:postSlug` 公開ブログページ(generateMetadata + canonical + Clerk middleware 除外)/ Twitter 連携 runbook 作成 / 利用規約 update / **公開リリース** | 1 Day    |
+| Day                                    | 担当                                                                                                                                                                                                                                                                                                                                                                                                                                                | 目安工数 |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| **Day 56** BE 基盤 + データモデル      | `Announcement` / `Delivery` / `BlogPost` / `TwitterAccount` model + migration / `Feature.ANNOUNCEMENT_GEN` 追加 migration / `TokenEncryptionService` 実装 + 単体テスト / `assertWithinAnnouncementQuota`(`AIUsageService` に追加)/ DTO 一式                                                                                                                                                                                                         | 1 Day    |
+| **Day 57** BE Service + Controller     | `AnnouncementService`(CRUD + generate + executeDelivery)+ `AnnouncementController`(7 endpoints)/ `IntegrationsTwitterController`(OAuth authorize / callback / list / delete = 4 endpoints)/ `TwitterAuthService` + `TwitterClient`(refresh + postTweet) / `BlogPostController`(管理画面 3 + 公開 API 1 = 4 endpoints)+ `BlogPostService` / **計 15 endpoints / 4 Controller**、認可マトリクス / E2E 一式 / セルフレビュー(`security-reviewer` 重点) | 1 Day    |
+| **Day 58** FE 編集動線                 | `/w/.../announcements` 一覧 + 新規 Dialog / `/w/.../announcements/:id` 編集ページ(Twitter タブ / Blog タブ / Delivery ステータスパネル)/ AI 生成ダイアログ(`AnnouncementGenerateDialog`)/ Server Action 一式 / Project Card に「告知配信」 追加                                                                                                                                                                                                     | 1 Day    |
+| **Day 59** FE 連携 + 公開ページ + 公開 | `/w/.../settings/integrations`(Twitter 連携 UI)/ `/p/:slug/:projectId/blog/:postSlug` 公開ブログページ(generateMetadata + canonical + Clerk middleware 除外)/ Twitter 連携 runbook 作成 / 利用規約 update / **公開リリース**                                                                                                                                                                                                                        | 1 Day    |
 
 **バッファ**:Day 54-55 のバッファを本機能の延長で吸収。Twitter Developer App の本番審査が長引いた場合は Day 59 の公開を 1 Day 遅らせる。
 
 ### 公開チェックリスト(Day 50-51 本番化 + Day 59 公開時)
 
-| 項目                                              | 期限     |
-| ------------------------------------------------- | -------- |
-| Twitter Developer App 申請 + 承認(本番)         | Day 50   |
-| App の callback URL に prod / dev 両 URL を登録   | Day 50   |
-| `TWITTER_TOKEN_ENCRYPTION_KEY` を Secrets Manager に投入(`openssl rand -base64 32`)| Day 50   |
-| `TWITTER_CLIENT_ID` / `TWITTER_CLIENT_SECRET` を Secrets Manager に投入 | Day 50   |
-| Upstash Redis(state 保管用)の prod インスタンス確認 | Day 50   |
-| 利用規約 update(投稿はユーザー責任、X 規約への同意)| Day 59   |
-| `/p/.../blog/.*` を `robots.txt` で allow + sitemap に追加 | Day 59   |
-| 公開後 24h で実 tweet × 1 / 実 blog × 1 を Neorie 自身でドッグフーディング | Day 59   |
+| 項目                                                                                | 期限   |
+| ----------------------------------------------------------------------------------- | ------ |
+| Twitter Developer App 申請 + 承認(本番)                                             | Day 50 |
+| App の callback URL に prod / dev 両 URL を登録                                     | Day 50 |
+| `TWITTER_TOKEN_ENCRYPTION_KEY` を Secrets Manager に投入(`openssl rand -base64 32`) | Day 50 |
+| `TWITTER_CLIENT_ID` / `TWITTER_CLIENT_SECRET` を Secrets Manager に投入             | Day 50 |
+| Upstash Redis(state 保管用)の prod インスタンス確認                                 | Day 50 |
+| 利用規約 update(投稿はユーザー責任、X 規約への同意)                                 | Day 59 |
+| `/p/.../blog/.*` を `robots.txt` で allow + sitemap に追加                          | Day 59 |
+| 公開後 24h で実 tweet × 1 / 実 blog × 1 を Neorie 自身でドッグフーディング          | Day 59 |
 
 ### 公開後の監視(Day 59 以降)
 

@@ -196,9 +196,7 @@ export class MembersService {
       await this.billing.syncSubscriptionQuantity(tenantId);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      this.logger.error(
-        `Stripe seat sync failed after member remove (tenant=${tenantId}): ${msg}`,
-      );
+      this.logger.error(`Stripe seat sync failed after member remove (tenant=${tenantId}): ${msg}`);
     }
   }
 

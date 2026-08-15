@@ -70,11 +70,7 @@ export async function generateMetadata({
  * `publishedAt = null`(下書き)は API 側で 404 → 区別なく `notFound()` する(未公開記事の存在を漏らさない)。
  * 本文の XSS は `MarkdownViewer.safeUrlTransform` で `javascript:` 等の危険スキームをブロック。
  */
-export default async function PublicBlogPostPage({
-  params,
-}: {
-  params: PublicBlogPostParams;
-}) {
+export default async function PublicBlogPostPage({ params }: { params: PublicBlogPostParams }) {
   const raw = await params;
   const slug = decodeParam(raw.slug);
   const projectId = decodeParam(raw.projectId);
@@ -124,9 +120,7 @@ export default async function PublicBlogPostPage({
       <article className="space-y-6">
         <header className="space-y-3">
           <h1 className="text-3xl font-semibold leading-tight md:text-4xl">{post.title}</h1>
-          <p className="text-muted-foreground text-sm">
-            公開日 {formatDate(post.publishedAt)}
-          </p>
+          <p className="text-muted-foreground text-sm">公開日 {formatDate(post.publishedAt)}</p>
         </header>
 
         <MarkdownViewer source={post.body} />

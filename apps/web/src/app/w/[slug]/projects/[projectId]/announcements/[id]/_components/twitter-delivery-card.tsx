@@ -69,8 +69,7 @@ export function TwitterDeliveryCard({
       <CardHeader>
         <CardTitle className="flex items-center justify-between gap-2 text-base">
           <span className="flex items-center gap-2">
-            <Twitter className="text-primary size-4" aria-hidden="true" />
-            X (Twitter)
+            <Twitter className="text-primary size-4" aria-hidden="true" />X (Twitter)
             <Badge variant={stMeta.badgeVariant} className={stMeta.badgeClassName}>
               {stMeta.label}
             </Badge>
@@ -92,8 +91,7 @@ export function TwitterDeliveryCard({
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <ExternalLink className="size-3.5" aria-hidden="true" />
-                      X で投稿する
+                      <ExternalLink className="size-3.5" aria-hidden="true" />X で投稿する
                     </a>
                   </Button>
                   <MarkSentButton
@@ -231,12 +229,7 @@ function EditTwitterContentDialog({
           )}
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setOpen(false)}
-              disabled={pending}
-            >
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>
               キャンセル
             </Button>
             <Button type="submit" disabled={pending}>
@@ -293,7 +286,8 @@ function MarkSentButton({
         <DialogHeader>
           <DialogTitle>X で送信完了しましたか?</DialogTitle>
           <DialogDescription>
-            X の投稿画面で「ツイートする」を押した後にクリックしてください。この配信を「送信済み」としてマークします。
+            X
+            の投稿画面で「ツイートする」を押した後にクリックしてください。この配信を「送信済み」としてマークします。
           </DialogDescription>
         </DialogHeader>
 
@@ -307,12 +301,7 @@ function MarkSentButton({
             </p>
           )}
           <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setOpen(false)}
-              disabled={pending}
-            >
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>
               まだ
             </Button>
             <Button type="submit" disabled={pending}>

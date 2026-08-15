@@ -133,5 +133,6 @@ WHERE table_name = 'Subscription' AND column_name = 'quantity';
 - [ ] Stripe Dashboard の新 Product / Price は残しても無害(旧 Price ID を使い続ければ動く)
 
 ロールバック後の影響:
+
 - `initializeFreeSubscription`(旧)に戻る → 新規ユーザーは FREE 開始(= AI 停止)
 - 既存ユーザーへの影響なし(Tenant.plan は維持される)

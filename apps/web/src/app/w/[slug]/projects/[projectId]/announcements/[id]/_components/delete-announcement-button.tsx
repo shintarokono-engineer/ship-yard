@@ -57,8 +57,8 @@ export function DeleteAnnouncementButton({
         <DialogHeader>
           <DialogTitle>この告知を削除しますか?</DialogTitle>
           <DialogDescription>
-            <span className="text-foreground font-medium">{title}</span>{' '}
-            と関連する配信 / ブログ記事をすべて削除します。この操作は元に戻せません。
+            <span className="text-foreground font-medium">{title}</span> と関連する配信 /
+            ブログ記事をすべて削除します。この操作は元に戻せません。
           </DialogDescription>
         </DialogHeader>
 

@@ -14,6 +14,10 @@ export default tseslint.config(
       '**/build/**',
       '**/coverage/**',
       '**/next-env.d.ts',
+      // git worktree(`.claude/worktrees/*`)は同じリポジトリの別チェックアウト。
+      // lint すると同じファイルを二重に見るうえ、カスタムルールの解決に失敗する。
+      '.claude/**',
+      '**/.terraform/**',
     ],
   },
   ...tseslint.configs.recommended,

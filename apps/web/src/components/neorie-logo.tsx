@@ -35,8 +35,6 @@ export function NeorieMark({ className }: { className?: string }) {
  */
 export function NeorieWordmark({ className }: { className?: string }) {
   return (
-    <span className={cn('font-brand text-xl font-semibold tracking-tight', className)}>
-      Neorie
-    </span>
+    <span className={cn('font-brand text-xl font-semibold tracking-tight', className)}>Neorie</span>
   );
 }

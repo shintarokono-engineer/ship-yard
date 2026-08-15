@@ -238,12 +238,7 @@ function EditBlogPostDialog({
             />
           </FormField>
 
-          <FormField
-            id="slug"
-            label="slug(URL)"
-            required
-            errors={displayErrors?.slug}
-          >
+          <FormField id="slug" label="slug(URL)" required errors={displayErrors?.slug}>
             <Input
               id="slug"
               name="slug"
@@ -285,12 +280,7 @@ function EditBlogPostDialog({
           )}
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setOpen(false)}
-              disabled={pending}
-            >
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>
               キャンセル
             </Button>
             <Button type="submit" disabled={pending}>
@@ -358,12 +348,7 @@ function ExecuteBlogButton({
             </p>
           )}
           <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setOpen(false)}
-              disabled={pending}
-            >
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>
               キャンセル
             </Button>
             <Button type="submit" disabled={pending}>

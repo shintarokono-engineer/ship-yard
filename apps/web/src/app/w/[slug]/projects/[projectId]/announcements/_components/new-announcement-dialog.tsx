@@ -30,13 +30,7 @@ import {
  * MVP では `title`(内部管理用)のみ受け取り、AI 生成 / Twitter content の編集は
  * 作成直後の遷移先(`/announcements/{id}`)で行う。
  */
-export function NewAnnouncementDialog({
-  slug,
-  projectId,
-}: {
-  slug: string;
-  projectId: string;
-}) {
+export function NewAnnouncementDialog({ slug, projectId }: { slug: string; projectId: string }) {
   const [open, setOpen] = useState(false);
   const boundAction = useMemo(
     () => createAnnouncementAction.bind(null, slug, projectId),
@@ -106,9 +100,7 @@ export function NewAnnouncementDialog({
               onChange={(e) => setTitleLength(e.currentTarget.value.length)}
               disabled={pending}
               aria-describedby={
-                displayErrors?.title && displayErrors.title.length > 0
-                  ? 'title-error'
-                  : undefined
+                displayErrors?.title && displayErrors.title.length > 0 ? 'title-error' : undefined
               }
               required
             />
@@ -124,12 +116,7 @@ export function NewAnnouncementDialog({
           )}
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setOpen(false)}
-              disabled={pending}
-            >
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>
               キャンセル
             </Button>
             <Button type="submit" disabled={pending} aria-busy={pending}>

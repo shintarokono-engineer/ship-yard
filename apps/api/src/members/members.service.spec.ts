@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Role } from '@shipyard/db';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -46,25 +42,25 @@ describe('MembersService.transferOwnership', () => {
   });
 
   it('対象が自分自身なら 400', async () => {
-    await expect(
-      service.transferOwnership(tenantId, owner, owner.userId),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.transferOwnership(tenantId, owner, owner.userId)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('対象が非メンバーなら 404', async () => {
     prisma.tenantMember.findUnique.mockResolvedValue(null);
-    await expect(
-      service.transferOwnership(tenantId, owner, 'user-ghost'),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.transferOwnership(tenantId, owner, 'user-ghost')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('対象が論理削除済み User なら 404', async () => {
     prisma.tenantMember.findUnique.mockResolvedValue({ user: { deletedAt: new Date() } });
-    await expect(
-      service.transferOwnership(tenantId, owner, 'user-deleted'),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.transferOwnership(tenantId, owner, 'user-deleted')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 

@@ -19,10 +19,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import type { MonthlyUsageSummary } from '@/lib/api/types';
 
-import {
-  generateReadmeAction,
-  type GenerateReadmeFormState,
-} from '../_actions/generate-readme';
+import { generateReadmeAction, type GenerateReadmeFormState } from '../_actions/generate-readme';
 import {
   INITIAL_GENERATE_README_FORM_STATE,
   INSTRUCTIONS_MAX_LENGTH,

@@ -23,9 +23,9 @@ describe('computeInvitationStatus(優先順: REVOKED > ACCEPTED > EXPIRED > PEND
   const future = new Date('2999-01-01T00:00:00Z');
 
   it('revoked は受諾済み・期限切れより優先される', () => {
-    expect(
-      computeInvitationStatus({ acceptedAt: now, revokedAt: now, expiresAt: past }, now),
-    ).toBe(InvitationStatus.REVOKED);
+    expect(computeInvitationStatus({ acceptedAt: now, revokedAt: now, expiresAt: past }, now)).toBe(
+      InvitationStatus.REVOKED,
+    );
   });
 
   it('受諾済みは期限切れでも ACCEPTED(accept の判定順を expired より先にした回帰テスト)', () => {

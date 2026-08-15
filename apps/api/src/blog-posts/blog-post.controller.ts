@@ -21,10 +21,7 @@ export class BlogPostController {
 
   /** GET 一覧(下書きを含む、UI ではフィルタリング)。 */
   @Get()
-  async list(
-    @CurrentWorkspace() ws: WorkspaceAccess,
-    @Param('projectId') projectId: string,
-  ) {
+  async list(@CurrentWorkspace() ws: WorkspaceAccess, @Param('projectId') projectId: string) {
     const posts = await this.service.listByProject(ws.tenantId, projectId);
     return { posts };
   }

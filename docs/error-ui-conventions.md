@@ -8,12 +8,12 @@ Neorie のフロントエンド(`apps/web`)で、エラー / 警告 / 情報を�
 
 ## 1. 4 つの表示形式
 
-| 形式            | 使う状況                                       | 配置            | 永続性          |
-| --------------- | ---------------------------------------------- | --------------- | --------------- |
-| **Alert**(永続) | ページ内の重要なお知らせ・常時表示の警告       | 該当セクション内 | ページ離脱まで   |
-| **Toast**(瞬時) | 直前の操作の結果フィードバック                  | 画面右下(固定) | 数秒で自動消失   |
-| **Inline**(項目隣接) | フォーム / 行アクションの直接的なエラー           | 該当フィールド・行の隣 | 状態解消まで     |
-| **Dialog**(モーダル内) | モーダル内のアクション失敗 / 入力検証エラー | モーダル内ボタン上 | モーダル閉じるまで |
+| 形式                   | 使う状況                                    | 配置                   | 永続性             |
+| ---------------------- | ------------------------------------------- | ---------------------- | ------------------ |
+| **Alert**(永続)        | ページ内の重要なお知らせ・常時表示の警告    | 該当セクション内       | ページ離脱まで     |
+| **Toast**(瞬時)        | 直前の操作の結果フィードバック              | 画面右下(固定)         | 数秒で自動消失     |
+| **Inline**(項目隣接)   | フォーム / 行アクションの直接的なエラー     | 該当フィールド・行の隣 | 状態解消まで       |
+| **Dialog**(モーダル内) | モーダル内のアクション失敗 / 入力検証エラー | モーダル内ボタン上     | モーダル閉じるまで |
 
 ---
 
@@ -36,11 +36,11 @@ Neorie のフロントエンド(`apps/web`)で、エラー / 警告 / 情報を�
 </div>
 ```
 
-| トーン     | 用途                          | クラス                                                                          |
-| ---------- | ----------------------------- | ------------------------------------------------------------------------------- |
-| destructive | 失敗・拒否(赤系)              | `border-destructive/40 bg-destructive/10 text-destructive`                       |
-| amber      | クォータ・期限切れ警告(黄系) | `border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100`         |
-| emerald    | 公開状態の肯定的告知(緑系)   | `border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300` |
+| トーン      | 用途                         | クラス                                                                           |
+| ----------- | ---------------------------- | -------------------------------------------------------------------------------- |
+| destructive | 失敗・拒否(赤系)             | `border-destructive/40 bg-destructive/10 text-destructive`                       |
+| amber       | クォータ・期限切れ警告(黄系) | `border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100`         |
+| emerald     | 公開状態の肯定的告知(緑系)   | `border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300` |
 
 ### Toast(瞬時)を使う場面
 
@@ -59,6 +59,7 @@ toast.warning('一部のメンバーへの送信に失敗しました。');
 ```
 
 **使う条件**:
+
 - 操作の起点(クリックボタン)が画面上に残っている(= 同じ画面に留まる)
 - ユーザーが結果を確認した後、何もしなくて良い(自動消失でよい)
 - フォーム入力の検証エラーではない(それは Inline)
@@ -84,24 +85,30 @@ toast.warning('一部のメンバーへの送信に失敗しました。');
 実装:Dialog 内の `<DialogFooter>` の上に Alert を配置(`role="alert"`)。クォータ超過時は `quotaExceeded` 状態を別途扱い、アップグレード導線を併設する。
 
 ```tsx
-{state.formError && !state.quotaExceeded && (
-  <p
-    role="alert"
-    className="border-destructive/40 bg-destructive/10 text-destructive rounded-md border px-3 py-2 text-sm"
-  >
-    {state.formError}
-  </p>
-)}
+{
+  state.formError && !state.quotaExceeded && (
+    <p
+      role="alert"
+      className="border-destructive/40 bg-destructive/10 text-destructive rounded-md border px-3 py-2 text-sm"
+    >
+      {state.formError}
+    </p>
+  );
+}
 
-{state.quotaExceeded && (
-  <div
-    role="alert"
-    className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100"
-  >
-    <p>{state.formError}</p>
-    <Link href={`/w/${slug}/settings/billing`} className="...">プランをアップグレード</Link>
-  </div>
-)}
+{
+  state.quotaExceeded && (
+    <div
+      role="alert"
+      className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100"
+    >
+      <p>{state.formError}</p>
+      <Link href={`/w/${slug}/settings/billing`} className="...">
+        プランをアップグレード
+      </Link>
+    </div>
+  );
+}
 ```
 
 ---
@@ -126,14 +133,14 @@ toast.warning('一部のメンバーへの送信に失敗しました。');
 
 ## 4. アンチパターン
 
-| やってはいけないこと                                       | 理由                                                                   | 正しい対応                          |
-| --------------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------- |
-| クォータ超過を Toast で表示                                | 自動消失するとアップグレード導線を見落とす                              | Dialog 内 Alert(amber)で永続表示    |
-| 検証エラーをページ上部に Alert で集約                      | 該当フィールドが分からず修正に手間取る                                  | Inline(`<FormField errors>`)        |
-| 成功 Toast を出した後、画面状態を更新しない                | ユーザーが「本当に成功した?」と不安になる                              | `revalidatePath` or 楽観的 UI 更新を必ず併用 |
-| destructive 色を「警告」に使う(例:期限切れ間近)        | 赤系は「不可逆な失敗」と認識される                                      | amber 系を使う                      |
-| Dialog 内エラーで `toast.error` も同時に出す               | 二重表示で UX が散らかる                                                | どちらか一方(Dialog 内 Alert 推奨) |
-| `console.error` だけで UI に何も出さない                   | ユーザーは何が起きたか分からない                                        | いずれかの形式で必ず UI 通知         |
+| やってはいけないこと                            | 理由                                       | 正しい対応                                   |
+| ----------------------------------------------- | ------------------------------------------ | -------------------------------------------- |
+| クォータ超過を Toast で表示                     | 自動消失するとアップグレード導線を見落とす | Dialog 内 Alert(amber)で永続表示             |
+| 検証エラーをページ上部に Alert で集約           | 該当フィールドが分からず修正に手間取る     | Inline(`<FormField errors>`)                 |
+| 成功 Toast を出した後、画面状態を更新しない     | ユーザーが「本当に成功した?」と不安になる  | `revalidatePath` or 楽観的 UI 更新を必ず併用 |
+| destructive 色を「警告」に使う(例:期限切れ間近) | 赤系は「不可逆な失敗」と認識される         | amber 系を使う                               |
+| Dialog 内エラーで `toast.error` も同時に出す    | 二重表示で UX が散らかる                   | どちらか一方(Dialog 内 Alert 推奨)           |
+| `console.error` だけで UI に何も出さない        | ユーザーは何が起きたか分からない           | いずれかの形式で必ず UI 通知                 |
 
 ---
 

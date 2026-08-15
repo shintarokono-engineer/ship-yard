@@ -17,3 +17,11 @@ pnpm-lock.yaml
 # 自動生成ファイル(整形は生成元ツールに委ねる)
 **/*.generated.md
 packages/db/prisma/migrations
+
+# Terraform の作業ディレクトリ(プロバイダのバイナリを読もうとして exit 2 になる)
+**/.terraform
+**/*.tfstate
+**/*.tfstate.backup
+
+# Claude Code の作業領域(worktree は同じリポジトリの別チェックアウト)
+.claude

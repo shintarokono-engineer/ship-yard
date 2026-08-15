@@ -6,10 +6,10 @@
 
 Clerk → Neorie DB へのユーザー同期は **2 経路** で担保しています。
 
-| 経路 | トリガー | 用途 |
-| --- | --- | --- |
-| **Webhook(主)** | Clerk が `user.created` / `user.updated` / `user.deleted` を `POST /webhooks/clerk` に配信 | 正規同期、Idempotency は `ClerkWebhookEvent.svixMessageId @unique` |
-| **JIT プロビジョニング(副)** | `WorkspacesService.create` 内で `User` が未存在なら Clerk SDK `users.getUser()` で取得し upsert | Webhook 未到達・遅延時のフォールバック |
+| 経路                         | トリガー                                                                                        | 用途                                                               |
+| ---------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| **Webhook(主)**              | Clerk が `user.created` / `user.updated` / `user.deleted` を `POST /webhooks/clerk` に配信      | 正規同期、Idempotency は `ClerkWebhookEvent.svixMessageId @unique` |
+| **JIT プロビジョニング(副)** | `WorkspacesService.create` 内で `User` が未存在なら Clerk SDK `users.getUser()` で取得し upsert | Webhook 未到達・遅延時のフォールバック                             |
 
 下記の事象は「主経路 / 副経路 / セットアップ / ブラウザ状態」のどこかに起因します。
 
@@ -193,6 +193,7 @@ Clerk Issue [#6691](https://github.com/clerk/javascript/issues/6691) で **"Clos
 **限界**: `*.clerk.accounts.dev` ドメインの Cookie は Same-origin policy でアプリから直接削除できない。Dashboard で Multi-session OFF + `ClerkProvider afterSignOutUrl` + F1.5 中間ページの組み合わせで大半解消するが、稀に残るケースはシークレットウィンドウが fallback。
 
 **関連実装 / 設定**:
+
 - **Clerk Dashboard**(Sessions ページ):Multi-session handling = **OFF**(デフォルト)
 - `apps/web/src/app/layout.tsx`(`<ClerkProvider afterSignOutUrl="/sign-out-cleanup">`)
 - `apps/web/src/app/sign-out-cleanup/page.tsx`(**F1.5**、中間ページ本体、LocalStorage / SessionStorage cleanup)

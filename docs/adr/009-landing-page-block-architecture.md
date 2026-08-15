@@ -151,7 +151,7 @@ LP は本 ADR で `LandingPage` テーブルへ移るため、`ProjectDocument` 
 | 1     | LP ブロック化(JSON 化 + AI Tool Use + アプリ内プレビュー / 編集 UI) | 3 日   | ✅ MVP(Day 30-32) |
 | 2     | 公開 URL(`/p/{slug}/{projectId}` + 公開トグル + OG メタ)            | 1.5 日 | ✅ MVP(Day 33)    |
 | 3     | 静的 HTML エクスポート(ZIP ダウンロード)                            | 2.5 日 | ❌ v2             |
-| 4     | カスタムドメイン(`your-product.com` を Neorie に向ける)           | 大     | ❌ v2             |
+| 4     | カスタムドメイン(`your-product.com` を Neorie に向ける)             | 大     | ❌ v2             |
 
 実装の Day 配分(§6 Week 4 末):
 

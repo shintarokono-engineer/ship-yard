@@ -58,7 +58,8 @@ function Tone({
       variant="outline"
       className={cn(
         'font-normal tabular-nums',
-        tone === 'warning' && 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+        tone === 'warning' &&
+          'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
         className,
       )}
     >

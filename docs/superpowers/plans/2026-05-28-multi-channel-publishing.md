@@ -92,6 +92,7 @@
 ### Task 1: Prisma schema に 4 model + 3 enum + back-relation を追加
 
 **Files:**
+
 - Modify: `packages/db/prisma/schema.prisma`
 
 - [ ] **Step 1: schema.prisma に enum を 3 つ追加**
@@ -307,6 +308,7 @@ git commit -m "feat(db): Announcement / Delivery / BlogPost / TwitterAccount + 3
 ### Task 2: Migration を生成 + 手作業整理 + DB 適用
 
 **Files:**
+
 - Create: `packages/db/prisma/migrations/{ts}_add_announcement_delivery_blogpost_twitteraccount/migration.sql`
 
 - [ ] **Step 1: --create-only で migration 生成**
@@ -357,6 +359,7 @@ git commit -m "feat(db): migration add_announcement_delivery_blogpost_twitteracc
 ### Task 3: Feature enum に ANNOUNCEMENT_GEN を追加
 
 **Files:**
+
 - Modify: `packages/db/prisma/schema.prisma`
 - Create: `packages/db/prisma/migrations/{ts}_add_feature_announcement_gen/migration.sql`
 
@@ -416,6 +419,7 @@ git commit -m "feat(db): Feature.ANNOUNCEMENT_GEN 追加 + DocType 縮小(README
 **Background:** ADR-014 ANNOUNCEMENT_GEN(マルチチャネル一括 Tool Use 生成)の導入で、DRAFT_GEN が単一 DocType で生成していた `RELEASE_BLOG` / `TWEET` / `PRODUCT_HUNT` / `EMAIL` は配信用文面として ANNOUNCEMENT_GEN に役割が完全統合される。§9.12.1(LP 削除)と同パターンで型レベルから構造削除し、DRAFT_GEN を README 専用に絞る。ローカル / 本番 DB は公開前(ユーザー 0)で `ProjectDocument` に該当行 0 件確認済のため物理削除可能。
 
 **Files:**
+
 - Modify: `packages/db/prisma/schema.prisma`(`enum DocType` を 2 値に縮小 + `DRAFT_GEN` Feature コメント更新 + `ProjectDocument.type` フィールドコメント更新)
 - Create: `packages/db/prisma/migrations/{ts}_remove_announcement_doc_types/migration.sql`(手作業、Day 49.5 パターン)
 - Modify: `apps/api/src/ai/ai.constants.ts`(`GENERATABLE_DOC_TYPES` を `[DocType.README]` に縮小)
@@ -500,6 +504,7 @@ git commit -m "feat(db): Feature.ANNOUNCEMENT_GEN 追加 + DocType 縮小(README
 - 削除時の redirect 先 = Project 詳細
 
 **Files (新規):**
+
 - `apps/web/src/app/w/[slug]/projects/[projectId]/readme/page.tsx`(Server Component、最新 version + searchParams v 解決)
 - `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_actions/generate-readme.ts`
 - `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_actions/edit-readme.ts`
@@ -515,12 +520,15 @@ git commit -m "feat(db): Feature.ANNOUNCEMENT_GEN 追加 + DocType 縮小(README
 - `apps/web/src/app/w/[slug]/projects/[projectId]/readme/_shared/refine-readme-form.ts`
 
 **Files (編集):**
+
 - `apps/web/src/app/w/[slug]/projects/[projectId]/page.tsx`:ドキュメント Card 削除 + README プレビューセクション追加(Promise.all で `listDocuments(slug, projectId, 'README')` 追加 fetch、`README_PREVIEW_CHARS = 200` 定数、最新版の先頭 200 字 + version カウント + 更新日時 + 編集/履歴 Button + GenerateReadmeDialog、未作成時は `(未作成)` italic + Dialog のみ)
 
 **Files (削除):**
+
 - `apps/web/src/app/w/[slug]/projects/[projectId]/documents/`(配下全 14 ファイル、`git rm -r`)
 
 **Files (温存):**
+
 - `apps/api/src/documents/*`(REST API は README CRUD のバックボーンとして継続利用、URL 階層名は backend のみ historical な命名)
 - `apps/web/src/lib/api/workspaces.ts` の `fetchDocument` / `listDocuments` / `createDocument` 等(API パスと対応した命名)
 
@@ -579,6 +587,7 @@ git commit -m "refactor(web): README 専用ページ化 + Project 詳細にプ�
 ### Task 4: TokenEncryptionService 実装(AES-256-GCM)+ 単体テスト
 
 **Files:**
+
 - Create: `apps/api/src/common/crypto/token-encryption.service.ts`
 - Create: `apps/api/src/common/crypto/token-encryption.spec.ts`
 - Create: `apps/api/src/common/crypto/crypto.module.ts`
@@ -753,6 +762,7 @@ git commit -m "feat(api): TokenEncryptionService(AES-256-GCM)+ CryptoModule(ADR-
 ### Task 5: assertWithinAnnouncementQuota を AIUsageService に追加
 
 **Files:**
+
 - Modify: `apps/api/src/ai/ai-usage.service.ts`
 - Modify: `apps/api/src/ai/ai.constants.ts`
 
@@ -844,6 +854,7 @@ git commit -m "feat(api): assertWithinAnnouncementQuota + ANNOUNCEMENT_GEN 定�
 ### Task 6: Announcement Tool スキーマ + 型定義 + 定数
 
 **Files:**
+
 - Create: `apps/api/src/announcements/announcement-types.ts`
 - Create: `apps/api/src/announcements/announcement.constants.ts`
 - Create: `apps/api/src/announcements/announcement-tool.ts`
@@ -887,8 +898,8 @@ export type AnnouncementDrafts = {
     text: string; // 280 字以内、絵文字込み、hashtag は AI 判断
   };
   blog: {
-    title: string;   // 60 字以内推奨
-    body: string;    // Markdown 本文(500〜2000 字目安)
+    title: string; // 60 字以内推奨
+    body: string; // Markdown 本文(500〜2000 字目安)
     summary: string; // OG description 用、120 字以内
   };
   // v1.x: email: { subject: string, htmlBody: string, plainTextBody: string }
@@ -919,7 +930,12 @@ export const ANNOUNCEMENT_CHANNELS: readonly DeliveryChannel[] = ['TWITTER', 'BL
 ```typescript
 import type { Anthropic } from '@anthropic-ai/sdk';
 
-import { BLOG_BODY_MIN, BLOG_SUMMARY_MAX, BLOG_TITLE_MAX, TWITTER_TEXT_MAX } from './announcement.constants';
+import {
+  BLOG_BODY_MIN,
+  BLOG_SUMMARY_MAX,
+  BLOG_TITLE_MAX,
+  TWITTER_TEXT_MAX,
+} from './announcement.constants';
 import type { AnnouncementDrafts } from './announcement-types';
 
 /**
@@ -982,7 +998,12 @@ export function parseAnnouncementDrafts(input: unknown): AnnouncementDrafts {
   if (twitter.text.length === 0 || twitter.text.length > TWITTER_TEXT_MAX) {
     throw new Error(`twitter.text length out of range (ANNOUNCEMENT_GEN)`);
   }
-  if (!blog || typeof blog.title !== 'string' || typeof blog.body !== 'string' || typeof blog.summary !== 'string') {
+  if (
+    !blog ||
+    typeof blog.title !== 'string' ||
+    typeof blog.body !== 'string' ||
+    typeof blog.summary !== 'string'
+  ) {
     throw new Error('Tool output missing blog.{title,body,summary} (ANNOUNCEMENT_GEN)');
   }
   if (blog.title.length === 0 || blog.title.length > BLOG_TITLE_MAX) {
@@ -991,7 +1012,10 @@ export function parseAnnouncementDrafts(input: unknown): AnnouncementDrafts {
   if (blog.body.length < BLOG_BODY_MIN) {
     throw new Error(`blog.body too short (ANNOUNCEMENT_GEN)`);
   }
-  return { twitter: { text: twitter.text }, blog: { title: blog.title, body: blog.body, summary: blog.summary } };
+  return {
+    twitter: { text: twitter.text },
+    blog: { title: blog.title, body: blog.body, summary: blog.summary },
+  };
 }
 ```
 
@@ -1012,6 +1036,7 @@ git commit -m "feat(api): Announcement Tool スキーマ + 型 + 定数(ADR-014 
 ### Task 7: AnnouncementGenService(Sonnet 4 + Tool Use)
 
 **Files:**
+
 - Create: `apps/api/src/announcements/announcement-gen.service.ts`
 
 - [ ] **Step 1: AnnouncementGenService を作成**
@@ -1070,7 +1095,8 @@ export class AnnouncementGenService {
   constructor(private readonly anthropic: AnthropicService) {}
 
   async generate(input: GenerateAnnouncementInput): Promise<GeneratedAnnouncement> {
-    const { topic, project, announcementTitle, channels, latestLpHero, latestReadmeExcerpt } = input;
+    const { topic, project, announcementTitle, channels, latestLpHero, latestReadmeExcerpt } =
+      input;
     const activeChannels = channels && channels.length > 0 ? channels : ANNOUNCEMENT_CHANNELS;
 
     const systemPrompt = [
@@ -1140,10 +1166,9 @@ export class AnnouncementGenService {
     try {
       drafts = parseAnnouncementDrafts(block.input);
     } catch (err) {
-      throw new AIBadResponseError(
-        `ANNOUNCEMENT_GEN: ${(err as Error).message}`,
-        { cause: err as Error },
-      );
+      throw new AIBadResponseError(`ANNOUNCEMENT_GEN: ${(err as Error).message}`, {
+        cause: err as Error,
+      });
     }
     return {
       drafts,
@@ -1172,6 +1197,7 @@ git commit -m "feat(api): AnnouncementGenService(Sonnet 4 + Tool Use)(ADR-014 Da
 ### Task 8: Twitter constants + TwitterAuthService(OAuth state + PKCE + Redis)
 
 **Files:**
+
 - Create: `apps/api/src/integrations/twitter/twitter.constants.ts`
 - Create: `apps/api/src/integrations/twitter/twitter-auth.service.ts`
 
@@ -1276,7 +1302,11 @@ export class TwitterAuthService {
   }
 
   /** state + PKCE を生成して Redis に保存し、X 認可 URL を返す。 */
-  async buildAuthorizeUrl(args: { tenantId: string; userId: string; returnSlug: string }): Promise<string> {
+  async buildAuthorizeUrl(args: {
+    tenantId: string;
+    userId: string;
+    returnSlug: string;
+  }): Promise<string> {
     const state = randomBytes(32).toString('base64url');
     const verifier = randomBytes(64).toString('base64url');
     const challenge = createHash('sha256').update(verifier).digest('base64url');
@@ -1287,11 +1317,9 @@ export class TwitterAuthService {
       userId: args.userId,
       returnSlug: args.returnSlug,
     };
-    await this.redis.set(
-      `${TWITTER_OAUTH_STATE_KEY_PREFIX}${state}`,
-      JSON.stringify(payload),
-      { ex: TWITTER_AUTH_STATE_TTL_SECONDS },
-    );
+    await this.redis.set(`${TWITTER_OAUTH_STATE_KEY_PREFIX}${state}`, JSON.stringify(payload), {
+      ex: TWITTER_AUTH_STATE_TTL_SECONDS,
+    });
 
     const url = new URL(TWITTER_AUTHORIZE_URL);
     url.searchParams.set('response_type', 'code');
@@ -1343,7 +1371,9 @@ export class TwitterAuthService {
     }
     const json = (await res.json()) as TwitterTokenResponse;
     if (!json.scope?.includes('tweet.write') || !json.scope?.includes('offline.access')) {
-      throw new BadRequestException('必要な権限が付与されていません(tweet.write / offline.access)。再度連携を試してください。');
+      throw new BadRequestException(
+        '必要な権限が付与されていません(tweet.write / offline.access)。再度連携を試してください。',
+      );
     }
     return json;
   }
@@ -1399,6 +1429,7 @@ git commit -m "feat(api): TwitterAuthService(OAuth 2.0 PKCE + state Redis)+ 定�
 ### Task 9: TwitterClientService(refresh + postTweet + revoke)
 
 **Files:**
+
 - Create: `apps/api/src/integrations/twitter/twitter-client.service.ts`
 
 - [ ] **Step 1: TwitterClientService を作成**
@@ -1431,7 +1462,13 @@ export interface PostTweetResult {
 /** 失敗時の Twitter API エラー分類(ユーザー向け文言の出し分け、ADR-014 §6)。 */
 export class TwitterApiError extends Error {
   constructor(
-    public readonly kind: 'TOKEN_EXPIRED' | 'SUSPENDED' | 'RATE_LIMIT' | 'SERVER' | 'NETWORK' | 'UNKNOWN',
+    public readonly kind:
+      | 'TOKEN_EXPIRED'
+      | 'SUSPENDED'
+      | 'RATE_LIMIT'
+      | 'SERVER'
+      | 'NETWORK'
+      | 'UNKNOWN',
     public readonly userMessage: string,
     public readonly retryAfterSeconds?: number,
   ) {
@@ -1521,10 +1558,7 @@ export class TwitterClientService {
       );
     }
     if (res.status === 403) {
-      throw new TwitterApiError(
-        'SUSPENDED',
-        'X アカウントが利用制限を受けています。',
-      );
+      throw new TwitterApiError('SUSPENDED', 'X アカウントが利用制限を受けています。');
     }
     if (res.status === 429) {
       const retryAfter = Number.parseInt(res.headers.get('retry-after') ?? '0', 10);
@@ -1583,6 +1617,7 @@ git commit -m "feat(api): TwitterClientService(refresh + postTweet + revoke)(ADR
 ### Task 10: IntegrationsTwitterController + IntegrationsTwitterModule(OAuth 4 endpoints)
 
 **Files:**
+
 - Create: `apps/api/src/integrations/twitter/integrations-twitter.controller.ts`
 - Create: `apps/api/src/integrations/twitter/integrations-twitter.module.ts`
 
@@ -1669,10 +1704,7 @@ export class IntegrationsTwitterController {
   @Delete(':accountId')
   @UseGuards(WorkspaceGuard)
   @Roles(...ADMIN_ROLES)
-  async disconnect(
-    @CurrentWorkspace() ws: { id: string },
-    @Param('accountId') accountId: string,
-  ) {
+  async disconnect(@CurrentWorkspace() ws: { id: string }, @Param('accountId') accountId: string) {
     const account = await this.prisma.twitterAccount.findFirst({
       where: { id: accountId, tenantId: ws.id },
     });
@@ -1773,6 +1805,7 @@ git commit -m "feat(api): IntegrationsTwitterController(4 endpoints)+ webhooks/t
 ### Task 11: BlogPostService + BlogPostController + BlogPostPublicController + Module
 
 **Files:**
+
 - Create: `apps/api/src/blog-posts/blog-post.service.ts`
 - Create: `apps/api/src/blog-posts/blog-post.controller.ts`
 - Create: `apps/api/src/blog-posts/blog-post-public.controller.ts`
@@ -1784,7 +1817,11 @@ git commit -m "feat(api): IntegrationsTwitterController(4 endpoints)+ webhooks/t
 ```typescript
 import { IsBoolean, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
-import { BLOG_BODY_MIN, BLOG_SLUG_MAX, BLOG_TITLE_MAX } from '../../announcements/announcement.constants';
+import {
+  BLOG_BODY_MIN,
+  BLOG_SLUG_MAX,
+  BLOG_TITLE_MAX,
+} from '../../announcements/announcement.constants';
 
 export class UpdateBlogPostDto {
   @IsOptional()
@@ -1800,7 +1837,9 @@ export class UpdateBlogPostDto {
   @IsOptional()
   @IsString()
   @MaxLength(BLOG_SLUG_MAX)
-  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { message: 'slug は半角小文字 + 数字 + ハイフンのみ使用可' })
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+    message: 'slug は半角小文字 + 数字 + ハイフンのみ使用可',
+  })
   slug?: string;
 
   /** true = 公開(publishedAt = now)、false = 下書きに戻す(publishedAt = null)。 */
@@ -1996,6 +2035,7 @@ git commit -m "feat(api): BlogPostService + Controller(管理 3 + 公開 1)(ADR-
 ### Task 12: AnnouncementService(CRUD + generate + executeDelivery dispatcher)
 
 **Files:**
+
 - Create: `apps/api/src/announcements/announcement.service.ts`
 - Create: `apps/api/src/announcements/dto/create-announcement.dto.ts`
 - Create: `apps/api/src/announcements/dto/update-announcement.dto.ts`
@@ -2049,7 +2089,15 @@ export class UpdateAnnouncementDto {
 `apps/api/src/announcements/dto/generate-announcement.dto.ts`:
 
 ```typescript
-import { ArrayUnique, IsArray, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  ArrayUnique,
+  IsArray,
+  IsIn,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 import { ANNOUNCEMENT_CHANNELS } from '../announcement-types';
 import { ANNOUNCEMENT_TOPIC_MAX } from '../announcement.constants';
@@ -2074,10 +2122,19 @@ export class GenerateAnnouncementDto {
 
 ```typescript
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { AnnouncementStatus, DeliveryChannel, DeliveryStatus, Feature, type Plan } from '@shipyard/db';
+import {
+  AnnouncementStatus,
+  DeliveryChannel,
+  DeliveryStatus,
+  Feature,
+  type Plan,
+} from '@shipyard/db';
 
 import { AIUsageService } from '../ai/ai-usage.service';
-import { TwitterApiError, TwitterClientService } from '../integrations/twitter/twitter-client.service';
+import {
+  TwitterApiError,
+  TwitterClientService,
+} from '../integrations/twitter/twitter-client.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ANNOUNCEMENT_CHANNELS } from './announcement-types';
 import type { BlogDeliveryContent, TwitterDeliveryContent } from './announcement-types';
@@ -2198,13 +2255,22 @@ export class AnnouncementService {
       select: { blocks: true },
     });
     const heroRaw = Array.isArray(lp?.blocks)
-      ? (lp!.blocks as Array<{ type: string; heading?: string; sub?: string }>).find((b) => b.type === 'hero')
+      ? (lp!.blocks as Array<{ type: string; heading?: string; sub?: string }>).find(
+          (b) => b.type === 'hero',
+        )
       : undefined;
-    const latestLpHero = heroRaw?.heading ? { heading: heroRaw.heading, sub: heroRaw.sub } : undefined;
+    const latestLpHero = heroRaw?.heading
+      ? { heading: heroRaw.heading, sub: heroRaw.sub }
+      : undefined;
 
     // 最新 README 抜粋(参考)
     const readme = await this.prisma.projectDocument.findFirst({
-      where: { projectId: args.projectId, tenantId: args.tenantId, type: 'README', deletedAt: null },
+      where: {
+        projectId: args.projectId,
+        tenantId: args.tenantId,
+        type: 'README',
+        deletedAt: null,
+      },
       orderBy: { version: 'desc' },
       select: { content: true },
     });
@@ -2218,15 +2284,16 @@ export class AnnouncementService {
       latestReadmeExcerpt: readme?.content?.slice(0, 300),
     });
 
-    const channelsToWrite = args.dto.channels && args.dto.channels.length > 0
-      ? args.dto.channels
-      : ANNOUNCEMENT_CHANNELS;
+    const channelsToWrite =
+      args.dto.channels && args.dto.channels.length > 0 ? args.dto.channels : ANNOUNCEMENT_CHANNELS;
 
     await this.prisma.$transaction(async (tx) => {
       // Twitter
       if (channelsToWrite.includes(DeliveryChannel.TWITTER)) {
         await tx.delivery.upsert({
-          where: { announcementId_channel: { announcementId: args.id, channel: DeliveryChannel.TWITTER } },
+          where: {
+            announcementId_channel: { announcementId: args.id, channel: DeliveryChannel.TWITTER },
+          },
           create: {
             tenantId: args.tenantId,
             announcementId: args.id,
@@ -2243,7 +2310,9 @@ export class AnnouncementService {
       // Blog: BlogPost を upsert(slug は title から派生)+ Delivery を紐付け
       if (channelsToWrite.includes(DeliveryChannel.BLOG)) {
         const slug = slugify(generated.drafts.blog.title);
-        const existingBlogDelivery = announcement.deliveries.find((d) => d.channel === DeliveryChannel.BLOG);
+        const existingBlogDelivery = announcement.deliveries.find(
+          (d) => d.channel === DeliveryChannel.BLOG,
+        );
         const existingPost = existingBlogDelivery?.id
           ? await tx.blogPost.findUnique({ where: { deliveryId: existingBlogDelivery.id } })
           : null;
@@ -2266,23 +2335,37 @@ export class AnnouncementService {
               },
             });
         await tx.delivery.upsert({
-          where: { announcementId_channel: { announcementId: args.id, channel: DeliveryChannel.BLOG } },
+          where: {
+            announcementId_channel: { announcementId: args.id, channel: DeliveryChannel.BLOG },
+          },
           create: {
             tenantId: args.tenantId,
             announcementId: args.id,
             channel: DeliveryChannel.BLOG,
             status: DeliveryStatus.DRAFT,
-            content: { blogPostId: post.id, summary: generated.drafts.blog.summary } satisfies BlogDeliveryContent,
+            content: {
+              blogPostId: post.id,
+              summary: generated.drafts.blog.summary,
+            } satisfies BlogDeliveryContent,
           },
           update: {
-            content: { blogPostId: post.id, summary: generated.drafts.blog.summary } satisfies BlogDeliveryContent,
+            content: {
+              blogPostId: post.id,
+              summary: generated.drafts.blog.summary,
+            } satisfies BlogDeliveryContent,
             status: DeliveryStatus.DRAFT,
           },
         });
         // BlogPost と Delivery を紐付け
         await tx.blogPost.update({
           where: { id: post.id },
-          data: { delivery: { connect: { announcementId_channel: { announcementId: args.id, channel: DeliveryChannel.BLOG } } } },
+          data: {
+            delivery: {
+              connect: {
+                announcementId_channel: { announcementId: args.id, channel: DeliveryChannel.BLOG },
+              },
+            },
+          },
         });
       }
       await tx.announcement.update({
@@ -2327,7 +2410,10 @@ export class AnnouncementService {
       if (!account) {
         await this.prisma.delivery.update({
           where: { id: delivery.id },
-          data: { status: DeliveryStatus.FAILED, error: 'X アカウントが連携されていません。設定画面から連携してください。' },
+          data: {
+            status: DeliveryStatus.FAILED,
+            error: 'X アカウントが連携されていません。設定画面から連携してください。',
+          },
         });
         throw new ForbiddenException('X アカウントが連携されていません。');
       }
@@ -2344,7 +2430,10 @@ export class AnnouncementService {
           },
         });
       } catch (err) {
-        const message = err instanceof TwitterApiError ? err.userMessage : 'X 投稿で予期しないエラーが発生しました。';
+        const message =
+          err instanceof TwitterApiError
+            ? err.userMessage
+            : 'X 投稿で予期しないエラーが発生しました。';
         await this.prisma.delivery.update({
           where: { id: delivery.id },
           data: { status: DeliveryStatus.FAILED, error: message, executedById: args.userId },
@@ -2374,7 +2463,9 @@ export class AnnouncementService {
       where: { id: args.announcementId },
       include: { deliveries: { select: { status: true } } },
     });
-    const allSent = refreshed.deliveries.length > 0 && refreshed.deliveries.every((d) => d.status === DeliveryStatus.SENT);
+    const allSent =
+      refreshed.deliveries.length > 0 &&
+      refreshed.deliveries.every((d) => d.status === DeliveryStatus.SENT);
     await this.prisma.announcement.update({
       where: { id: args.announcementId },
       data: { status: allSent ? AnnouncementStatus.DONE : AnnouncementStatus.EXECUTING },
@@ -2431,6 +2522,7 @@ git commit -m "feat(api): AnnouncementService(CRUD + generate + executeDelivery)
 ### Task 13: AnnouncementController(7 endpoints + 認可マトリクス)+ Module
 
 **Files:**
+
 - Create: `apps/api/src/announcements/announcement.controller.ts`
 - Create: `apps/api/src/announcements/announcement.module.ts`
 
@@ -2584,6 +2676,7 @@ git commit -m "feat(api): AnnouncementController(7 endpoints + 認可マトリ�
 ### Task 14: E2E 実行 + 結果サマリ
 
 **Files:**
+
 - Create: `.claude/output/run-e2e/2026-MM-DD-day57-announcement-be.md`
 
 - [ ] **Step 1: `/run-e2e` skill 起動 or 手動 E2E**
@@ -2627,6 +2720,7 @@ git commit -m "fix(api): セルフレビュー指摘反映(ADR-014 Day 57)"
 ### Task 15: API クライアント型 + 関数
 
 **Files:**
+
 - Modify: `apps/web/src/lib/api/types.ts`
 - Modify: `apps/web/src/lib/api/workspaces.ts`
 
@@ -2726,14 +2820,16 @@ export async function fetchAnnouncement(slug: string, projectId: string, id: str
 }
 
 export async function createAnnouncement(slug: string, projectId: string, body: { title: string }) {
-  return apiFetch<AnnouncementDetail>(
-    `/workspaces/${slug}/projects/${projectId}/announcements`,
-    { method: 'POST', body: JSON.stringify(body) },
-  );
+  return apiFetch<AnnouncementDetail>(`/workspaces/${slug}/projects/${projectId}/announcements`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
 }
 
 export async function updateAnnouncement(
-  slug: string, projectId: string, id: string,
+  slug: string,
+  projectId: string,
+  id: string,
   body: { title?: string; twitterContent?: { text: string } },
 ) {
   return apiFetch<AnnouncementDetail>(
@@ -2743,14 +2839,15 @@ export async function updateAnnouncement(
 }
 
 export async function deleteAnnouncement(slug: string, projectId: string, id: string) {
-  return apiFetch<{ ok: true }>(
-    `/workspaces/${slug}/projects/${projectId}/announcements/${id}`,
-    { method: 'DELETE' },
-  );
+  return apiFetch<{ ok: true }>(`/workspaces/${slug}/projects/${projectId}/announcements/${id}`, {
+    method: 'DELETE',
+  });
 }
 
 export async function generateAnnouncement(
-  slug: string, projectId: string, id: string,
+  slug: string,
+  projectId: string,
+  id: string,
   body: { topic: string; channels?: DeliveryChannel[] },
 ) {
   return apiFetch<AnnouncementDetail>(
@@ -2760,7 +2857,10 @@ export async function generateAnnouncement(
 }
 
 export async function executeDelivery(
-  slug: string, projectId: string, announcementId: string, deliveryId: string,
+  slug: string,
+  projectId: string,
+  announcementId: string,
+  deliveryId: string,
 ) {
   return apiFetch<AnnouncementDetail>(
     `/workspaces/${slug}/projects/${projectId}/announcements/${announcementId}/deliveries/${deliveryId}/execute`,
@@ -2770,32 +2870,30 @@ export async function executeDelivery(
 
 // BlogPost
 export async function fetchBlogPost(slug: string, projectId: string, id: string) {
-  return apiFetch<BlogPost>(
-    `/workspaces/${slug}/projects/${projectId}/blog-posts/${id}`,
-  );
+  return apiFetch<BlogPost>(`/workspaces/${slug}/projects/${projectId}/blog-posts/${id}`);
 }
 
 export async function listBlogPosts(slug: string, projectId: string) {
-  return apiFetch<{ posts: BlogPost[] }>(
-    `/workspaces/${slug}/projects/${projectId}/blog-posts`,
-  );
+  return apiFetch<{ posts: BlogPost[] }>(`/workspaces/${slug}/projects/${projectId}/blog-posts`);
 }
 
 export async function updateBlogPost(
-  slug: string, projectId: string, id: string,
+  slug: string,
+  projectId: string,
+  id: string,
   body: { title?: string; body?: string; slug?: string; published?: boolean },
 ) {
-  return apiFetch<BlogPost>(
-    `/workspaces/${slug}/projects/${projectId}/blog-posts/${id}`,
-    { method: 'PATCH', body: JSON.stringify(body) },
-  );
+  return apiFetch<BlogPost>(`/workspaces/${slug}/projects/${projectId}/blog-posts/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
 }
 
 export async function fetchPublicBlogPost(slug: string, projectId: string, postSlug: string) {
-  return apiFetch<PublicBlogPost>(
-    `/public/blog-posts/${slug}/${projectId}/${postSlug}`,
-    { method: 'GET', publicEndpoint: true } as { method: string; publicEndpoint: boolean },
-  );
+  return apiFetch<PublicBlogPost>(`/public/blog-posts/${slug}/${projectId}/${postSlug}`, {
+    method: 'GET',
+    publicEndpoint: true,
+  } as { method: string; publicEndpoint: boolean });
 }
 
 // Twitter integrations
@@ -2806,10 +2904,9 @@ export async function listTwitterAccounts(slug: string) {
 }
 
 export async function disconnectTwitterAccount(slug: string, accountId: string) {
-  return apiFetch<{ ok: true }>(
-    `/workspaces/${slug}/integrations/twitter/${accountId}`,
-    { method: 'DELETE' },
-  );
+  return apiFetch<{ ok: true }>(`/workspaces/${slug}/integrations/twitter/${accountId}`, {
+    method: 'DELETE',
+  });
 }
 ```
 
@@ -2832,6 +2929,7 @@ git commit -m "feat(web): Announcement / Delivery / BlogPost / TwitterAccount AP
 ### Task 16: Announcement 一覧ページ + 新規ダイアログ + Project Card 追加
 
 **Files:**
+
 - Create: `apps/web/src/app/w/[slug]/projects/[projectId]/announcements/page.tsx`
 - Create: `apps/web/src/app/w/[slug]/projects/[projectId]/announcements/_components/new-announcement-dialog.tsx`
 - Create: `apps/web/src/app/w/[slug]/projects/[projectId]/announcements/_actions/announcements.ts`
@@ -2845,10 +2943,20 @@ git commit -m "feat(web): Announcement / Delivery / BlogPost / TwitterAccount AP
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
-import { createAnnouncement, generateAnnouncement, executeDelivery, updateAnnouncement, deleteAnnouncement } from '@/lib/api/workspaces';
+import {
+  createAnnouncement,
+  generateAnnouncement,
+  executeDelivery,
+  updateAnnouncement,
+  deleteAnnouncement,
+} from '@/lib/api/workspaces';
 import { classifyAiApiError } from '@/lib/ai-form';
 
-export async function createAnnouncementAction(slug: string, projectId: string, formData: FormData) {
+export async function createAnnouncementAction(
+  slug: string,
+  projectId: string,
+  formData: FormData,
+) {
   const title = formData.get('title');
   if (typeof title !== 'string' || title.trim().length === 0) {
     return { error: 'タイトルを入力してください。' };
@@ -2859,7 +2967,9 @@ export async function createAnnouncementAction(slug: string, projectId: string, 
 }
 
 export async function generateAnnouncementAction(
-  slug: string, projectId: string, id: string,
+  slug: string,
+  projectId: string,
+  id: string,
   formData: FormData,
 ) {
   const topic = formData.get('topic');
@@ -2880,7 +2990,9 @@ export async function generateAnnouncementAction(
 }
 
 export async function updateAnnouncementAction(
-  slug: string, projectId: string, id: string,
+  slug: string,
+  projectId: string,
+  id: string,
   body: { title?: string; twitterContent?: { text: string } },
 ) {
   await updateAnnouncement(slug, projectId, id, body);
@@ -2895,7 +3007,10 @@ export async function deleteAnnouncementAction(slug: string, projectId: string, 
 }
 
 export async function executeDeliveryAction(
-  slug: string, projectId: string, announcementId: string, deliveryId: string,
+  slug: string,
+  projectId: string,
+  announcementId: string,
+  deliveryId: string,
 ) {
   await executeDelivery(slug, projectId, announcementId, deliveryId);
   revalidatePath(`/w/${slug}/projects/${projectId}/announcements/${announcementId}`);
@@ -3046,6 +3161,7 @@ git commit -m "feat(web): Announcement 一覧ページ + 新規ダイアログ +
 ### Task 17: Announcement 編集ページ(Twitter / Blog タブ + 生成 + 実行)
 
 **Files:**
+
 - Create: `apps/web/src/app/w/[slug]/projects/[projectId]/announcements/[id]/page.tsx`
 - Create: `apps/web/src/app/w/[slug]/projects/[projectId]/announcements/_shared/announcement-form.ts`
 - Create: `apps/web/src/app/w/[slug]/projects/[projectId]/announcements/_components/announcement-generate-dialog.tsx`
@@ -3154,6 +3270,7 @@ git commit -m "feat(web): Announcement 編集ページ(Twitter/Blog タブ + 生
 ### Task 18: 設定タブ「連携」 + Twitter UI
 
 **Files:**
+
 - Create: `apps/web/src/app/w/[slug]/settings/integrations/page.tsx`
 - Modify: `apps/web/src/app/w/[slug]/settings/layout.tsx`(or 等価のタブナビ実装ファイル)
 
@@ -3177,16 +3294,9 @@ import { formatDateTime } from '@/lib/format';
 
 import { DisconnectTwitterButton } from './_components/disconnect-twitter-button';
 
-export default async function IntegrationsPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export default async function IntegrationsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const [workspace, listing] = await Promise.all([
-    fetchWorkspace(slug),
-    listTwitterAccounts(slug),
-  ]);
+  const [workspace, listing] = await Promise.all([fetchWorkspace(slug), listTwitterAccounts(slug)]);
   if (!workspace) notFound();
 
   return (
@@ -3216,7 +3326,9 @@ export default async function IntegrationsPage({
           )}
           {/* OAuth 開始は GET なので a タグで遷移(Server Action 不可) */}
           <Button asChild>
-            <a href={`/api/workspaces/${slug}/integrations/twitter/authorize`}>X アカウントを連携する</a>
+            <a href={`/api/workspaces/${slug}/integrations/twitter/authorize`}>
+              X アカウントを連携する
+            </a>
           </Button>
         </CardContent>
       </Card>
@@ -3252,6 +3364,7 @@ git commit -m "feat(web): 設定タブ「連携」 + Twitter UI(ADR-014 Day 59)"
 ### Task 19: 公開ブログページ(`/p/[slug]/[projectId]/blog/[postSlug]`)
 
 **Files:**
+
 - Create: `apps/web/src/app/p/[slug]/[projectId]/blog/[postSlug]/page.tsx`
 - Create: `apps/web/src/app/p/[slug]/[projectId]/blog/[postSlug]/error.tsx`
 
@@ -3284,8 +3397,17 @@ export async function generateMetadata({
       title: `${post.title} - ${post.project.name}`,
       description: post.body.slice(0, 120).replace(/\n/g, ' '),
       alternates: { canonical },
-      openGraph: { title: post.title, description: post.body.slice(0, 120), url: canonical, type: 'article' },
-      twitter: { card: 'summary_large_image', title: post.title, description: post.body.slice(0, 120) },
+      openGraph: {
+        title: post.title,
+        description: post.body.slice(0, 120),
+        url: canonical,
+        type: 'article',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: post.title,
+        description: post.body.slice(0, 120),
+      },
     };
   } catch {
     return { title: '記事が見つかりません' };
@@ -3308,7 +3430,10 @@ export default async function PublicBlogPage({
   return (
     <article className="mx-auto max-w-3xl space-y-6 px-4 py-12">
       <header className="space-y-2">
-        <a href={`/p/${slug}/${projectId}`} className="text-muted-foreground text-sm hover:underline">
+        <a
+          href={`/p/${slug}/${projectId}`}
+          className="text-muted-foreground text-sm hover:underline"
+        >
           ← {post.project.name} のトップへ
         </a>
         <h1 className="text-3xl font-bold">{post.title}</h1>
@@ -3317,9 +3442,7 @@ export default async function PublicBlogPage({
         </time>
       </header>
       <MarkdownViewer source={post.body} />
-      <footer className="text-muted-foreground border-t pt-4 text-xs">
-        Powered by Neorie
-      </footer>
+      <footer className="text-muted-foreground border-t pt-4 text-xs">Powered by Neorie</footer>
     </article>
   );
 }
@@ -3336,7 +3459,9 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
     <div className="mx-auto max-w-2xl px-4 py-12 text-center">
       <h1 className="text-xl font-semibold">記事を表示できませんでした</h1>
       <p className="text-muted-foreground mt-2 text-sm">{error.message}</p>
-      <button onClick={() => reset()} className="mt-4 underline">再読み込み</button>
+      <button onClick={() => reset()} className="mt-4 underline">
+        再読み込み
+      </button>
     </div>
   );
 }
@@ -3349,6 +3474,7 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
 - [ ] **Step 5: robots.ts + sitemap.ts を確認 / 追加**
 
 `apps/web/src/app/robots.ts` / `sitemap.ts` が存在するか確認:
+
 - 存在しない → `robots.ts` を新規作成し、`/p/*` allow + `/w/*` Disallow を設定
 - 存在する → `/p/*` allow が含まれているか確認、無ければ追加
 
@@ -3360,9 +3486,7 @@ const APP_BASE_URL = process.env.NEXT_PUBLIC_APP_BASE_URL ?? 'http://localhost:3
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: [
-      { userAgent: '*', allow: ['/p/'], disallow: ['/w/', '/api/'] },
-    ],
+    rules: [{ userAgent: '*', allow: ['/p/'], disallow: ['/w/', '/api/'] }],
     sitemap: `${APP_BASE_URL}/sitemap.xml`,
   };
 }
@@ -3389,6 +3513,7 @@ git commit -m "feat(web): 公開ブログページ(/p/[slug]/[projectId]/blog/[p
 ### Task 20: Twitter 連携 運用 runbook 作成
 
 **Files:**
+
 - Create: `docs/runbooks/twitter-integration-troubleshooting.md`
 
 - [ ] **Step 1: runbook を作成(Day 49 Clerk webhook runbook と同形式)**
@@ -3423,6 +3548,7 @@ git commit -m "docs: Twitter 連携 運用 runbook 作成(ADR-014 Day 59)"
 ### Task 21: PROJECT_STATUS.md 更新(Day 56-59 完了反映 + Day 化)
 
 **Files:**
+
 - Modify: `docs/PROJECT_STATUS.md`
 
 - [ ] **Step 1: §11 変更履歴に Day 56-59 完了行を追加**
@@ -3452,6 +3578,7 @@ git commit -m "docs: Day 56-59 完了 + ADR-014 マルチチャネル告知配�
 ### Task 22: 公開チェックリスト実行 + 公開リリース
 
 **Files:**
+
 - なし(運用作業)
 
 - [ ] **Step 1: Spec doc §6 公開チェックリストの 8 項目を順次実施**
