@@ -279,6 +279,10 @@ add_record "www.neorie.com" CNAME "<Vercel が表示した値>"
 
 ### A-8. Webhook URL を更新する
 
+> ⚠ **この手順の漏れが 2026-08-15 に障害化しました**。Stripe のエンドポイントが旧ドメインのまま残り、
+> `Failed to connect to remote host` が 9 日間続いて Stripe に自動無効化されました。
+> 経緯と復旧手順は §A-8-1 に記録しています。**ドメイン移行では DNS 切替と同じ日にここまで完了させること。**
+
 | サービス   | 新しい URL                               | 備考                                                                              |
 | ---------- | ---------------------------------------- | --------------------------------------------------------------------------------- |
 | **Stripe** | `https://api.neorie.com/webhooks/stripe` | 既存エンドポイントを編集。**署名シークレットが変わったら Secrets Manager も更新** |
@@ -302,8 +306,38 @@ aws apprunner start-deployment \
   --service-arn "$(cd ~/projects/ship-yard/infra/prod && terraform output -raw apprunner_service_arn)"
 ```
 
-- [ ] Clerk の「Send test event」が 2xx
-- [ ] Stripe の Webhook ログが 2xx
+- [x] Clerk のエンドポイントが新ドメイン(**2026-08-15 確認**。URL は `https://api.neorie.com/webhooks/clerk`、Error rate 0.0%。過去 3 件の配送も `ClerkWebhookEvent` に `PROCESSED` で記録済み。Stripe と違い**移行時に取りこぼしていなかった**)
+- [x] Stripe の Webhook ログが 2xx(**2026-08-15 に復旧**、§A-8-1)
+
+### A-8-1. Stripe Webhook 停止の障害記録(2026-08-15)
+
+**事象**: Stripe から「9 日間連続で失敗したのでエンドポイントを無効化した」通知。エラーは `18 requests could not connect to the server`、配信試行のレスポンスは `"Failed to connect to remote host"`(ステータスコード・ボディともに空)。
+
+**原因**: A-8 の Stripe 行が未実施のまま DNS を切り替えたため、エンドポイントが旧ドメイン宛のまま残った。`api.useshipyard.dev` の DNS レコードは移行時に消えているため、接続自体が成立しなかった。
+
+`WebhookEvent` テーブルが空だったことから、**本番で Stripe Webhook が一度も成功していなかった**ことが判明した(本番構築時から旧ドメインで登録されていた)。
+
+**実害**: 7 日トライアルの期限切れ解約 (`customer.subscription.deleted`) が届かず、**Stripe 側で canceled のテナントが DB では PRO / TRIALING のまま**残っていた(2 件)。AI クレジットが Pro 相当で付与され続ける状態だった。
+
+**復旧手順**:
+
+1. Stripe ダッシュボードでエンドポイントの URL を `https://api.neorie.com/webhooks/stripe` に**編集**(新規作成しない = 署名シークレットが変わらないので Secrets Manager の更新も再デプロイも不要)
+2. 「有効にする」で再有効化
+3. 配信試行が残っているイベントは**送信先画面の「再送する」**で復旧
+4. **配信試行が 1 度も作られていないイベントは再送 UI が出ない**。Workbench のイベント詳細にも再送導線が無く、旧 `dashboard.stripe.com/events/{id}` は Workbench にリダイレクトされる。この場合は実イベント JSON を API から取得し、`STRIPE_WEBHOOK_SECRET` で署名して本番エンドポイントへ POST する(手順は下記)
+
+```bash
+# 実イベントを取得(エンドポイントの API バージョンで描画する)
+curl -s -u "$STRIPE_SECRET_KEY:" -H "Stripe-Version: 2026-04-22.dahlia" \
+  "https://api.stripe.com/v1/events/evt_xxx" -o evt_xxx.json
+
+# t=<unix>,v1=HMAC_SHA256("<t>.<body>", whsec) を Stripe-Signature に付けて POST
+# 実装例は障害対応時のスクリプトを参照(payload は署名対象と 1 バイトも変えないこと)
+```
+
+**再送してはいけないイベント**: `customer.subscription.created` は**再送しない**。ペイロードが発生時点のスナップショット (`status: trialing`) で、`applyStripeSubscription()` は tenantId を metadata から解決するため、解約済みテナントを PRO / TRIALING に巻き戻してしまう。解約状態の最終同期は `customer.subscription.deleted` の再送だけで足りる。
+
+**なお** `initializeProTrialSubscription()` はトライアル作成時に DB を同期書き込みするため、`customer.subscription.created` が届かなくても DB は正しい。Webhook 停止で欠落するのは **Stripe 側で自動発生する状態変化**(トライアル期限切れ解約、支払い失敗など)である。
 
 ---
 

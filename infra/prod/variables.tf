@@ -123,15 +123,19 @@ variable "db_skip_final_snapshot" {
 
 variable "enable_admin_db_access" {
   description = <<-EOT
-    NAT インスタンス経由の RDS 管理アクセス(5432)を一時的に許可するか。
+    NAT インスタンス経由の RDS 管理アクセス(5432)を許可するか。
 
     RDS は Private Subnet + publicly_accessible = false のため、手元から直接は繋がらない。
     migration 適用や調査で接続する場合は、SSM ポートフォワード(踏み台 = NAT インスタンス)を
     使うが、RDS の Security Group は既定で App Runner の VPC コネクタからのみ許可しているため
-    このフラグで NAT の SG からの 5432 を一時的に開ける。
+    このフラグで NAT の SG からの 5432 を開ける。
 
-    **常時 true にしない**こと。作業が終わったら false に戻して apply する
-    (手順は docs/runbooks/production-cutover.md Phase 6)。
+    **2026-08-15 に運用方針を変更**し、本番では true 固定にした(terraform.tfvars 参照)。
+    当初は「作業時だけ開ける」方針だったが、障害調査のたびに apply を 2 回挟むコストが
+    実運用に見合わなかった。実際のゲートは SG ではなく IAM(SSM StartSession の権限)+
+    DB 認証情報の 2 段で、NAT インスタンスは SSH 非公開・CloudTrail 監査あり。
+    default は false のままにしてあるので、他環境を建てる場合は明示的に選ぶこと
+    (接続手順は docs/runbooks/production-cutover.md Phase 6)。
   EOT
   type        = bool
   default     = false

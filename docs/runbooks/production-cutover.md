@@ -552,10 +552,10 @@ Mac:15432  →(SSM トンネル)→  NAT インスタンス  →  RDS:5432
 
 ### 6.0 管理アクセスを一時的に開ける
 
-RDS の Security Group は既定で **App Runner の VPC コネクタからの 5432 しか許可していません**。ポートフォワードの接続元は NAT インスタンスなので、そのままでは弾かれて**タイムアウトします**。作業中だけ開けます。
+RDS の Security Group は既定で **App Runner の VPC コネクタからの 5432 しか許可していません**。ポートフォワードの接続元は NAT インスタンスなので、そのままでは弾かれて**タイムアウトします**。
 
 ```hcl
-# infra/prod/terraform.tfvars に追記
+# infra/prod/terraform.tfvars
 enable_admin_db_access = true
 ```
 
@@ -564,9 +564,9 @@ enable_admin_db_access = true
 cd "$REPO/infra/prod" && terraform apply
 ```
 
-- [ ] `aws_vpc_security_group_ingress_rule.rds_from_nat_admin` が作成された
+- [x] `aws_vpc_security_group_ingress_rule.rds_from_nat_admin` が作成された(**2026-08-15 に true 固定へ変更済み**)
 
-> **作業後に必ず閉じます**(§6.7)。常時開けたままにしないでください。
+> **2026-08-15 に方針変更**: 当初は「作業時だけ開けて §6.7 で閉じる」運用でしたが、障害調査のたびに `terraform apply` を 2 回挟むコストが実運用に見合わないため、**本番では `true` 固定**にしました。実際のゲートは SG ではなく **IAM(SSM StartSession の権限)+ DB 認証情報**の 2 段で、NAT インスタンスは SSH 非公開・CloudTrail 監査ありです。§6.7 は他環境を建てる場合や、方針を戻す場合の手順として残しています。
 
 ### 6.1 接続情報を組み立てる
 
@@ -691,7 +691,10 @@ Phase 5 のスクリプトを再実行し、`DATABASE_URL` だけ入力して他
 
 - [ ] 投入した(ユーザー名が `shipyard_app` になっていること)
 
-### 6.7 管理アクセスを閉じる(必須)
+### 6.7 管理アクセスを閉じる(本番では実施しない)
+
+> **2026-08-15 の方針変更により、本番ではこの手順を実施しません**(§6.0 参照)。
+> 他環境を建てる場合や、常時開放をやめる判断をした場合の手順として残しています。
 
 ポートフォワードのセッションを終了(`Ctrl+C`)してから、開けた ingress を閉じます。
 
@@ -707,7 +710,8 @@ cd "$REPO/infra/prod" && terraform apply
 
 - [ ] `terraform plan` に `rds_from_nat_admin` の差分が残っていない(= 閉じた)
 
-> 以降 migration や調査で再接続したくなったら、**§6.0 で開けて → 作業 → §6.7 で閉じる**を繰り返します。開けっぱなしにしないでください。
+> ~~以降 migration や調査で再接続したくなったら、**§6.0 で開けて → 作業 → §6.7 で閉じる**を繰り返します。開けっぱなしにしないでください。~~
+> **2026-08-15 に撤回**。本番は §6.0 の ingress を張ったままにし、接続のたびに開閉しません。再接続は §6.2 のポートフォワードだけで済みます。
 
 ---
 
