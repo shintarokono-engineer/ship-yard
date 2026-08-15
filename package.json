@@ -30,15 +30,26 @@
     "db:deploy": "pnpm --filter @shipyard/db migrate:deploy",
     "db:gen": "pnpm --filter @shipyard/db generate",
     "db:setup": "pnpm --filter @shipyard/db generate && pnpm --filter @shipyard/db build",
-    "backfill": "pnpm --filter @shipyard/api backfill:embeddings"
+    "backfill": "pnpm --filter @shipyard/api backfill:embeddings",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs,cjs,json,md,yml,yaml,css}": [
+      "prettier --write"
+    ],
+    "*.{ts,tsx}": [
+      "eslint --max-warnings=0"
+    ]
   },
   "devDependencies": {
+    "@next/eslint-plugin-next": "^15.0.0",
+    "eslint": "^9.15.0",
+    "eslint-config-prettier": "^9.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.3.0",
+    "prettier": "^3.3.0",
     "turbo": "^2.3.0",
     "typescript": "^5.6.0",
-    "eslint": "^9.15.0",
-    "typescript-eslint": "^8.15.0",
-    "prettier": "^3.3.0",
-    "eslint-config-prettier": "^9.1.0",
-    "@next/eslint-plugin-next": "^15.0.0"
+    "typescript-eslint": "^8.15.0"
   }
 }
