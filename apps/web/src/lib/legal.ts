@@ -21,6 +21,18 @@ export const LEGAL = {
   serviceName: 'Neorie',
   serviceUrl: 'https://neorie.com',
 
+  /**
+   * サービス名の読み。**表記が揺れると口コミ・登壇・ポッドキャストでブレる**ため、
+   * ここを正典として参照する。
+   *
+   * 綴りをローマ字読みすると「ネオリエ」だが、英語の `-rie` は `-ree`(calorie / Marie /
+   * brie)なので英語話者は `nee-oh-ree` と読む。英語圏と揃うこちらを採用した。
+   *
+   * **併記は LP のヒーローで 1 度だけ。** 毎回書くとくどい。OG 画像には入れられない
+   * (Satori が CJK フォントを内蔵せず豆腐になる。`opengraph-image.tsx` の注記参照)。
+   */
+  readingKana: 'ネオリー',
+
   /** 最終改定日。**内容を変えたら必ず更新する**(いつ時点の条件かが利用者に伝わらない)。 */
   revisedAt: '2026年8月9日',
 } as const;
