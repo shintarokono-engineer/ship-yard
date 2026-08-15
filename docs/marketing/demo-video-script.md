@@ -152,5 +152,5 @@ Day 48 の成果物。**ナレーションなし**の画面録画に、テロッ
 
 1. 動画をアップロードして共有リンクを取得(閲覧は「リンクを知っている全員」)
 2. `README.md` の「## デモ」セクションで、GIF を動画リンクに差し替える(GIF を残したまま動画リンクを併記してもよい)
-3. `docs/marketing/zenn-neorie-launch.md` の `{{DEMO_VIDEO_URL}}` を差し替え
+3. Zenn 記事(`articles/neorie-multitenant-rag-ai-billing.md`)は現在デモ GIF を埋め込んでいるので、動画に差し替えるならそこを直す
 4. `docs/marketing/x-launch-threads.md` の `{{DEMO_VIDEO_URL}}` を差し替え
