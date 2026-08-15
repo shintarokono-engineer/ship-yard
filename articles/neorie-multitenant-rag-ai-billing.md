@@ -3,7 +3,7 @@ title: '個人開発で B2B SaaS を作るなら先に知りたかった、マ�
 emoji: '⚓'
 type: 'tech'
 topics: ['nestjs', 'prisma', 'postgresql', '個人開発', 'claude']
-published: false
+published: true
 ---
 
 個人開発で B2B SaaS を作りました。マルチテナント、Stripe のシート課金、RAG、AI 機能一式が入っています。先日公開したので、作る過程で悩んだ設計判断を 6 つ書き出します。
