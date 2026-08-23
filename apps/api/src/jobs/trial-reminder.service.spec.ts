@@ -112,4 +112,26 @@ describe('hasPaymentMethod', () => {
       ),
     ).toBe(false);
   });
+
+  it('deleted キーを持つが undefined の Customer も未登録として扱う(in 演算子で判定するため)', () => {
+    expect(
+      hasPaymentMethod(
+        asSub({
+          default_payment_method: null,
+          customer: { deleted: undefined, invoice_settings: { default_payment_method: 'pm_789' } },
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('既定 PM が空文字列なら未登録として扱う', () => {
+    expect(
+      hasPaymentMethod(
+        asSub({
+          default_payment_method: null,
+          customer: { invoice_settings: { default_payment_method: '' } },
+        }),
+      ),
+    ).toBe(false);
+  });
 });

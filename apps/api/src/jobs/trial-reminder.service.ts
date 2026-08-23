@@ -40,8 +40,16 @@ export function resolveNotificationKind(
 /**
  * トライアル中の Subscription に支払い方法が登録済みかを判定する。
  *
- * Checkout 経由の登録は Subscription の `default_payment_method` に、Customer Portal 経由の
- * 登録は Customer の `invoice_settings.default_payment_method` に入るため、**両方を見る**。
+ * Stripe 自身が `trial_settings.end_behavior.missing_payment_method: 'cancel'`(billing.service.ts)
+ * で「既定の支払い方法が無ければ解約」を判定しており、その既定の支払い方法は Subscription 側
+ * (`default_payment_method`)・Customer 側(`invoice_settings.default_payment_method`)の両方が
+ * 対象になる。この関数はその Stripe の判定に合わせるため**両方を見る**。
+ *
+ * `save_default_payment_method: 'on_subscription'` は「決済が成立した時に」Subscription 側を
+ * 更新する設定であり、トライアル中は決済が発生しないため Subscription 側は埋まらないことが多い。
+ * 実際にはトライアル中は Customer 側(`invoice_settings.default_payment_method`)が主たる判定材料
+ * になる。
+ *
  * `customer` は `expand: ['customer']` で展開済みであることを前提とし、展開されていない場合
  * (ID 文字列)や削除済み Customer は判定不能なので「未登録」に倒す(通知を送る側に倒す)。
  */
