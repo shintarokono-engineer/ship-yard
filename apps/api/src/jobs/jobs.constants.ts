@@ -18,3 +18,11 @@ export const CANDIDATE_WINDOW_DAYS = 4;
 
 /** 内部ジョブエンドポイントの認証ヘッダ名(Express は小文字で受け取る)。 */
 export const INTERNAL_JOB_TOKEN_HEADER = 'x-internal-job-token';
+
+/**
+ * Terraform が作る初期値(`infra/prod/secrets.tf` / `scheduler.tf`)。
+ * 手動投入を忘れると Secrets Manager と EventBridge Connection の双方がこの値のまま
+ * 一致してしまい、認証を素通りする。未設定と同じ扱いにして 500 に倒すことで、
+ * FailedInvocations アラームで検知できるようにする。
+ */
+export const SECRET_PLACEHOLDER = 'REPLACE_ME';

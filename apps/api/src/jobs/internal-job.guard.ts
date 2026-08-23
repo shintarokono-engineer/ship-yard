@@ -11,7 +11,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 
-import { INTERNAL_JOB_TOKEN_HEADER } from './jobs.constants';
+import { INTERNAL_JOB_TOKEN_HEADER, SECRET_PLACEHOLDER } from './jobs.constants';
 
 /**
  * 内部ジョブエンドポイント(`/internal/jobs/*`)の認証 Guard。
@@ -31,9 +31,16 @@ export class InternalJobGuard implements CanActivate {
 
   canActivate(ctx: ExecutionContext): boolean {
     const expected = this.config.get<string>('INTERNAL_JOB_TOKEN');
-    if (!expected) {
+    if (!expected || expected === SECRET_PLACEHOLDER) {
+      // Terraform は Secrets Manager(secrets.tf)と EventBridge Connection(scheduler.tf)の
+      // 両方を `REPLACE_ME` で作成する。運用者が両方の手動投入を忘れると、期待値と
+      // ヘッダ値が両方とも `REPLACE_ME` のまま一致し、認証を素通りしてしまう
+      // (かつ推測可能な資格情報で公開エンドポイントが開くことにもなる)。
+      // プレースホルダのままの状態を「未設定」と同じ扱いにして 500 に倒すことで、
+      // FailedInvocations アラームで当日中に気付けるようにする。
       this.logger.error(
-        'INTERNAL_JOB_TOKEN is not set; POST /internal/jobs/* will respond 500 until configured',
+        'INTERNAL_JOB_TOKEN is not set or is still the Terraform placeholder; ' +
+          'POST /internal/jobs/* will respond 500 until configured',
       );
       throw new InternalServerErrorException('Internal job endpoint is not configured');
     }
