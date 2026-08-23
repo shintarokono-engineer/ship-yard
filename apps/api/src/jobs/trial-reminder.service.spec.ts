@@ -52,4 +52,16 @@ describe('resolveNotificationKind', () => {
   it('終了時刻が実行時刻ちょうどの場合も対象外(境界は終了扱い)', () => {
     expect(resolveNotificationKind(new Date(NOW), NOW)).toBeNull();
   });
+
+  it('UTC 日付と JST 日付が食い違う時間帯でも JST の日付で判定する', () => {
+    // 2026-08-22T20:00:00Z = 2026-08-23 05:00 JST(UTC ではまだ 08-22)。
+    // utcOffset(0) で丸めると日差 1 = THREE_DAYS になってしまうため、
+    // JST で丸めていることをこのケースが担保する。
+    const earlyMorningJst = new Date('2026-08-22T20:00:00Z');
+
+    expect(daysLeftFor(jstEndOfDay('2026-08-23'), earlyMorningJst)).toBe(0);
+    expect(resolveNotificationKind(jstEndOfDay('2026-08-23'), earlyMorningJst)).toBe(
+      TrialNotificationKind.LAST_DAY,
+    );
+  });
 });
