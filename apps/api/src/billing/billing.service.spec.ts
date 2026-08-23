@@ -29,4 +29,11 @@ describe('computeTrialEndUnix', () => {
       '2026-08-30 23:59:59',
     );
   });
+
+  it('月をまたぐ場合も 7 日後の JST 日末になる', () => {
+    // 2026-08-28T00:00:00Z = 2026-08-28 09:00 JST → 7 日後は 9 月に入る
+    expect(jstLabel(computeTrialEndUnix(new Date('2026-08-28T00:00:00Z')))).toBe(
+      '2026-09-04 23:59:59',
+    );
+  });
 });
