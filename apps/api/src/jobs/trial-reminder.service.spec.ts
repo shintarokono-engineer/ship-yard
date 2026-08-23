@@ -1,7 +1,12 @@
-import { TrialNotificationKind } from '@shipyard/db';
+import { Prisma, TrialNotificationKind } from '@shipyard/db';
 
 import type { Stripe } from '../stripe/stripe.types';
-import { daysLeftFor, hasPaymentMethod, resolveNotificationKind } from './trial-reminder.service';
+import {
+  daysLeftFor,
+  hasPaymentMethod,
+  resolveNotificationKind,
+  TrialReminderService,
+} from './trial-reminder.service';
 
 /** バッチの実行時刻。2026-08-23T03:00:00Z = 2026-08-23 12:00 JST。 */
 const NOW = new Date('2026-08-23T03:00:00Z');
@@ -133,5 +138,156 @@ describe('hasPaymentMethod', () => {
         }),
       ),
     ).toBe(false);
+  });
+});
+
+/** DB から返る候補 1 件(findMany の select に対応した形)。 */
+const candidateRow = (overrides: Record<string, unknown> = {}) => ({
+  stripeSubId: 'sub_1',
+  currentPeriodEnd: jstEndOfDay('2026-08-23'), // 日差 0 = LAST_DAY
+  tenant: {
+    id: 't1',
+    name: 'デモワークスペース',
+    slug: 'demo',
+    owner: { email: 'owner@example.com' },
+  },
+  ...overrides,
+});
+
+/** Prisma の unique 制約違反(P2002)を再現する。 */
+const uniqueViolation = () =>
+  new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+    code: 'P2002',
+    clientVersion: 'test',
+  });
+
+/** フェイク依存を注入した TrialReminderService と、呼び出し記録を返す。 */
+function buildService(opts: {
+  candidates: ReturnType<typeof candidateRow>[];
+  createThrows?: unknown;
+  sendThrows?: unknown;
+  /** Stripe が返す既定の支払い方法(null = 未登録) */
+  paymentMethod?: string | null;
+}) {
+  const created: unknown[] = [];
+  const deleted: unknown[] = [];
+  const sent: unknown[] = [];
+
+  const prisma = {
+    subscription: { findMany: async () => opts.candidates },
+    trialNotification: {
+      create: async (args: { data: unknown }) => {
+        if (opts.createThrows) throw opts.createThrows;
+        created.push(args.data);
+        return args.data;
+      },
+      delete: async (args: { where: unknown }) => {
+        deleted.push(args.where);
+        return args.where;
+      },
+    },
+  };
+
+  const stripe = {
+    client: {
+      subscriptions: {
+        retrieve: async () => ({
+          default_payment_method: opts.paymentMethod ?? null,
+          customer: 'cus_1',
+        }),
+      },
+    },
+  };
+
+  const mail = {
+    sendTrialReminder: async (input: unknown) => {
+      if (opts.sendThrows) throw opts.sendThrows;
+      sent.push(input);
+    },
+  };
+
+  const service = new TrialReminderService(prisma as never, stripe as never, mail as never);
+  return { service, created, deleted, sent };
+}
+
+describe('TrialReminderService.run', () => {
+  it('未送信・カード未登録なら送信し、集計に反映する', async () => {
+    const { service, sent, created } = buildService({
+      candidates: [
+        candidateRow(),
+        candidateRow({
+          stripeSubId: 'sub_2',
+          currentPeriodEnd: jstEndOfDay('2026-08-26'), // 日差 3 = THREE_DAYS
+          tenant: {
+            id: 't2',
+            name: '別ワークスペース',
+            slug: 'other',
+            owner: { email: 'other@example.com' },
+          },
+        }),
+      ],
+    });
+
+    const result = await service.run(NOW);
+
+    expect(result).toEqual({
+      processed: 2,
+      sent: { threeDays: 1, lastDay: 1 },
+      skipped: 0,
+      failed: 0,
+    });
+    expect(sent).toHaveLength(2);
+    expect(created).toHaveLength(2);
+  });
+
+  it('送信済み(unique 違反)ならメールを送らず skipped に数える', async () => {
+    const { service, sent } = buildService({
+      candidates: [candidateRow()],
+      createThrows: uniqueViolation(),
+    });
+
+    const result = await service.run(NOW);
+
+    expect(result.skipped).toBe(1);
+    expect(result.sent).toEqual({ threeDays: 0, lastDay: 0 });
+    expect(sent).toHaveLength(0);
+  });
+
+  it('カード登録済みならメールを送らず、予約 INSERT もしない', async () => {
+    const { service, sent, created } = buildService({
+      candidates: [candidateRow()],
+      paymentMethod: 'pm_123',
+    });
+
+    const result = await service.run(NOW);
+
+    expect(result.skipped).toBe(1);
+    expect(sent).toHaveLength(0);
+    expect(created).toHaveLength(0);
+  });
+
+  it('送信に失敗したら予約行を削除して failed に数える', async () => {
+    const { service, deleted } = buildService({
+      candidates: [candidateRow()],
+      sendThrows: new Error('Resend send failed'),
+    });
+
+    const result = await service.run(NOW);
+
+    expect(result.failed).toBe(1);
+    expect(deleted).toEqual([
+      { tenantId_kind: { tenantId: 't1', kind: TrialNotificationKind.LAST_DAY } },
+    ]);
+  });
+
+  it('日差 4 以上の候補は対象外として skipped に数える', async () => {
+    const { service, sent } = buildService({
+      candidates: [candidateRow({ currentPeriodEnd: jstEndOfDay('2026-08-27') })],
+    });
+
+    const result = await service.run(NOW);
+
+    expect(result.skipped).toBe(1);
+    expect(sent).toHaveLength(0);
   });
 });
