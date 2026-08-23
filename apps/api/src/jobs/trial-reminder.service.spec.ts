@@ -1,6 +1,7 @@
 import { TrialNotificationKind } from '@shipyard/db';
 
-import { daysLeftFor, resolveNotificationKind } from './trial-reminder.service';
+import type { Stripe } from '../stripe/stripe.types';
+import { daysLeftFor, hasPaymentMethod, resolveNotificationKind } from './trial-reminder.service';
 
 /** バッチの実行時刻。2026-08-23T03:00:00Z = 2026-08-23 12:00 JST。 */
 const NOW = new Date('2026-08-23T03:00:00Z');
@@ -63,5 +64,52 @@ describe('resolveNotificationKind', () => {
     expect(resolveNotificationKind(jstEndOfDay('2026-08-23'), earlyMorningJst)).toBe(
       TrialNotificationKind.LAST_DAY,
     );
+  });
+});
+
+describe('hasPaymentMethod', () => {
+  /** 判定に必要なフィールドだけを持つ最小オブジェクトを Stripe.Subscription として渡す。 */
+  const asSub = (partial: unknown): Stripe.Subscription => partial as Stripe.Subscription;
+
+  it('Subscription 側に default_payment_method があれば登録済み', () => {
+    expect(hasPaymentMethod(asSub({ default_payment_method: 'pm_123', customer: 'cus_1' }))).toBe(
+      true,
+    );
+  });
+
+  it('Customer 側の invoice_settings に既定 PM があれば登録済み(Portal 経由の追加を拾う)', () => {
+    expect(
+      hasPaymentMethod(
+        asSub({
+          default_payment_method: null,
+          customer: { invoice_settings: { default_payment_method: 'pm_456' } },
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('どちらにも無ければ未登録', () => {
+    expect(
+      hasPaymentMethod(
+        asSub({
+          default_payment_method: null,
+          customer: { invoice_settings: { default_payment_method: null } },
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('customer が展開されず ID 文字列のままなら未登録として扱う', () => {
+    expect(hasPaymentMethod(asSub({ default_payment_method: null, customer: 'cus_1' }))).toBe(
+      false,
+    );
+  });
+
+  it('削除済み Customer は未登録として扱う', () => {
+    expect(
+      hasPaymentMethod(
+        asSub({ default_payment_method: null, customer: { deleted: true, id: 'cus_1' } }),
+      ),
+    ).toBe(false);
   });
 });

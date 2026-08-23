@@ -1,6 +1,7 @@
 import { TrialNotificationKind } from '@shipyard/db';
 
 import { dayjs, JST_OFFSET_HOURS } from '../common/time';
+import type { Stripe } from '../stripe/stripe.types';
 import { THREE_DAYS_MAX_DIFF } from './jobs.constants';
 
 /**
@@ -34,4 +35,21 @@ export function resolveNotificationKind(
   if (diff === 0) return TrialNotificationKind.LAST_DAY;
   if (diff >= 1 && diff <= THREE_DAYS_MAX_DIFF) return TrialNotificationKind.THREE_DAYS;
   return null;
+}
+
+/**
+ * トライアル中の Subscription に支払い方法が登録済みかを判定する。
+ *
+ * Checkout 経由の登録は Subscription の `default_payment_method` に、Customer Portal 経由の
+ * 登録は Customer の `invoice_settings.default_payment_method` に入るため、**両方を見る**。
+ * `customer` は `expand: ['customer']` で展開済みであることを前提とし、展開されていない場合
+ * (ID 文字列)や削除済み Customer は判定不能なので「未登録」に倒す(通知を送る側に倒す)。
+ */
+export function hasPaymentMethod(sub: Stripe.Subscription): boolean {
+  if (sub.default_payment_method) return true;
+
+  const customer = sub.customer;
+  if (typeof customer === 'string' || 'deleted' in customer) return false;
+
+  return Boolean(customer.invoice_settings?.default_payment_method);
 }
