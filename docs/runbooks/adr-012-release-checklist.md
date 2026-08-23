@@ -57,10 +57,13 @@
 - [ ] `STRIPE_WEBHOOK_SECRET` = 本番 Webhook エンドポイントから取得した `whsec_...`
 - [ ] `CLERK_WEBHOOK_SECRET` = Clerk Dashboard の webhook エンドポイントから取得した Svix 署名シークレット
       (未設定だと `POST /webhooks/clerk` が 500 を返し続け、`User` プロビジョニングが動かない)
+- [ ] `INTERNAL_JOB_TOKEN` = `openssl rand -hex 32` で生成した 64 文字の hex(F20 内部ジョブの共有シークレット)
+      **同じ値を EventBridge Connection(`shipyard-prod-internal-job`)の API key にも設定すること。**
+      不一致だと日次バッチが 401 で失敗し続ける(`shipyard-prod-trial-reminders-failed` アラームで検知される)
 
 ローカル動作確認時は既存の `stripe listen` の `whsec_...` を使う(従来どおり)。
 
-Secrets Manager 側のキー構造は `infra/prod/secrets.tf` の `app_secret_keys`(計 10 キー)で管理し、
+Secrets Manager 側のキー構造は `infra/prod/secrets.tf` の `app_secret_keys`(**計 11 キー**)で管理し、
 値のみ apply 後に手動投入する。`apps/api/.env.example` にキーを追加したら `secrets.tf` も同時に更新すること。
 
 ## 3. DB Migration の適用

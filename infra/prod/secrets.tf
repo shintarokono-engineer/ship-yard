@@ -22,6 +22,10 @@ locals {
     "ANTHROPIC_API_KEY",
     "OPENAI_API_KEY",
     "RESEND_API_KEY",
+    # 内部ジョブ(F20 トライアル終了通知)の共有シークレット。EventBridge の API destination
+    # Connection(scheduler.tf)に設定する値と一致させること。不一致だと日次バッチが 401 で
+    # 失敗し続ける(FailedInvocations アラームで検知される)。
+    "INTERNAL_JOB_TOKEN",
   ]
 }
 
