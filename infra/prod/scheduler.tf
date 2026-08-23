@@ -4,7 +4,10 @@
 # EventBridge Scheduler は任意の HTTPS を直接ターゲットにできない(ターゲットは Lambda /
 # SQS / SNS 等の AWS API のみ)ため、Rule + API destination の構成を採る。
 # 将来 F15 Reconciliation バッチを足すときは、rule / target / api_destination を
-# 1 組追加するだけでよい(connection と IAM ロールは共用できる)。
+# 1 組追加すれば済む(connection と IAM ロールの trust policy は汎用なので共用できる)。
+# ただし IAM ロールにアタッチしているポリシー(eventbridge_invoke_api)の resources は
+# 現状 trial_reminders の ARN を単一指定しているため、新しい api_destination の ARN を
+# この resources に追加する編集が別途必要になる。
 # -----------------------------------------------------------------------------
 
 # API key 認証。値は Secrets Manager の INTERNAL_JOB_TOKEN と一致させる(手動投入)。
