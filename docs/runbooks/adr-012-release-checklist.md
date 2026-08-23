@@ -118,7 +118,7 @@ WHERE table_name = 'Subscription' AND column_name = 'quantity';
 ## 6. 既知の制約(MVP)
 
 - **第 3 層 reconciliation バッチは v1.x**:write 同期が失敗してログのみ残った場合、現状は手動 SQL で補正する必要がある。日次バッチは v1.x で実装予定
-- **トライアル通知メール無し**:7 日 / 1 日前のリマインダーは v1.x。トライアル終了は Stripe Email(本番アカウント設定)に任せる
+- ~~**トライアル通知メール無し**:7 日 / 1 日前のリマインダーは v1.x。トライアル終了は Stripe Email(本番アカウント設定)に任せる~~ → **✅ 2026-08-23 実装完了(F20)**。本番投入手順は下記「8. F20: トライアル終了通知メールの本番投入」を参照
 - **追加クレジット購入無し**:月内に 300 cr 使い切ったら「翌月の更新まで待つ」のみ。100 cr / ¥500 の追加購入は v1.x
 - **プラン変更の導線が状態で分かれる**:Subscription 有り = Customer Portal、無し(FREE)= Checkout ボタン。
   Stripe Portal は Subscription を持たない顧客に新規契約させられないための構造的な使い分けで、統合は v1.x で再検討
@@ -139,3 +139,68 @@ WHERE table_name = 'Subscription' AND column_name = 'quantity';
 
 - `initializeFreeSubscription`(旧)に戻る → 新規ユーザーは FREE 開始(= AI 停止)
 - 既存ユーザーへの影響なし(Tenant.plan は維持される)
+
+## 8. F20: トライアル終了通知メールの本番投入
+
+`feature/f20-trial-reminder-email` で実装済(Prisma `TrialNotification` model / バッチサービス / 内部 HTTP エンドポイント / ガード / EventBridge Terraform / アラーム 2 本)。本番投入は Secrets Manager と EventBridge Connection への手動投入が起点になるため、`terraform apply` だけでは完結しない。
+
+### 8.1 `INTERNAL_JOB_TOKEN` を 2 箇所に投入する
+
+`put-secret-value` はシークレットの JSON を丸ごと置き換えるため、既存の値を取得して `jq` でマージしてから書き戻す。
+
+```bash
+TOKEN=$(openssl rand -hex 32)
+SECRET_ARN=$(aws secretsmanager list-secrets \
+  --query "SecretList[?starts_with(Name, 'shipyard-prod-app-config')].ARN | [0]" --output text)
+
+CURRENT=$(aws secretsmanager get-secret-value --secret-id "$SECRET_ARN" --query SecretString --output text)
+UPDATED=$(printf '%s' "$CURRENT" | jq --arg v "$TOKEN" '.INTERNAL_JOB_TOKEN = $v')
+aws secretsmanager put-secret-value --secret-id "$SECRET_ARN" --secret-string "$UPDATED"
+
+aws events update-connection \
+  --name shipyard-prod-internal-job \
+  --authorization-type API_KEY \
+  --auth-parameters "ApiKeyAuthParameters={ApiKeyName=X-Internal-Job-Token,ApiKeyValue=$TOKEN}"
+```
+
+- [ ] Secrets Manager 側(`shipyard-prod-app-config-*` の `INTERNAL_JOB_TOKEN`)に投入した
+- [ ] EventBridge Connection(`shipyard-prod-internal-job`)側に同じ値を投入した
+
+**どちらか一方だけ投入し忘れると、エンドポイントは 500 を返し `shipyard-prod-trial-reminders-failed` アラームが当日中に発報する。これは意図した挙動**。ガードは `REPLACE_ME` というリテラルを「未設定」として拒否するため、両方の手動投入を忘れると両者が `REPLACE_ME` のまま一致して**サイレントに認証を通してしまう**事故を防いでいる。
+
+### 8.2 Terraform を apply する
+
+```bash
+terraform -chdir=infra/prod apply
+```
+
+- [ ] 新規リソース 7 つ + アラーム 1 本(既存 apprunner-5xx 等に追加する形)が作成されることを確認した
+- [ ] **既存リソース、特に App Runner サービスが replace されない**ことを plan の段階で確認した
+
+### 8.3 API を再デプロイする
+
+Secrets Manager の値は App Runner 起動時にしか解決されないため、8.1 の投入だけでは値が反映されない。GitHub Actions のデプロイワークフローを実行する。
+
+- [ ] `gh workflow run "Deploy API to App Runner"` を実行し、`gh run watch` で完了を確認した
+- [ ] App Runner の `UpdateService` は `SourceConfiguration` をマージではなく置き換えるため、env / secrets が引き続き揃っていることを確認した(確認手順は `docs/runbooks/production-cutover.md` §10.3 と同じ)
+
+### 8.4 エンドポイントをスモークテストする
+
+```bash
+curl -i -X POST https://api.neorie.com/internal/jobs/trial-reminders
+curl -i -X POST https://api.neorie.com/internal/jobs/trial-reminders -H "X-Internal-Job-Token: $TOKEN"
+```
+
+- [ ] トークン無しは **401**
+- [ ] トークン有りは **200** + 集計結果の JSON
+
+### 8.5 EventBridge が実際に発火することを確認する
+
+- [ ] コンソールでルールのスケジュールを一時的に `rate(5 minutes)` に変更し、数分待つ
+- [ ] CloudWatch Logs に `trial-reminders finished: {...}` が出ていることを確認した
+- [ ] ルールの `Invocations` が 1 以上、`FailedInvocations` が 0 であることを確認した
+- [ ] 確認後、`cron(0 3 * * ? *)` に戻す。**コンソールでの直接変更は drift になるため、`terraform apply` で戻すこと**
+
+### 8.6 apply 直後に鳴る 1 回限りのアラームについて
+
+`terraform apply` 直後、初回の 03:00 UTC 実行が来るまでは `Invocations` メトリクス自体が存在しない。`shipyard-prod-trial-reminders-not-invoked` は `treat_missing_data = "breaching"` のため、このデータ欠損期間を「異常」として 1 回だけ発報する。`datapoints_to_alarm` の設定とは無関係に `breaching` 指定そのものに起因する既知の挙動で、対応不要。ルールが通常どおり発火し始めれば自動的に解消する。

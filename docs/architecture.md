@@ -198,7 +198,7 @@ flowchart TB
 
 ### Secrets 管理
 
-- API キー(Anthropic / OpenAI / Stripe / Clerk / Resend)と `DATABASE_URL` は AWS Secrets Manager に **1 シークレット・10 キーの JSON** で保存
+- API キー(Anthropic / OpenAI / Stripe / Clerk / Resend)と `DATABASE_URL` は AWS Secrets Manager に **1 シークレット・11 キーの JSON** で保存(2026-08-23 F20 で `INTERNAL_JOB_TOKEN` を追加)
 - Terraform は**キー構造のみ管理**し、値は手動投入(state に機密を残さない、`infra/prod/secrets.tf`)
 - App Runner は `runtime_environment_secrets` で参照し、**起動時に解決**する(値を更新したら再デプロイが必要)
 - ローカル開発は `.env.local`(コミット禁止)
