@@ -67,14 +67,28 @@ export function hasPaymentMethod(sub: Stripe.Subscription): boolean {
   return Boolean(customer.invoice_settings?.default_payment_method);
 }
 
-/** バッチ 1 回分の処理結果(エンドポイントのレスポンスボディにそのまま使う)。 */
+/**
+ * バッチ 1 回分の処理結果(エンドポイントのレスポンスボディにそのまま使う)。
+ *
+ * 不変条件: `processed === sent.threeDays + sent.lastDay + skipped + stripeErrors + failed`
+ * (候補ごとに必ずこのいずれか 1 つだけが加算される。ただし `TrialNotification` の予約
+ * INSERT が unique 違反以外の理由で失敗した場合は `run()` 自体が reject するため、
+ * その場合この不変条件を満たす結果オブジェクトは返らない)。
+ */
 export interface TrialReminderResult {
   /** DB から抽出した候補件数 */
   processed: number;
   /** 実際に送信した件数 */
   sent: { threeDays: number; lastDay: number };
-  /** 対象外・送信済み・判定不能で送らなかった件数 */
+  /** 対象外・送信済み・データ欠損で送らなかった件数(Stripe 参照失敗は `stripeErrors` に別計上) */
   skipped: number;
+  /**
+   * Stripe 参照に失敗して当日は送らなかった件数。外部 API 障害の兆候なので `skipped`
+   * とは分けて数える。`skipped` に混ぜてしまうと「健全な対象外」なのか「Stripe 障害が
+   * 始まっている」のかを CloudWatch のメトリクスだけで判別できず、Stripe Webhook が
+   * 気付かれずに止まっていた過去の障害(2026-08-15)と同じ壊れ方をしうる。
+   */
+  stripeErrors: number;
   /** 送信を試みて失敗した件数 */
   failed: number;
 }
@@ -86,8 +100,10 @@ export interface TrialReminderResult {
  * 毎日 03:00 UTC(12:00 JST)に起動される。
  *
  * **冪等性**:`TrialNotification` への予約 INSERT →(送信)→ 失敗時 DELETE の順で処理する
- * (`AIUsageService` のクレジット予約と同じパターン)。unique 制約が App Runner のスケール
- * 多重発火と EventBridge の 24 時間リトライの両方を吸収する。
+ * (`AIUsageService` のクレジット予約と発想は同じだが、呼び出し箇所がここ 1 つのため
+ * `withCreditReservation` のような汎用ラッパーには抽出せず、ループ内に open-code している)。
+ * unique 制約が App Runner のスケール多重発火と EventBridge の 24 時間リトライの
+ * 両方を吸収する。
  */
 @Injectable()
 export class TrialReminderService {
@@ -110,6 +126,12 @@ export class TrialReminderService {
         status: SubStatus.TRIALING,
         currentPeriodEnd: { gt: now, lte: windowEnd },
       },
+      // 終了が近い順(= LAST_DAY から)に処理する。中断(下記 unique 違反以外の DB
+      // エラー等)した場合、THREE_DAYS は日差 1〜3 の幅があるため翌日以降でも拾えるが、
+      // LAST_DAY(日差 0)は翌日には `currentPeriodEnd <= now` で「終了済み」と判定され
+      // 二度と送れない。終了が近い候補を先に処理することで、中断時の恒久的な
+      // 機会損失(特定ユーザーへの通知の永久欠落)を最小化する。
+      orderBy: { currentPeriodEnd: 'asc' },
       select: {
         stripeSubId: true,
         currentPeriodEnd: true,
@@ -123,77 +145,98 @@ export class TrialReminderService {
       processed: candidates.length,
       sent: { threeDays: 0, lastDay: 0 },
       skipped: 0,
+      stripeErrors: 0,
       failed: 0,
     };
 
-    for (const candidate of candidates) {
-      const trialEnd = candidate.currentPeriodEnd;
-      if (!trialEnd || !candidate.stripeSubId) {
-        result.skipped++;
-        continue;
-      }
-
-      const kind = resolveNotificationKind(trialEnd, now);
-      if (!kind) {
-        result.skipped++;
-        continue;
-      }
-
-      const tenant = candidate.tenant;
-
-      // カード登録済みは終了時に課金開始へ遷移するため対象外。Stripe 参照が失敗した場合は
-      // その日は送らず次回に回す(外部 API 障害で送信記録を汚さないため)。
-      let stripeSub: Stripe.Subscription;
-      try {
-        stripeSub = await this.stripe.client.subscriptions.retrieve(candidate.stripeSubId, {
-          expand: ['customer'],
-        });
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        this.logger.warn(`Failed to retrieve Stripe subscription for tenant ${tenant.id}: ${msg}`);
-        result.skipped++;
-        continue;
-      }
-
-      if (hasPaymentMethod(stripeSub)) {
-        result.skipped++;
-        continue;
-      }
-
-      // 予約 INSERT。unique 違反 = 送信済み or 他インスタンスが処理中。
-      try {
-        await this.prisma.trialNotification.create({ data: { tenantId: tenant.id, kind } });
-      } catch (e) {
-        if (isPrismaError(e, PrismaErrorCode.UNIQUE_VIOLATION)) {
+    // 正常にループを完走したかどうか。中断(rethrow)した場合も finally で必ず部分集計を
+    // ログに出す(中断すると通常の完了ログに届かず、例外スタックだけが残ってしまうため)。
+    let completed = false;
+    try {
+      for (const candidate of candidates) {
+        const trialEnd = candidate.currentPeriodEnd;
+        if (!trialEnd || !candidate.stripeSubId) {
           result.skipped++;
           continue;
         }
-        throw e;
-      }
 
-      try {
-        await this.mail.sendTrialReminder({
-          to: tenant.owner.email,
-          workspaceName: tenant.name,
-          workspaceSlug: tenant.slug,
-          daysLeft: daysLeftFor(trialEnd, now),
-          trialEndsAt: trialEnd,
-        });
-        if (kind === TrialNotificationKind.LAST_DAY) result.sent.lastDay++;
-        else result.sent.threeDays++;
-      } catch (e) {
-        // 送信に失敗したら予約を解放し、翌日リトライできる状態に戻す。
-        await this.prisma.trialNotification
-          .delete({ where: { tenantId_kind: { tenantId: tenant.id, kind } } })
-          .catch(() => undefined);
-        result.failed++;
-        const msg = e instanceof Error ? e.message : String(e);
-        this.logger.error(`Failed to send trial reminder to tenant ${tenant.id}: ${msg}`);
+        const kind = resolveNotificationKind(trialEnd, now);
+        if (!kind) {
+          result.skipped++;
+          continue;
+        }
+
+        const tenant = candidate.tenant;
+
+        // Stripe 参照が失敗した場合はその日は送らず次回に回す(外部 API 障害で送信記録を
+        // 汚さないため)。`skipped` ではなく `stripeErrors` に数え、外部 API 障害の兆候を
+        // 「健全な対象外」と区別して CloudWatch から判別できるようにする。
+        let stripeSub: Stripe.Subscription;
+        try {
+          stripeSub = await this.stripe.client.subscriptions.retrieve(candidate.stripeSubId, {
+            expand: ['customer'],
+          });
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          this.logger.warn(
+            `Failed to retrieve Stripe subscription ${candidate.stripeSubId} for tenant ${tenant.id}: ${msg}`,
+          );
+          result.stripeErrors++;
+          continue;
+        }
+
+        // カード登録済みは終了時に課金開始へ遷移するため対象外。
+        if (hasPaymentMethod(stripeSub)) {
+          result.skipped++;
+          continue;
+        }
+
+        // 予約 INSERT。unique 違反 = 送信済み or 他インスタンスが処理中。
+        // unique 違反以外は「予約自体ができていない」= DB 障害等なので握り潰さず
+        // run() ごと中断する(下の try/finally が部分集計をログに出す)。
+        try {
+          await this.prisma.trialNotification.create({ data: { tenantId: tenant.id, kind } });
+        } catch (e) {
+          if (isPrismaError(e, PrismaErrorCode.UNIQUE_VIOLATION)) {
+            result.skipped++;
+            continue;
+          }
+          throw e;
+        }
+
+        try {
+          await this.mail.sendTrialReminder({
+            to: tenant.owner.email,
+            workspaceName: tenant.name,
+            workspaceSlug: tenant.slug,
+            daysLeft: daysLeftFor(trialEnd, now),
+            trialEndsAt: trialEnd,
+          });
+          if (kind === TrialNotificationKind.LAST_DAY) result.sent.lastDay++;
+          else result.sent.threeDays++;
+        } catch (e) {
+          // 送信に失敗したら予約を解放し、翌日リトライできる状態に戻す。
+          await this.prisma.trialNotification
+            .delete({ where: { tenantId_kind: { tenantId: tenant.id, kind } } })
+            .catch(() => undefined);
+          result.failed++;
+          const msg = e instanceof Error ? e.message : String(e);
+          this.logger.error(
+            `Failed to send trial reminder (kind=${kind}) to tenant ${tenant.id}: ${msg}`,
+          );
+        }
       }
+      completed = true;
+    } finally {
+      // 「発火したが対象 0 件」と「発火しなかった」に加え、正常完了と中断もログから
+      // 区別できるよう、毎回(中断時も)必ず出力する。
+      this.logger.log(
+        completed
+          ? `trial-reminders finished: ${JSON.stringify(result)}`
+          : `trial-reminders aborted: ${JSON.stringify(result)}`,
+      );
     }
 
-    // 「発火したが対象 0 件」と「発火しなかった」を区別できるよう、毎回必ず出力する。
-    this.logger.log(`trial-reminders finished: ${JSON.stringify(result)}`);
     return result;
   }
 }

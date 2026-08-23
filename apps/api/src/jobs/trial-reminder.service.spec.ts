@@ -190,6 +190,9 @@ function buildService(opts: {
 
   const retrieveArgs: unknown[] = [];
 
+  // フェイクは常に `customer: 'cus_1'`(未展開の文字列)を返す。つまりここから作る
+  // run() レベルのテストは default_payment_method 経路のみを踏む。Customer 側の
+  // invoice_settings 分岐は hasPaymentMethod の単体テストでカバー済み。
   const stripe = {
     client: {
       subscriptions: {
@@ -250,6 +253,7 @@ describe('TrialReminderService.run', () => {
       processed: 3,
       sent: { threeDays: 1, lastDay: 2 },
       skipped: 0,
+      stripeErrors: 0,
       failed: 0,
     });
     expect(sent).toHaveLength(3);
@@ -266,6 +270,16 @@ describe('TrialReminderService.run', () => {
 
     expect(result.skipped).toBe(1);
     expect(result.sent).toEqual({ threeDays: 0, lastDay: 0 });
+    expect(sent).toHaveLength(0);
+  });
+
+  it('unique 違反以外の DB エラーは握り潰さず中断する', async () => {
+    const { service, sent } = buildService({
+      candidates: [candidateRow()],
+      createThrows: new Error('connection terminated'),
+    });
+
+    await expect(service.run(NOW)).rejects.toThrow('connection terminated');
     expect(sent).toHaveLength(0);
   });
 
