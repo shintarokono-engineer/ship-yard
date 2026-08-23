@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useActionState, useEffect, useMemo, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 
 import { FormField } from '@/app/w/[slug]/_shared/form-field';
@@ -17,6 +18,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { trackGenerationCompleted } from '@/lib/analytics';
 import type { MonthlyUsageSummary } from '@/lib/api/types';
 
 import { generateReadmeAction, type GenerateReadmeFormState } from '../_actions/generate-readme';
@@ -31,7 +33,8 @@ import {
  * §9.12.4(2026-05-29)で `documents/_components/generate-document-dialog.tsx` から README 専用に移植
  * (kind 選択 UI を削除し、Project 詳細ページからも import される共通 Dialog として位置付け)。
  * Sonnet 4 + RAG で 10〜30 秒級の同期処理になるため Dialog 内 pending インジケータを表示し、生成中は
- * キャンセル不可。成功時は Server Action 側で `/readme` に redirect する(Dialog は次ページ描画で消える)。
+ * キャンセル不可。成功時は `state.ok` を検知して `/readme` へ `router.push` する
+ * (Server Action 側の `redirect()` から移した。理由は `_actions/generate-readme.ts` 参照)。
  */
 export function GenerateReadmeDialog({
   slug,
@@ -55,6 +58,17 @@ export function GenerateReadmeDialog({
 
   const instructionsRaw = state.fields?.instructions ?? '';
   const [instructionsLength, setInstructionsLength] = useState(instructionsRaw.length);
+
+  const router = useRouter();
+
+  // 依存は state オブジェクト全体:`useActionState` は呼び出しごとに新しい参照を返すため、
+  // 連続生成(ok が true→true で値が不変)でも effect が再発火する。
+  useEffect(() => {
+    if (!state.ok) return;
+    trackGenerationCompleted('document');
+    setOpen(false);
+    router.push(`/w/${slug}/projects/${projectId}/readme`);
+  }, [state, router, slug, projectId]);
 
   return (
     <Dialog

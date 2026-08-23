@@ -2,7 +2,6 @@
 
 import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 
 import { classifyAiApiError } from '@/app/w/[slug]/_shared/ai-form';
 import { ApiError } from '@/lib/api/errors';
@@ -19,8 +18,12 @@ export type { GenerateReadmeFormState } from '../_shared/generate-readme-form';
  * DRAFT_GEN(README の AI ドラフト生成)Server Action。
  *
  * §9.12.4(2026-05-29)で `documents/_actions/generate-document.ts` から README 専用に移植
- * (kind パラメータ削除、常に `README` を送る)。成功時は `/readme` に redirect = 最新 version
- * を Server Component が表示する。append-only なので既存 v1 が居ても v2 として並列に積まれる。
+ * (kind パラメータ削除、常に `README` を送る)。append-only なので既存 v1 が居ても v2 として
+ * 並列に積まれ、`/readme` は最新 version を表示する。
+ *
+ * 成功時は **`{ ok: true }` を返すだけで redirect しない**(LP / チェックリスト生成と同じ形)。
+ * `redirect()` だとクライアントに成功状態が返らず、Dialog 側で生成完了を計測できないため。
+ * `/readme` への遷移は Dialog が `router.push` で行う。
  */
 export async function generateReadmeAction(
   slug: string,
@@ -84,5 +87,5 @@ export async function generateReadmeAction(
 
   revalidatePath(`/w/${slug}/projects/${projectId}/readme`);
   revalidatePath(`/w/${slug}/projects/${projectId}`);
-  redirect(`/w/${slug}/projects/${projectId}/readme`);
+  return { ok: true };
 }

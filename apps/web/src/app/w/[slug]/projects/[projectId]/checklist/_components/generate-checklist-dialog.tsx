@@ -18,6 +18,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { trackGenerationCompleted } from '@/lib/analytics';
 import {
   CATEGORIES,
   CATEGORY_META,
@@ -69,6 +70,7 @@ export function GenerateChecklistDialog({
   // 成功で Dialog を自動 close + toast。state を deps にすることで同値再 submit でも反応する。
   useEffect(() => {
     if (state.ok && state.generatedCount !== undefined) {
+      trackGenerationCompleted('checklist');
       toast.success(`${state.generatedCount} 件のチェックリスト項目を生成しました`);
       setOpen(false);
     }

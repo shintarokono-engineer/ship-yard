@@ -20,6 +20,8 @@ export const metadata: Metadata = {
  * - Anthropic / OpenAI … **利用者が入力した内容が AI 生成の入力として送信される**
  * - Resend … 招待メール等の送信
  * - AWS / Vercel … ホスティング(保存先・実行環境)
+ * - Google(GA4)/ Microsoft(Clarity)… アクセス解析(本番のみ)。閲覧ページ・操作イベント・
+ *   擬似 ID のみで、PII は送らない(`apps/web/src/lib/analytics.ts`)
  *
  * 取得項目を増やしたり第三者提供先を追加したら、**このページも同時に更新する**。
  */
@@ -104,6 +106,14 @@ export default function PrivacyPage() {
             <strong className="text-foreground">Amazon Web Services、Vercel</strong>
             (ホスティング)— 本サービスのデータの保存先および実行環境
           </li>
+          <li>
+            <strong className="text-foreground">Google(Google アナリティクス)、Microsoft</strong>
+            (Microsoft Clarity)(アクセス解析)— 閲覧したページ、クリック等の操作、
+            ブラウザ・端末の情報、IP アドレス、および利用者を識別しない擬似 ID。
+            <strong className="text-foreground">
+              メールアドレス、氏名、ワークスペース名、AI で生成した文書の内容は送信しません。
+            </strong>
+          </li>
         </ul>
         <p>
           上記のほか、法令に基づく開示請求を受けた場合を除き、本人の同意なく第三者へ個人情報を
@@ -128,11 +138,51 @@ export default function PrivacyPage() {
         </p>
       </LegalSection>
 
-      <LegalSection heading="7. Cookie の利用">
+      <LegalSection heading="7. Cookie とアクセス解析の利用">
         <p>
           本サービスは、サインイン状態の維持のために Cookie を使用します。ブラウザの設定で Cookie
-          を無効にした場合、本サービスをご利用いただけません。広告目的でのトラッキングは
-          行っていません。
+          を無効にした場合、本サービスをご利用いただけません。
+        </p>
+        <p>
+          あわせて、サービス改善のために Google アナリティクス(GA4)および Microsoft Clarity
+          を利用しています。これらは Cookie 等により、閲覧したページ、クリックやスクロールなどの
+          操作、ブラウザ・端末の情報を収集します。Microsoft Clarity では、画面上の操作を再現した
+          記録(セッションリプレイ)およびヒートマップが生成されます。
+        </p>
+        <p>
+          収集した情報は、機能の改善と不具合の把握のみに利用します。個人を特定できる情報
+          (メールアドレス、氏名、ワークスペース名、AI で生成した文書の内容)は送信しておらず、
+          <strong className="text-foreground">広告目的でのトラッキングは行っていません。</strong>
+        </p>
+        <p>
+          収集を望まない場合は、ブラウザの Cookie 設定、または{' '}
+          <a
+            href="https://tools.google.com/dlpage/gaoptout"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="hover:text-foreground underline"
+          >
+            Google アナリティクス オプトアウト アドオン
+          </a>{' '}
+          をご利用ください。各社の取り扱いは{' '}
+          <a
+            href="https://policies.google.com/privacy"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="hover:text-foreground underline"
+          >
+            Google のプライバシーポリシー
+          </a>{' '}
+          および{' '}
+          <a
+            href="https://privacy.microsoft.com/privacystatement"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="hover:text-foreground underline"
+          >
+            Microsoft のプライバシーに関する声明
+          </a>{' '}
+          に従います。
         </p>
       </LegalSection>
 

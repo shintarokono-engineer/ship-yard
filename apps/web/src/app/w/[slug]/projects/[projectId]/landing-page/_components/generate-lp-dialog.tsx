@@ -17,6 +17,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { trackGenerationCompleted } from '@/lib/analytics';
 import type { MonthlyUsageSummary } from '@/lib/api/types';
 
 import {
@@ -63,7 +64,9 @@ export function GenerateLpDialog({
   // 依存は state オブジェクト全体:`useActionState` は呼び出しごとに新しい参照を返すため、
   // 連続再生成(ok が true→true で値が不変)でも effect が再発火して閉じられる。
   useEffect(() => {
-    if (state.ok) setOpen(false);
+    if (!state.ok) return;
+    trackGenerationCompleted('lp');
+    setOpen(false);
   }, [state]);
 
   const isRegenerate = mode === 'regenerate';

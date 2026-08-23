@@ -1,7 +1,7 @@
 import { Check, Clock } from 'lucide-react';
-import { SignUpButton } from '@clerk/nextjs';
 
-import { Button } from '@/components/ui/button';
+import { CtaSignUpButton } from '@/components/analytics/cta-buttons';
+import { PricingViewTracker } from '@/components/analytics/pricing-view-tracker';
 import { cn } from '@/lib/utils';
 
 /**
@@ -77,6 +77,7 @@ const PLANS: {
 export function PricingSection() {
   return (
     <section id="pricing" className="bg-card scroll-mt-20 border-t">
+      <PricingViewTracker />
       <div className="mx-auto max-w-6xl px-6 py-20 sm:py-28">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-primary text-sm font-semibold">PRICING</p>
@@ -129,15 +130,13 @@ export function PricingSection() {
                   </li>
                 ))}
               </ul>
-              <SignUpButton mode="modal">
-                <Button
-                  size="lg"
-                  variant={plan.highlighted ? 'default' : 'outline'}
-                  className="mt-8 w-full"
-                >
-                  {plan.cta}
-                </Button>
-              </SignUpButton>
+              <CtaSignUpButton
+                location="pricing"
+                label={plan.cta}
+                size="lg"
+                variant={plan.highlighted ? 'default' : 'outline'}
+                className="mt-8 w-full"
+              />
             </div>
           ))}
         </div>

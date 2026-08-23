@@ -1,6 +1,4 @@
-import { SignInButton, SignUpButton } from '@clerk/nextjs';
-
-import { Button } from '@/components/ui/button';
+import { CtaSignInButton, CtaSignUpButton } from '@/components/analytics/cta-buttons';
 
 /** ファーストビュー。見出し + CTA + アプリのプレビューモック。 */
 export function HeroSection() {
@@ -19,14 +17,8 @@ export function HeroSection() {
             がドキュメント・ランディングページ・チェックリスト作成を支え、リリースまでの道のりを短くします。
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <SignUpButton mode="modal">
-              <Button size="lg">無料で始める</Button>
-            </SignUpButton>
-            <SignInButton mode="modal">
-              <Button size="lg" variant="outline">
-                サインイン
-              </Button>
-            </SignInButton>
+            <CtaSignUpButton location="hero" label="無料で始める" size="lg" />
+            <CtaSignInButton location="hero" label="サインイン" size="lg" variant="outline" />
           </div>
           <p className="text-muted-foreground mt-4 text-sm">
             クレジットカード不要 — 7 日間の無料トライアルですぐに開始できます

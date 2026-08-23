@@ -1,7 +1,6 @@
 import Link from 'next/link';
-import { SignInButton, SignUpButton } from '@clerk/nextjs';
 
-import { Button } from '@/components/ui/button';
+import { CtaSignInButton, CtaSignUpButton } from '@/components/analytics/cta-buttons';
 import { NeorieWordmark } from '@/components/neorie-logo';
 
 const NAV_LINKS = [
@@ -30,14 +29,8 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          <SignInButton mode="modal">
-            <Button variant="ghost" size="sm">
-              サインイン
-            </Button>
-          </SignInButton>
-          <SignUpButton mode="modal">
-            <Button size="sm">無料で始める</Button>
-          </SignUpButton>
+          <CtaSignInButton location="header" label="サインイン" size="sm" variant="ghost" />
+          <CtaSignUpButton location="header" label="無料で始める" size="sm" />
         </div>
       </div>
     </header>

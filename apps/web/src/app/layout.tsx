@@ -1,8 +1,12 @@
 import type { Metadata } from 'next';
 import { Geist } from 'next/font/google';
+import { GoogleAnalytics } from '@next/third-parties/google';
 import './globals.css';
 
+import { AnalyticsIdentity } from '@/components/analytics/analytics-identity';
+import { ClarityProvider } from '@/components/analytics/ClarityProvider';
 import { Toaster } from '@/components/ui/sonner';
+import { getClarityProjectId, getGaId } from '@/lib/analytics-env';
 import { getSiteUrl } from '@/lib/site-url';
 
 import { Providers } from './providers';
@@ -49,6 +53,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // 本番かつ ID 設定済みのときだけ null 以外が返る(`lib/analytics-env.ts`)。
+  const gaId = getGaId();
+  const clarityProjectId = getClarityProjectId();
+
   return (
     // suppressHydrationWarning: next-themes が hydration 前に `<html>` へ theme class を
     // 付けるため必須(docs/implementation-rules.md「フロントエンド」節の例外に該当)。
@@ -59,8 +67,13 @@ export default function RootLayout({
         <Providers>
           {children}
           <Toaster richColors position="bottom-right" />
+          {/* `useUser()` を使うため ClerkProvider の内側に置く。 */}
+          {(gaId || clarityProjectId) && <AnalyticsIdentity />}
         </Providers>
+        {clarityProjectId && <ClarityProvider projectId={clarityProjectId} />}
       </body>
+      {/* gtag.js は `</body>` 直後に置く(@next/third-parties の推奨配置)。 */}
+      {gaId && <GoogleAnalytics gaId={gaId} />}
     </html>
   );
 }
