@@ -216,13 +216,13 @@ function buildService(opts: {
 }
 
 describe('TrialReminderService.run', () => {
-  it('未送信・カード未登録なら送信し、集計に反映する', async () => {
+  it('未送信・カード未登録なら送信し、種別ごとに集計する', async () => {
     const { service, sent, created } = buildService({
       candidates: [
-        candidateRow(),
+        candidateRow(), // 日差 0 = LAST_DAY
         candidateRow({
           stripeSubId: 'sub_2',
-          currentPeriodEnd: jstEndOfDay('2026-08-26'), // 日差 3 = THREE_DAYS
+          currentPeriodEnd: jstEndOfDay('2026-08-23'), // 日差 0 = LAST_DAY
           tenant: {
             id: 't2',
             name: '別ワークスペース',
@@ -230,19 +230,30 @@ describe('TrialReminderService.run', () => {
             owner: { email: 'other@example.com' },
           },
         }),
+        candidateRow({
+          stripeSubId: 'sub_3',
+          currentPeriodEnd: jstEndOfDay('2026-08-26'), // 日差 3 = THREE_DAYS
+          tenant: {
+            id: 't3',
+            name: '三番目のワークスペース',
+            slug: 'third',
+            owner: { email: 'third@example.com' },
+          },
+        }),
       ],
     });
 
     const result = await service.run(NOW);
 
+    // 期待値を非対称(2 と 1)にすることで、加算先を入れ替えるミューテーションを検出できる
     expect(result).toEqual({
-      processed: 2,
-      sent: { threeDays: 1, lastDay: 1 },
+      processed: 3,
+      sent: { threeDays: 1, lastDay: 2 },
       skipped: 0,
       failed: 0,
     });
-    expect(sent).toHaveLength(2);
-    expect(created).toHaveLength(2);
+    expect(sent).toHaveLength(3);
+    expect(created).toHaveLength(3);
   });
 
   it('送信済み(unique 違反)ならメールを送らず skipped に数える', async () => {
