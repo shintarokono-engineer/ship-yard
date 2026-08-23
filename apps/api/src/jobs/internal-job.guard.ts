@@ -41,6 +41,14 @@ export class InternalJobGuard implements CanActivate {
     const req = ctx.switchToHttp().getRequest<Request>();
     const provided = req.headers[INTERNAL_JOB_TOKEN_HEADER];
     if (typeof provided !== 'string' || !constantTimeEquals(provided, expected)) {
+      // このエンドポイントは日次 1 回しか叩かれない cron 呼び出しなので、1 回の 401 が
+      // その日のバッチ全体の欠落に直結する(EventBridge 側のシークレット回し忘れ等)。
+      // 値そのものはログに出さず、ヘッダ未指定か値不一致かのみを区別して記録する。
+      this.logger.warn(
+        `Rejected /internal/jobs/* request: ${
+          typeof provided === 'string' ? 'token mismatch' : 'missing token header'
+        }`,
+      );
       throw new UnauthorizedException('Invalid internal job token');
     }
     return true;
