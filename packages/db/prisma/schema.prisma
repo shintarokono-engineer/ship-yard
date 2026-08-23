@@ -820,7 +820,7 @@ model BlogPost {
 model TrialNotification {
   /// 内部 ID(cuid)
   id       String                @id @default(cuid())
-  /// 対象テナント ID
+  /// 所属テナント(マルチテナント分離キー、必須)
   tenantId String
   /// 通知種別
   kind     TrialNotificationKind
