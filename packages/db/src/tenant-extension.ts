@@ -39,6 +39,9 @@ const TENANT_SCOPED_MODELS = new Set<string>([
   'Announcement',
   'Delivery',
   'BlogPost',
+  // F20 トライアル終了通知。日次バッチは ALS のテナントコンテキストを持たないため実行時の
+  // 注入は no-op になるが、tenantId を持つモデルは例外なく登録する規約に従う。
+  'TrialNotification',
 ]);
 
 type AnyArgs = Record<string, unknown> & {

@@ -191,6 +191,14 @@ enum DeliveryStatus {
   FAILED
 }
 
+/// トライアル終了通知の種別(F20、ADR-012 v1.x)
+enum TrialNotificationKind {
+  /// 終了 3 日前(実際は JST 日差 1〜3 の未送信を拾う。バッチが 1 日落ちても翌日に送れるようにするため)
+  THREE_DAYS
+  /// 終了当日(JST 日差 0)
+  LAST_DAY
+}
+
 // ============================================================================
 // Models
 // ============================================================================
@@ -215,13 +223,13 @@ model User {
   /// 認証経路から弾く(JIT プロビジョニング側で deletedAt セット済みなら 403)。
   deletedAt   DateTime?
 
-  memberships              TenantMember[]
-  ownedTenants             Tenant[]          @relation("TenantOwner")
-  documents                ProjectDocument[]
-  usage                    AIUsage[]
-  invitations              InvitationToken[]
-  ragQaSessions            RagQaSession[]
-  serviceScores            ServiceScore[]
+  memberships          TenantMember[]
+  ownedTenants         Tenant[]          @relation("TenantOwner")
+  documents            ProjectDocument[]
+  usage                AIUsage[]
+  invitations          InvitationToken[]
+  ragQaSessions        RagQaSession[]
+  serviceScores        ServiceScore[]
   ideaValidations      IdeaValidation[]
   announcementsCreated Announcement[]
   deliveriesExecuted   Delivery[]
@@ -243,19 +251,20 @@ model Tenant {
   /// ワークスペース作成日時
   createdAt DateTime @default(now())
 
-  owner           User              @relation("TenantOwner", fields: [ownerId], references: [id])
-  members         TenantMember[]
-  projects        Project[]
-  subscription    Subscription?
-  usage           AIUsage[]
-  invitations     InvitationToken[]
-  ragQaSessions   RagQaSession[]
-  landingPages    LandingPage[]
-  serviceScores   ServiceScore[]
-  ideaValidations IdeaValidation[]
-  announcements Announcement[]
-  deliveries    Delivery[]
-  blogPosts     BlogPost[]
+  owner              User                @relation("TenantOwner", fields: [ownerId], references: [id])
+  members            TenantMember[]
+  projects           Project[]
+  subscription       Subscription?
+  usage              AIUsage[]
+  invitations        InvitationToken[]
+  ragQaSessions      RagQaSession[]
+  landingPages       LandingPage[]
+  serviceScores      ServiceScore[]
+  ideaValidations    IdeaValidation[]
+  announcements      Announcement[]
+  deliveries         Delivery[]
+  blogPosts          BlogPost[]
+  trialNotifications TrialNotification[]
 
   @@index([slug])
 }
@@ -805,3 +814,20 @@ model BlogPost {
   @@index([tenantId, projectId, publishedAt])
 }
 
+/// トライアル終了通知の送信記録(F20)。
+/// `(tenantId, kind)` の unique 制約が二重送信を構造的に防ぐ(App Runner のスケール
+/// 多重発火 / EventBridge の 24 時間リトライの両方に対する防御)。
+model TrialNotification {
+  /// 内部 ID(cuid)
+  id       String                @id @default(cuid())
+  /// 対象テナント ID
+  tenantId String
+  /// 通知種別
+  kind     TrialNotificationKind
+  /// 送信日時(予約 INSERT の時刻。送信に失敗した場合は行ごと削除して翌日リトライ可能に戻す)
+  sentAt   DateTime              @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, kind])
+}
