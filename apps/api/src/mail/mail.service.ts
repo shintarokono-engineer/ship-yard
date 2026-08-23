@@ -38,6 +38,13 @@ export interface SendTrialReminderInput {
   trialEndsAt: Date;
 }
 
+/** トライアル終了通知メールの件名を組み立てる(`daysLeft` 0 = 終了当日)。 */
+export function buildTrialReminderSubject(daysLeft: number): string {
+  return daysLeft === 0
+    ? '本日 Neorie のトライアルが終了します'
+    : `あと ${daysLeft} 日で Neorie のトライアルが終了します`;
+}
+
 /**
  * メール送信基盤の薄抽象(ADR-007、Day 17)。MVP は Resend、将来 SES への差し替え可能。
  *
@@ -127,15 +134,10 @@ export class MailService {
       }),
     );
 
-    const subject =
-      input.daysLeft === 0
-        ? '本日 Neorie のトライアルが終了します'
-        : `あと ${input.daysLeft} 日で Neorie のトライアルが終了します`;
-
     const result = await this.resend.emails.send({
       from: this.from,
       to: input.to,
-      subject,
+      subject: buildTrialReminderSubject(input.daysLeft),
       html,
     });
 
