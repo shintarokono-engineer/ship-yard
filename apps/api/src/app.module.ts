@@ -33,6 +33,7 @@ import { IdeaValidationService } from './idea-validation/idea-validation.service
 import { InvitationsController } from './invitations/invitations.controller';
 import { InvitationsService } from './invitations/invitations.service';
 import { PublicInvitationsController } from './invitations/public-invitations.controller';
+import { JobsModule } from './jobs/jobs.module';
 import { LandingPageController } from './landing-page/landing-page.controller';
 import { LandingPageService } from './landing-page/landing-page.service';
 import { LpGenService } from './landing-page/lp-gen.service';
@@ -69,6 +70,8 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     // 直登録(AIUsageService が AppModule の直 provider のため、別 Module で wrap すると DI スコープ
     // が分かれて二重インスタンスが発生する。既存 AI 系 Controller も同じ AppModule 直登録パターン)。
     BlogPostModule,
+    // 内部ジョブ(F20 トライアル終了通知)。依存はすべて @Global Module 由来のため独立 Module でよい。
+    JobsModule,
   ],
   controllers: [
     AppController,
