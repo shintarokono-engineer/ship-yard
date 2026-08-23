@@ -297,7 +297,7 @@ export function computeTrialEndUnix(now: Date = new Date()): number {
 
 Run: `pnpm --filter @shipyard/api test -- src/billing/billing.service.spec.ts`
 
-Expected: PASS(3 件)。
+Expected: PASS(4 件)。※ Task 2 のレビュー指摘で月境界のケースを 1 本追加したため。
 
 - [ ] **Step 6: Stripe 呼び出しを差し替える**
 
@@ -491,7 +491,7 @@ export function resolveNotificationKind(
 
 Run: `pnpm --filter @shipyard/api test -- src/jobs/trial-reminder.service.spec.ts`
 
-Expected: PASS(9 件)。
+Expected: PASS(10 件)。※ Task 3 のレビュー指摘で UTC / JST の日付が食い違うケースを 1 本追加したため。
 
 - [ ] **Step 6: Commit**
 
@@ -602,7 +602,7 @@ export function hasPaymentMethod(sub: Stripe.Subscription): boolean {
 
 Run: `pnpm --filter @shipyard/api test -- src/jobs/trial-reminder.service.spec.ts`
 
-Expected: PASS(14 件)。
+Expected: PASS(15 件)。
 
 - [ ] **Step 5: Commit**
 
@@ -1213,7 +1213,7 @@ export class TrialReminderService {
 
 Run: `pnpm --filter @shipyard/api test -- src/jobs/trial-reminder.service.spec.ts`
 
-Expected: PASS(19 件 = 純関数 14 + `run()` 5)。
+Expected: PASS(20 件 = 純関数 15 + `run()` 5)。
 
 - [ ] **Step 5: 型チェックを流す**
 
