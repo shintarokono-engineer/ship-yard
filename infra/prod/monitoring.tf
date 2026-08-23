@@ -69,6 +69,26 @@ resource "aws_cloudwatch_metric_alarm" "apprunner_5xx" {
   }
 }
 
+# --- 内部ジョブの起動失敗アラーム(F20)---
+
+resource "aws_cloudwatch_metric_alarm" "trial_reminders_failed" {
+  alarm_name          = "${local.name_prefix}-trial-reminders-failed"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "FailedInvocations"
+  namespace           = "AWS/Events"
+  period              = 86400
+  statistic           = "Sum"
+  threshold           = 0
+  treat_missing_data  = "notBreaching"
+  alarm_description   = "トライアル終了通知バッチの起動に失敗した(F20)"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    RuleName = aws_cloudwatch_event_rule.trial_reminders_daily.name
+  }
+}
+
 # --- 月次予算アラート(クレジット枯渇後の課金事故防止、ADR-011)---
 
 resource "aws_budgets_budget" "monthly" {
