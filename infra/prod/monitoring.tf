@@ -71,6 +71,8 @@ resource "aws_cloudwatch_metric_alarm" "apprunner_5xx" {
 
 # --- 内部ジョブの起動失敗アラーム(F20)---
 
+# 役割分担:このアラームは「発火したが失敗した」を検知する(FailedInvocations)。
+# 「そもそも発火しなかった」(ルールの無効化・削除を含む)は trial_reminders_not_invoked が担当する。
 resource "aws_cloudwatch_metric_alarm" "trial_reminders_failed" {
   alarm_name          = "${local.name_prefix}-trial-reminders-failed"
   comparison_operator = "GreaterThanThreshold"
@@ -83,6 +85,26 @@ resource "aws_cloudwatch_metric_alarm" "trial_reminders_failed" {
   treat_missing_data  = "notBreaching"
   alarm_description   = "トライアル終了通知バッチの起動に失敗した(F20)"
   alarm_actions       = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    RuleName = aws_cloudwatch_event_rule.trial_reminders_daily.name
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "trial_reminders_not_invoked" {
+  alarm_name          = "${local.name_prefix}-trial-reminders-not-invoked"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "Invocations"
+  namespace           = "AWS/Events"
+  period              = 86400
+  statistic           = "Sum"
+  threshold           = 1
+  # 欠損を「異常」として扱うのがこのアラームの要点。ルールが無効化・削除されると
+  # メトリクス自体が出なくなるため、notBreaching だと沈黙故障を見逃す。
+  treat_missing_data = "breaching"
+  alarm_description  = "トライアル終了通知バッチが 2 日連続で起動していない(F20)"
+  alarm_actions      = [aws_sns_topic.alerts.arn]
 
   dimensions = {
     RuleName = aws_cloudwatch_event_rule.trial_reminders_daily.name
