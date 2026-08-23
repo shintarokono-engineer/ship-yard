@@ -188,13 +188,18 @@ function buildService(opts: {
     },
   };
 
+  const retrieveArgs: unknown[] = [];
+
   const stripe = {
     client: {
       subscriptions: {
-        retrieve: async () => ({
-          default_payment_method: opts.paymentMethod ?? null,
-          customer: 'cus_1',
-        }),
+        retrieve: async (id: string, options?: unknown) => {
+          retrieveArgs.push({ id, options });
+          return {
+            default_payment_method: opts.paymentMethod ?? null,
+            customer: 'cus_1',
+          };
+        },
       },
     },
   };
@@ -207,7 +212,7 @@ function buildService(opts: {
   };
 
   const service = new TrialReminderService(prisma as never, stripe as never, mail as never);
-  return { service, created, deleted, sent };
+  return { service, created, deleted, sent, retrieveArgs };
 }
 
 describe('TrialReminderService.run', () => {
@@ -289,5 +294,13 @@ describe('TrialReminderService.run', () => {
 
     expect(result.skipped).toBe(1);
     expect(sent).toHaveLength(0);
+  });
+
+  it('Stripe 参照時に customer を展開する(展開を落とすと Portal 登録済みの人に誤送信するため)', async () => {
+    const { service, retrieveArgs } = buildService({ candidates: [candidateRow()] });
+
+    await service.run(NOW);
+
+    expect(retrieveArgs).toEqual([{ id: 'sub_1', options: { expand: ['customer'] } }]);
   });
 });
