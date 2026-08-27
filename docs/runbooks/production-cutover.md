@@ -474,7 +474,7 @@ SECRET_ARN=$(aws secretsmanager list-secrets \
 echo "$SECRET_ARN"
 ```
 
-### 5.2 10 キーすべてに値を入れる
+### 5.2 11 キーすべてに値を入れる
 
 > ⚠ **`CLERK_WEBHOOK_SECRET` にプレースホルダを残したまま Phase 7 に進むと、API が起動しません。**
 >
@@ -486,18 +486,19 @@ echo "$SECRET_ARN"
 
 **1 つでも `REPLACE_ME` のままだと、起動はしても該当機能が壊れます。**
 
-| キー                    | 値の取得元                                                             |
-| ----------------------- | ---------------------------------------------------------------------- |
-| `DATABASE_URL`          | **Phase 6.6 で確定**(ここでは仮値でよい。Phase 7 の起動には影響しない) |
-| `CLERK_SECRET_KEY`      | Phase 3.2 の `sk_live_...`                                             |
-| `CLERK_WEBHOOK_SECRET`  | **Phase 8 を先取りして今すぐ取得する**(仮値のままにしない)             |
-| `STRIPE_SECRET_KEY`     | Phase 4.5 の `sk_live_...`                                             |
-| `STRIPE_WEBHOOK_SECRET` | Phase 4.4 の `whsec_...`                                               |
-| `STRIPE_PRICE_PRO`      | Phase 4.2 の `price_...`                                               |
-| `STRIPE_PRICE_TEAM`     | Phase 4.2 の `price_...`                                               |
-| `ANTHROPIC_API_KEY`     | https://console.anthropic.com                                          |
-| `OPENAI_API_KEY`        | https://platform.openai.com/api-keys(要事前チャージ)                   |
-| `RESEND_API_KEY`        | Phase 3.3 の `re_...`                                                  |
+| キー                    | 値の取得元                                                                                                                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `DATABASE_URL`          | **Phase 6.6 で確定**(ここでは仮値でよい。Phase 7 の起動には影響しない)                                                                                                                           |
+| `CLERK_SECRET_KEY`      | Phase 3.2 の `sk_live_...`                                                                                                                                                                       |
+| `CLERK_WEBHOOK_SECRET`  | **Phase 8 を先取りして今すぐ取得する**(仮値のままにしない)                                                                                                                                       |
+| `STRIPE_SECRET_KEY`     | Phase 4.5 の `sk_live_...`                                                                                                                                                                       |
+| `STRIPE_WEBHOOK_SECRET` | Phase 4.4 の `whsec_...`                                                                                                                                                                         |
+| `STRIPE_PRICE_PRO`      | Phase 4.2 の `price_...`                                                                                                                                                                         |
+| `STRIPE_PRICE_TEAM`     | Phase 4.2 の `price_...`                                                                                                                                                                         |
+| `ANTHROPIC_API_KEY`     | https://console.anthropic.com                                                                                                                                                                    |
+| `OPENAI_API_KEY`        | https://platform.openai.com/api-keys(要事前チャージ)                                                                                                                                             |
+| `RESEND_API_KEY`        | Phase 3.3 の `re_...`                                                                                                                                                                            |
+| `INTERNAL_JOB_TOKEN`    | F20 内部ジョブの共有シークレット(2026-08-23 追加)。`REPLACE_ME` のままでも起動は妨げない(該当ジョブのみ 500 を返す)ため、投入手順は `docs/runbooks/adr-012-release-checklist.md` §8 に委ねてよい |
 
 ローカルに一時ファイルを作って一括投入します(**投入後に必ず削除**)。
 
@@ -514,7 +515,8 @@ cat > secret.json <<'JSON'
   "STRIPE_PRICE_TEAM": "price_...",
   "ANTHROPIC_API_KEY": "sk-ant-...",
   "OPENAI_API_KEY": "sk-proj-...",
-  "RESEND_API_KEY": "re_..."
+  "RESEND_API_KEY": "re_...",
+  "INTERNAL_JOB_TOKEN": "REPLACE_ME"
 }
 JSON
 
@@ -529,10 +531,10 @@ rm -f secret.json && cd -
 ```bash
 aws secretsmanager get-secret-value --secret-id "$SECRET_ARN" \
   --query SecretString --output text | jq 'keys'
-# → 10 キーが並ぶこと
+# → 11 キーが並ぶこと
 ```
 
-- [ ] 10 キーすべてに実値(または Phase 6 / 8 で埋める仮値)が入った
+- [ ] 11 キーのうち `INTERNAL_JOB_TOKEN` を除く 10 キーに実値(または Phase 6 / 8 で埋める仮値)が入った(`INTERNAL_JOB_TOKEN` は `docs/runbooks/adr-012-release-checklist.md` §8 で別途投入するため `REPLACE_ME` のままで進めてよい)
 
 > **環境変数を追加するときは `.env.example` だけでは本番に届きません。** API の機密値なら `apps/api/.env.example` / `apps/api/.env.local` / **`infra/prod/secrets.tf` の `app_secret_keys`** / **Secrets Manager への実値投入**の 4 箇所が必要です(非機密値は `apprunner.tf` の `runtime_environment_variables`、Web の値は Vercel の環境変数と、経路が別)。判断フローは [`../implementation-rules.md`](../implementation-rules.md) の「環境変数を追加するとき」を参照してください。
 >
@@ -956,10 +958,10 @@ aws apprunner describe-service \
   --service-arn "$(cd "$REPO/infra/prod" && terraform output -raw apprunner_service_arn)" \
   --query 'Service.SourceConfiguration.ImageRepository.ImageConfiguration.RuntimeEnvironmentSecrets | keys' \
   --output json
-# → 10 キーが並ぶこと(空配列なら設定が飛んでいる)
+# → 11 キーが並ぶこと(空配列なら設定が飛んでいる)
 ```
 
-- [x] 10 キーが残っている
+- [x] 11 キーが残っている
 
 > **前提**: `deploy.yml` の App Runner 更新は、`describe-service` で現在の `SourceConfiguration` を取得し `ImageIdentifier` だけを差し替える方式です(2026-07-25 修正)。UpdateService の `SourceConfiguration` は**マージではなく置き換え**のため、イメージタグだけを渡すと env / secrets / アクセスロールが消えます。ワークフローにはシークレットが 0 件なら更新を中止するガードも入っています。
 >

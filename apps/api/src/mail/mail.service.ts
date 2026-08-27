@@ -4,8 +4,9 @@ import { render } from '@react-email/render';
 import { createElement } from 'react';
 import { Resend } from 'resend';
 
-import { dayjs } from '../common/time';
+import { dayjs, JST_OFFSET_HOURS } from '../common/time';
 import { InvitationEmail } from './emails/invitation-email';
+import { TrialReminderEmail } from './emails/trial-reminder-email';
 
 /** `MailService.sendInvitation` の引数(InvitationsService から渡す)。 */
 export interface SendInvitationInput {
@@ -21,6 +22,27 @@ export interface SendInvitationInput {
   roleLabel: string;
   /** 有効期限(`InvitationToken.expiresAt`) */
   expiresAt: Date;
+}
+
+/** `MailService.sendTrialReminder` の引数(TrialReminderService から渡す)。 */
+export interface SendTrialReminderInput {
+  /** 送信先(ワークスペースオーナーの email) */
+  to: string;
+  /** ワークスペース名(本文に表示) */
+  workspaceName: string;
+  /** ワークスペース slug(課金設定ページの URL 組み立てに使う) */
+  workspaceSlug: string;
+  /** 残り日数(0 = 終了当日) */
+  daysLeft: number;
+  /** トライアル終了日時 */
+  trialEndsAt: Date;
+}
+
+/** トライアル終了通知メールの件名を組み立てる(`daysLeft` 0 = 終了当日)。 */
+export function buildTrialReminderSubject(daysLeft: number): string {
+  return daysLeft === 0
+    ? '本日 Neorie のトライアルが終了します'
+    : `あと ${daysLeft} 日で Neorie のトライアルが終了します`;
 }
 
 /**
@@ -85,5 +107,47 @@ export class MailService {
       throw new Error(msg);
     }
     this.logger.log(`Invitation email sent to ${input.to} (id=${result.data?.id ?? 'unknown'})`);
+  }
+
+  /**
+   * トライアル終了の事前通知を送る(F20、ADR-012 v1.x)。
+   *
+   * 件名の日数は `daysLeft` から組み立てる。3 日前通知は「日差 1〜3 の未送信」で拾うため
+   * 実際の残り日数が 3 とは限らず、固定文言にすると本文と食い違うため。
+   *
+   * 失敗時は例外をスローする。呼び出し側(TrialReminderService)が予約行を削除して
+   * 翌日リトライ可能な状態に戻す。
+   */
+  async sendTrialReminder(input: SendTrialReminderInput): Promise<void> {
+    const billingUrl = `${this.appBaseUrl}/w/${input.workspaceSlug}/settings/billing`;
+    // 受信者は日本のユーザーを想定しているため、サーバのタイムゾーンに依存せず JST で表記する。
+    const trialEndLabel = dayjs(input.trialEndsAt)
+      .utcOffset(JST_OFFSET_HOURS)
+      .format('YYYY/MM/DD HH:mm');
+
+    const html = await render(
+      createElement(TrialReminderEmail, {
+        workspaceName: input.workspaceName,
+        daysLeft: input.daysLeft,
+        trialEndLabel,
+        billingUrl,
+      }),
+    );
+
+    const result = await this.resend.emails.send({
+      from: this.from,
+      to: input.to,
+      subject: buildTrialReminderSubject(input.daysLeft),
+      html,
+    });
+
+    if (result.error) {
+      const msg = `Resend send failed: ${result.error.name} - ${result.error.message}`;
+      this.logger.error(msg);
+      throw new Error(msg);
+    }
+    this.logger.log(
+      `Trial reminder sent to ${input.to} (daysLeft=${input.daysLeft}, id=${result.data?.id ?? 'unknown'})`,
+    );
   }
 }

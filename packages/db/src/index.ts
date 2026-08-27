@@ -31,6 +31,8 @@ export {
   AnnouncementStatus,
   DeliveryChannel,
   DeliveryStatus,
+  // F20 トライアル終了通知
+  TrialNotificationKind,
 } from '@prisma/client';
 
 // model 由来の型(値ではない)。Service / Controller の戻り値型として使う。
@@ -44,6 +46,8 @@ export type {
   Announcement,
   Delivery,
   BlogPost,
+  // F20 トライアル終了通知
+  TrialNotification,
 } from '@prisma/client';
 
 // マルチテナントのリクエストコンテキスト(ADR-002)

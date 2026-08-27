@@ -288,6 +288,7 @@ infra/prod/scheduler.tf
 packages/db/prisma/schema.prisma            TrialNotification + enum + Tenant relation
 packages/db/src/tenant-extension.ts         TENANT_SCOPED_MODELS に TrialNotification を追加
 packages/db/src/index.ts                    TrialNotificationKind を re-export
+apps/api/src/common/time.ts                 JST_OFFSET_HOURS を共通化(CLAUDE.md の日付規約)
 apps/api/src/app.module.ts                  JobsModule を登録
 apps/api/src/billing/billing.service.ts     trial_period_days → trial_end(§2)
 apps/api/src/mail/mail.service.ts           sendTrialReminder を追加

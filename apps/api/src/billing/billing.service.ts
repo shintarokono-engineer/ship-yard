@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 
 import { Plan, SubStatus } from '@shipyard/db';
 
-import { dayjs } from '../common/time';
+import { dayjs, JST_OFFSET_HOURS } from '../common/time';
 import { PrismaService } from '../prisma/prisma.service';
 import { type PaidPlan, StripeService } from '../stripe/stripe.service';
 import type { Stripe } from '../stripe/stripe.types';
@@ -11,8 +11,22 @@ import type { Stripe } from '../stripe/stripe.types';
 /** Checkout / Subscription の metadata に載せるテナント識別キー(Webhook 側で読み取る) */
 const META_TENANT_ID = 'tenantId';
 
-/** ADR-012 で確定した Pro トライアル期間。Stripe `trial_period_days` に渡す。 */
+/** ADR-012 で確定した Pro トライアル期間。Stripe `trial_end` の算出に使う。 */
 const TRIAL_PERIOD_DAYS = 7;
+
+/**
+ * トライアル終了時刻(Stripe `trial_end` に渡す UNIX 秒)を返す。
+ *
+ * `trial_period_days` を使うと終了時刻がテナント作成時刻に依存してバラバラになり、
+ * 12:00 JST 固定の日次バッチ(F20)から「終了当日」を判定できない。そこで終了時刻を
+ * **JST の日末(23:59:59)** に揃え、日付差だけで通知種別を決められるようにする。
+ *
+ * 副作用として実質のトライアル長は 7 日 + 当日の残り(= 7〜8 日弱)になる。
+ * 原価は AI クレジット 300cr が上限のため青天井にはならない(ADR-012 §2 の注記参照)。
+ */
+export function computeTrialEndUnix(now: Date = new Date()): number {
+  return dayjs(now).utcOffset(JST_OFFSET_HOURS).add(TRIAL_PERIOD_DAYS, 'day').endOf('day').unix();
+}
 
 /**
  * Stripe ↔ DB(Subscription / Tenant.plan)の同期ロジック(ADR-004)。
@@ -42,9 +56,10 @@ export class BillingService {
    *
    * Stripe `trial_settings.end_behavior.missing_payment_method: 'cancel'` で「クレカ登録不要」を実現:
    * - 作成時:Subscription を `trialing` 状態で作成、Tenant.plan = PRO に
-   * - 7 日後:PM 登録なしなら Stripe が自動キャンセル → Webhook `customer.subscription.deleted` →
+   * - トライアル終了(作成日 + 7 日の JST 日末、`computeTrialEndUnix` 参照):PM 登録なしなら
+   *   Stripe が自動キャンセル → Webhook `customer.subscription.deleted` →
    *   `cancelStripeSubscription` で Tenant.plan = FREE(= AI 停止フォールバック)
-   * - 7 日後:PM 登録ありなら `active` に遷移 → Webhook `customer.subscription.updated` で同期
+   * - トライアル終了:PM 登録ありなら `active` に遷移 → Webhook `customer.subscription.updated` で同期
    *
    * 失敗してもベストエフォート(Stripe ダウン・Price 未設定でもテナント作成自体は成立):
    * - 失敗時は `false` を返し、Tenant.plan は FREE のまま(= 即 AI 停止状態でユーザーは Billing から手動アップグレード可)
@@ -64,7 +79,8 @@ export class BillingService {
       const stripeSub = await this.stripe.client.subscriptions.create({
         customer: customerId,
         items: [{ price: priceId, quantity: 1 }],
-        trial_period_days: TRIAL_PERIOD_DAYS,
+        // 終了時刻を JST の日末に揃える(F20 の「当日通知」を定義可能にするため)。
+        trial_end: computeTrialEndUnix(),
         trial_settings: {
           end_behavior: { missing_payment_method: 'cancel' },
         },

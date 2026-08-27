@@ -13,7 +13,8 @@ import { getTenantId } from './tenant-context';
  *
  * 対象モデル: tenantId カラムを持つ全業務テーブル(下記 Set を SSoT とする)。
  *   ADR-009/013/014 で追加した LandingPage / ServiceScore / IdeaValidation /
- *   RagQaSession / RagQaMessage / Announcement / Delivery / BlogPost も含む。
+ *   RagQaSession / RagQaMessage / Announcement / Delivery / BlogPost、
+ *   F20 で追加した TrialNotification も含む。
  * 対象外: User / WebhookEvent(テナントを持たない)
  * 別扱い: TenantMember / Subscription(複合 PK / 1:1。Service 層で明示的に tenantId を渡す)
  *
@@ -39,6 +40,9 @@ const TENANT_SCOPED_MODELS = new Set<string>([
   'Announcement',
   'Delivery',
   'BlogPost',
+  // F20 トライアル終了通知。日次バッチは ALS のテナントコンテキストを持たないため実行時の
+  // 注入は no-op になるが、tenantId を持つモデルは例外なく登録する規約に従う。
+  'TrialNotification',
 ]);
 
 type AnyArgs = Record<string, unknown> & {

@@ -119,6 +119,13 @@ SENT SENT
 FAILED FAILED
         }
     
+
+
+        TrialNotificationKind {
+            THREE_DAYS THREE_DAYS
+LAST_DAY LAST_DAY
+        }
+    
   "User" {
     String id "🗝️"
     String clerkUserId 
@@ -330,6 +337,13 @@ FAILED FAILED
     DateTime updatedAt 
     }
   
+
+  "TrialNotification" {
+    String id "🗝️"
+    TrialNotificationKind kind 
+    DateTime sentAt 
+    }
+  
     "Tenant" |o--|| "Plan" : "enum:plan"
     "Tenant" }o--|| "User" : "owner"
     "TenantMember" |o--|| "Role" : "enum:role"
@@ -380,4 +394,6 @@ FAILED FAILED
     "BlogPost" }o--|| "Tenant" : "tenant"
     "BlogPost" }o--|| "Project" : "project"
     "BlogPost" |o--|o "Delivery" : "delivery"
+    "TrialNotification" |o--|| "TrialNotificationKind" : "enum:kind"
+    "TrialNotification" }o--|| "Tenant" : "tenant"
 ```

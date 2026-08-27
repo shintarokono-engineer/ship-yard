@@ -69,6 +69,55 @@ resource "aws_cloudwatch_metric_alarm" "apprunner_5xx" {
   }
 }
 
+# --- 内部ジョブの起動失敗アラーム(F20)---
+
+# 役割分担:このアラームは「発火したが失敗した」を検知する(FailedInvocations)。
+# 「そもそも発火しなかった」(ルールの無効化・削除を含む)は trial_reminders_not_invoked が担当する。
+resource "aws_cloudwatch_metric_alarm" "trial_reminders_failed" {
+  alarm_name          = "${local.name_prefix}-trial-reminders-failed"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "FailedInvocations"
+  namespace           = "AWS/Events"
+  period              = 86400
+  statistic           = "Sum"
+  threshold           = 0
+  treat_missing_data  = "notBreaching"
+  alarm_description   = "トライアル終了通知バッチの起動に失敗した(F20)"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    RuleName = aws_cloudwatch_event_rule.trial_reminders_daily.name
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "trial_reminders_not_invoked" {
+  alarm_name          = "${local.name_prefix}-trial-reminders-not-invoked"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 2
+  # datapoints_to_alarm = 1(2 期間中 1 期間の欠損で発報、いわゆる M out of N)。
+  # トライアル終了通知は日を跨ぐと二度と送れない(前日 LAST_DAY 対象者は翌日には
+  # 判定外になる)ため、2 日連続の欠損を待たず 1 日の欠損を優先して検知する。
+  # evaluation_periods は 2 のまま残し、評価窓は 2 日分確保する。
+  # 代償: apply 直後はまだ Invocations のデータが無いため、初回評価で 1 回だけ
+  # 誤って発報しうる(欠損 = breaching 扱いのため)。
+  datapoints_to_alarm = 1
+  metric_name         = "Invocations"
+  namespace           = "AWS/Events"
+  period              = 86400
+  statistic           = "Sum"
+  threshold           = 1
+  # 欠損を「異常」として扱うのがこのアラームの要点。ルールが無効化・削除されると
+  # メトリクス自体が出なくなるため、notBreaching だと沈黙故障を見逃す。
+  treat_missing_data = "breaching"
+  alarm_description  = "トライアル終了通知バッチが起動していない(F20)"
+  alarm_actions      = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    RuleName = aws_cloudwatch_event_rule.trial_reminders_daily.name
+  }
+}
+
 # --- 月次予算アラート(クレジット枯渇後の課金事故防止、ADR-011)---
 
 resource "aws_budgets_budget" "monthly" {
