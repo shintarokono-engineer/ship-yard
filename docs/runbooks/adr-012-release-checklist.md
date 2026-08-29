@@ -142,20 +142,129 @@ WHERE table_name = 'Subscription' AND column_name = 'quantity';
 
 ## 8. F20: トライアル終了通知メールの本番投入
 
-`feature/f20-trial-reminder-email` で実装済(Prisma `TrialNotification` model / バッチサービス / 内部 HTTP エンドポイント / ガード / EventBridge Terraform / アラーム 2 本)。本番投入は Secrets Manager と EventBridge Connection への手動投入が起点になるため、`terraform apply` だけでは完結しない。
+**2026-08-29 に実施済み。以下は机上の手順ではなく、実際に通した手順**に書き換えたもの(初版には順序・要否の誤りが 4 件あり、そのままでは完了しない内容だった)。次に同じ構成でバッチを追加するとき(F15 Reconciliation を想定)は、この節をそのまま辿れる。
 
-### 8.1 `INTERNAL_JOB_TOKEN` を 2 箇所に投入する
+対象は Prisma `TrialNotification` model / バッチサービス / 内部 HTTP エンドポイント / ガード / EventBridge の Terraform / アラーム 2 本。
+
+### 8.0 実行順序(ここを間違えると詰まる)
+
+```
+① DB マイグレーション
+② Secrets Manager に INTERNAL_JOB_TOKEN を投入   ← apply より前
+③ terraform apply
+④ EventBridge Connection に同じ値を投入          ← apply より後
+⑤ スモークテスト
+⑥ EventBridge の実発火を確認
+```
+
+**②(Secrets Manager)と ④(Connection)は apply を挟んで前後に分かれる**。まとめて先に実行することはできない。
+
+| 手順              | apply との前後 | 理由                                                                                                                                                                                                                                                                                                                                                            |
+| ----------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ② Secrets Manager | **前**         | `secrets.tf` の `aws_secretsmanager_secret_version.app` には `ignore_changes = [secret_string]` があるため、`app_secret_keys` にキーを足しても **apply ではシークレット本体にキーが増えない**。一方 `apprunner.tf` はそのキー一覧から `runtime_environment_secrets` を生成するので、キー不在のまま apply すると App Runner が参照を解決できずデプロイに失敗する |
+| ④ Connection      | **後**         | `aws_cloudwatch_event_connection.internal_job` は apply が作るリソース。事前に `aws events update-connection` を叩くと `ResourceNotFoundException` になる                                                                                                                                                                                                       |
+
+**API の再デプロイ手順は不要**。`main` への push で `Deploy API to App Runner` が自動実行されており、加えて ③ の apply が `UpdateService` で App Runner を更新するため、そこで新しいシークレットが反映される。`image_identifier` は `ignore_changes` で保護されているのでイメージが巻き戻ることもない(ただし `terraform plan/apply` に `-refresh=false` を付けないこと。state を最新化しないと古いタグを送る)。
+
+### 8.1 DB マイグレーションを適用する
+
+`TrialNotification` テーブルを追加する `20260823072116_add_trial_notification` を本番へ適用する。**これを忘れて EventBridge を有効化すると、バッチが全候補で Prisma エラーになる。**
+
+本番 RDS は VPC 内にあるため、`production-cutover.md` §6.1〜6.2 の手順で SSM ポートフォワードを張ってから実行する。
+
+```bash
+# 別ターミナルでポートフォワードを張ったうえで
+DATABASE_URL="postgresql://shipyard:<マスターパスワード>@localhost:15432/shipyard?schema=public&sslmode=require" \
+  pnpm --filter @shipyard/db exec prisma migrate deploy
+```
+
+- [ ] 適用待ちが `20260823072116_add_trial_notification` の 1 本だけであることを `migrate status` で確認した
+- [ ] 接続先が本番であることを確認した(`migrate status` の出力するポートが、ローカル `.env` の 5432 ではなくトンネルの 15432 になっていること)
+
+> `prisma migrate status` は未適用がある場合に終了コード 1 を返す。これは正常。
+
+適用後、以下を確認する。
+
+```sql
+SELECT tablename FROM pg_tables WHERE tablename = 'TrialNotification';
+SELECT indexname FROM pg_indexes WHERE tablename = 'TrialNotification';
+SELECT e.enumlabel FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid
+ WHERE t.typname = 'TrialNotificationKind';
+SELECT grantee, privilege_type FROM information_schema.table_privileges
+ WHERE table_name = 'TrialNotification' AND grantee = 'shipyard_app';
+```
+
+- [ ] `TrialNotification_tenantId_kind_key` が存在する(**冪等性の唯一の担保**。これが無いと二重送信する)
+- [ ] enum に `THREE_DAYS` / `LAST_DAY` がある
+- [ ] **`shipyard_app` に SELECT / INSERT / UPDATE / DELETE の 4 権限がある**
+
+> 最後の確認が重要。migration はマスターユーザー `shipyard` が実行する一方、アプリは `shipyard_app` で接続する。新テーブルへの権限は `production-cutover.md` §6.5 の `ALTER DEFAULT PRIVILEGES` に依存しており、これが効いていないと**テーブルは存在するのに実行時に `permission denied`** になる。
+
+### 8.2 `INTERNAL_JOB_TOKEN` を Secrets Manager に投入する(apply より前)
 
 `put-secret-value` はシークレットの JSON を丸ごと置き換えるため、既存の値を取得して `jq` でマージしてから書き戻す。
 
 ```bash
 TOKEN=$(openssl rand -hex 32)
-SECRET_ARN=$(aws secretsmanager list-secrets \
-  --query "SecretList[?starts_with(Name, 'shipyard-prod-app-config')].ARN | [0]" --output text)
+SECRET_ID=$(aws secretsmanager list-secrets \
+  --query "SecretList[?starts_with(Name,'shipyard-prod-app-config')].Name | [0]" --output text)
 
-CURRENT=$(aws secretsmanager get-secret-value --secret-id "$SECRET_ARN" --query SecretString --output text)
+CURRENT=$(aws secretsmanager get-secret-value --secret-id "$SECRET_ID" --query SecretString --output text)
 UPDATED=$(printf '%s' "$CURRENT" | jq --arg v "$TOKEN" '.INTERNAL_JOB_TOKEN = $v')
-aws secretsmanager put-secret-value --secret-id "$SECRET_ARN" --secret-string "$UPDATED"
+
+# 書き込み前に既存キーの破壊を検出する(新キーを消すと元の JSON と一致するはず)
+printf '%s' "$UPDATED" | jq -e --argjson c "$CURRENT" 'del(.INTERNAL_JOB_TOKEN) == $c' >/dev/null \
+  || { echo "既存キーが変化している。中止"; exit 1; }
+
+aws secretsmanager put-secret-value --secret-id "$SECRET_ID" --secret-string "$UPDATED"
+```
+
+- [ ] 投入後のキー数が 1 増えている(F20 時点で 10 → 11)
+- [ ] `INTERNAL_JOB_TOKEN` が 16 進 64 桁で、`REPLACE_ME` ではない
+
+> `put-secret-value` は新バージョンを作るだけで直前の値は `AWSPREVIOUS` に残るため、誤ってもロールバックできる。
+>
+> **トークンの値は画面に出さないこと。** ④ で使う際は Secrets Manager から読み戻せばよく、人間が控える必要はない。
+
+### 8.3 Terraform を apply する
+
+plan をファイルに保存し、内容を確認してからそのプランを適用する(確認プロンプトが出ず、見た内容以外は実行されない)。
+
+```bash
+terraform -chdir=infra/prod plan -out=/tmp/f20.tfplan
+terraform -chdir=infra/prod apply /tmp/f20.tfplan
+```
+
+F20 実施時の実績は **8 added, 1 changed, 0 destroyed**(所要 3 分 30 秒ほど。大半は App Runner の更新待ち)。
+
+- [ ] `0 to destroy` である
+- [ ] App Runner が `~ update in-place` であり、`-/+ replace` ではない
+- [ ] App Runner の差分が `runtime_environment_secrets` への `INTERNAL_JOB_TOKEN` 追加のみで、既存キーが `unchanged` と表示されている
+- [ ] `aws_secretsmanager_secret_version.app` が plan に出ていない(`ignore_changes` が効いている証拠)
+
+apply 後、App Runner が期待どおりか確認する。
+
+```bash
+aws apprunner describe-service --service-arn <ARN> \
+  --query '{Status:Service.Status,
+            SecretKeys:keys(Service.SourceConfiguration.ImageRepository.ImageConfiguration.RuntimeEnvironmentSecrets),
+            Image:Service.SourceConfiguration.ImageRepository.ImageIdentifier}'
+```
+
+- [ ] `Status` が `RUNNING`
+- [ ] シークレットキーに `INTERNAL_JOB_TOKEN` を含む
+- [ ] `Image` のタグが意図したコミット SHA(巻き戻っていない)
+
+### 8.4 EventBridge Connection に同じ値を投入する(apply より後)
+
+**トークンを手で 2 回入力しない。** Secrets Manager から読み戻すことで、2 箇所の値が一致することを構造的に保証する。
+
+```bash
+TOKEN=$(aws secretsmanager get-secret-value --secret-id "$SECRET_ID" \
+  --query SecretString --output text | jq -r '.INTERNAL_JOB_TOKEN')
+
+# プレースホルダや空値を流し込まないための事前チェック
+printf '%s' "$TOKEN" | grep -qE '^[0-9a-f]{64}$' || { echo "トークンの形式が不正。中止"; exit 1; }
 
 aws events update-connection \
   --name shipyard-prod-internal-job \
@@ -163,44 +272,94 @@ aws events update-connection \
   --auth-parameters "ApiKeyAuthParameters={ApiKeyName=X-Internal-Job-Token,ApiKeyValue=$TOKEN}"
 ```
 
-- [ ] Secrets Manager 側(`shipyard-prod-app-config-*` の `INTERNAL_JOB_TOKEN`)に投入した
-- [ ] EventBridge Connection(`shipyard-prod-internal-job`)側に同じ値を投入した
+- [ ] `ConnectionState` が `AUTHORIZED` になった(更新直後は一時的に `UPDATING` / `AUTHORIZING` になる)
 
-**どちらか一方だけ投入し忘れると、エンドポイントは 500 を返し `shipyard-prod-trial-reminders-failed` アラームが当日中に発報する。これは意図した挙動**。ガードは `REPLACE_ME` というリテラルを「未設定」として拒否するため、両方の手動投入を忘れると両者が `REPLACE_ME` のまま一致して**サイレントに認証を通してしまう**事故を防いでいる。
+> `scheduler.tf` の Connection には `ignore_changes = [auth_parameters]` があるため、この手動投入が次回 apply で `REPLACE_ME` に戻されることはない。
+>
+> ヘッダ名 `X-Internal-Job-Token` は変えないこと。ガードが読む `x-internal-job-token`(`jobs.constants.ts`)と対応している。HTTP ヘッダ名は大文字小文字を区別しないため、この表記の差は問題ない。
 
-### 8.2 Terraform を apply する
+### 8.5 エンドポイントをスモークテストする
 
-```bash
-terraform -chdir=infra/prod apply
+**実行前に送信対象を確認する。** 対象が 1 件でもあれば本物のメールが飛ぶ。
+
+```sql
+SELECT t.slug, s."currentPeriodEnd"
+  FROM "Subscription" s JOIN "Tenant" t ON t.id = s."tenantId"
+ WHERE s.status = 'TRIALING'
+   AND s."currentPeriodEnd" > now()
+   AND s."currentPeriodEnd" <= now() + interval '4 days';
 ```
 
-- [ ] 新規リソース 7 つ + アラーム 1 本(既存 apprunner-5xx 等に追加する形)が作成されることを確認した
-- [ ] **既存リソース、特に App Runner サービスが replace されない**ことを plan の段階で確認した
-
-### 8.3 API を再デプロイする
-
-Secrets Manager の値は App Runner 起動時にしか解決されないため、8.1 の投入だけでは値が反映されない。GitHub Actions のデプロイワークフローを実行する。
-
-- [ ] `gh workflow run "Deploy API to App Runner"` を実行し、`gh run watch` で完了を確認した
-- [ ] App Runner の `UpdateService` は `SourceConfiguration` をマージではなく置き換えるため、env / secrets が引き続き揃っていることを確認した(確認手順は `docs/runbooks/production-cutover.md` §10.3 と同じ)
-
-### 8.4 エンドポイントをスモークテストする
+バッチはさらに Stripe を参照してカード登録済みを除外するため、この件数は上限値。
 
 ```bash
 curl -i -X POST https://api.neorie.com/internal/jobs/trial-reminders
-curl -i -X POST https://api.neorie.com/internal/jobs/trial-reminders -H "X-Internal-Job-Token: $TOKEN"
+curl -i -X POST https://api.neorie.com/internal/jobs/trial-reminders \
+  -H "X-Internal-Job-Token: 0000000000000000000000000000000000000000000000000000000000000000"
+curl -i -X POST https://api.neorie.com/internal/jobs/trial-reminders \
+  -H "X-Internal-Job-Token: $TOKEN"
 ```
 
 - [ ] トークン無しは **401**
-- [ ] トークン有りは **200** + 集計結果の JSON
+- [ ] 誤ったトークンも **401**(ここが 200 ならトークン比較に欠陥があるので即中止)
+- [ ] 正しいトークンは **200** + 集計 JSON
 
-### 8.5 EventBridge が実際に発火することを確認する
+> 1 つ目が **500 ではなく 401** であることが、App Runner に実トークンが渡っている証拠になる。ガードは `INTERNAL_JOB_TOKEN` が未設定または `REPLACE_ME` のとき 500 を返すため、500 なら 8.2 か 8.3 が反映されていない。
 
-- [ ] コンソールでルールのスケジュールを一時的に `rate(5 minutes)` に変更し、数分待つ
-- [ ] CloudWatch Logs に `trial-reminders finished: {...}` が出ていることを確認した
-- [ ] ルールの `Invocations` が 1 以上、`FailedInvocations` が 0 であることを確認した
-- [ ] 確認後、`cron(0 3 * * ? *)` に戻す。**コンソールでの直接変更は drift になるため、`terraform apply` で戻すこと**
+### 8.6 EventBridge が実際に発火することを確認する
 
-### 8.6 apply 直後に鳴る 1 回限りのアラームについて
+ルールを一時的に短周期へ変更する。**復元は `terraform plan` で機械的に確認できる**(`schedule_expression` に `ignore_changes` は無く、drift として検出される)。
 
-`terraform apply` 直後、初回の 03:00 UTC 実行が来るまでは `Invocations` メトリクス自体が存在しない。`shipyard-prod-trial-reminders-not-invoked` は `treat_missing_data = "breaching"` のため、このデータ欠損期間を「異常」として 1 回だけ発報する。`datapoints_to_alarm` の設定とは無関係に `breaching` 指定そのものに起因する既知の挙動で、対応不要。ルールが通常どおり発火し始めれば自動的に解消する。
+```bash
+RULE=shipyard-prod-trial-reminders-daily
+DESC='毎日 03:00 UTC(12:00 JST)にトライアル終了通知バッチを起動する'
+
+# 短周期に変更。description / state を明示するのは put-rule が省略属性を
+# 引き継がない場合があり、意図しない drift を作り込まないため。
+aws events put-rule --name "$RULE" --schedule-expression 'rate(5 minutes)' \
+  --description "$DESC" --state ENABLED
+
+# … 6〜8 分待つ …
+
+# 復元
+aws events put-rule --name "$RULE" --schedule-expression 'cron(0 3 * * ? *)' \
+  --description "$DESC" --state ENABLED
+terraform -chdir=infra/prod plan   # → No changes. を確認する
+```
+
+確認するログは App Runner の application ロググループ。**サービス ID が複数残っている場合があるので、prefix の先頭を機械的に選ばないこと**(稼働していない古いサービスのロググループを掴んで「ログが出ていない」と誤診する)。`describe-service` が返す ARN の ID と一致するものを使う。
+
+```bash
+aws logs filter-log-events \
+  --log-group-name /aws/apprunner/shipyard-prod-api/<稼働中のサービス ID>/application \
+  --start-time $(( $(date -u +%s) - 1800 ))000 \
+  --filter-pattern '"trial-reminders"' --query 'events[].[message]' --output text
+```
+
+- [ ] `Invocations` が 1 以上、`FailedInvocations` が 0
+- [ ] ログに `trial-reminders finished: {...}` が出ている
+- [ ] ガードの 401 が `missing token header` / `token mismatch` と区別して記録されている(障害時の切り分けに使う)
+- [ ] `cron(0 3 * * ? *)` に戻し、`terraform plan` が `No changes.` になった
+
+### 8.7 アラームの初期挙動(2 日ほど ALARM のままになる)
+
+`shipyard-prod-trial-reminders-not-invoked` は導入直後に **ALARM になり、解消まで約 2 日かかる**。故障ではないので、この期間の発報は無視してよい。
+
+理由は評価単位にある。このアラームは `period = 86400`(1 日)を 1 データポイントとし、`evaluation_periods = 2` で**完了した**直近 2 期間を見る。`datapoints_to_alarm = 1` なので、2 日のうち 1 日でも欠損があれば ALARM になる(`treat_missing_data = "breaching"`)。ルール作成直後は、完了済みの直近 2 日がいずれもルール不在の期間なので、両方とも欠損=異常と数えられる。
+
+| 時点     | 評価される 2 日                  | 状態           |
+| -------- | -------------------------------- | -------------- |
+| 作成直後 | 前々日・前日(いずれもルール不在) | **ALARM**      |
+| 翌日     | 前日(欠損)+ 当日(発火済み)       | **まだ ALARM** |
+| 翌々日   | 発火済み 2 日分                  | **OK に復帰**  |
+
+作成直後の短時間は `INSUFFICIENT_DATA` を経由する(初版に「apply 直後に 1 回鳴る」と書いていたのは不正確だった)。
+
+- [ ] **作成から 2 日後に OK へ戻ったことを確認する。**戻らない場合は定時発火が実際に起きていないので調査する
+
+> この 2 日という復帰時間は `datapoints_to_alarm = 1` の代償。既定の 2 のままだと「2 日連続で止まらないと鳴らない」= 1 日だけの停止を永久に見逃すため、見逃しを減らす側を選んだ意図的なトレードオフ。
+
+### 8.8 この構成で監視できないこと
+
+- **部分失敗は検知できない。** 一部の宛先だけ送信に失敗した場合はエンドポイントが 200 を返すため `FailedInvocations` に出ない。1 件の恒久的な失敗で毎日アラームが鳴るのを避けた判断で、レスポンス JSON と `failed` カウントのログには現れる
+- **スタック全体を破壊された場合は検知できない。** アラーム自体が同じスタック内にあるため(構造上の限界)

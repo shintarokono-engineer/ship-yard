@@ -9,6 +9,19 @@
 locals {
   # App Runner の runtime_environment_secrets として注入するキー一覧
   # (apps/api/.env.example に対応)。
+  #
+  # ⚠ ここにキーを追加したら、apply する「前」に手動でシークレット本体へ
+  #   そのキーを投入すること。順序を守らないと App Runner のデプロイが失敗する。
+  #
+  #   下の aws_secretsmanager_secret_version.app は ignore_changes = [secret_string]
+  #   なので、このリストにキーを足しても apply ではシークレット本体にキーが増えない。
+  #   一方 apprunner.tf はこのリストから runtime_environment_secrets を生成するため、
+  #   キーが JSON に無いまま apply すると App Runner が参照を解決できずデプロイに失敗する。
+  #
+  #   正しい順序(手順の実例は docs/runbooks/adr-012-release-checklist.md §8):
+  #     1. aws secretsmanager put-secret-value で既存 JSON に新キーをマージして投入
+  #        (put-secret-value は JSON を丸ごと置換するため、必ず get してから jq でマージ)
+  #     2. このリストにキーを追加して terraform apply
   app_secret_keys = [
     "DATABASE_URL",
     "CLERK_SECRET_KEY",
