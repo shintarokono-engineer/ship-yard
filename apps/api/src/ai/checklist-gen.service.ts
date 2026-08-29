@@ -9,6 +9,7 @@ import {
   CATEGORY_VALUES,
   buildChecklistItemsTool,
   parseChecklistItems,
+  type GeneratedChecklist,
   type GeneratedChecklistItem,
 } from './checklist-items-tool';
 import { formatReferenceSection, type RagReference } from './format-reference';
@@ -32,15 +33,7 @@ export interface GenerateChecklistInput {
 
 // 生成済み項目の型と検証は `checklist-items-tool.ts` に移した(F17 と共有するため)。
 // 既存の import 経路を壊さないよう、ここから re-export し続ける。
-export type { GeneratedChecklistItem };
-
-/** 生成結果 + AIUsage 記録用のトークン数。 */
-export interface GeneratedChecklist {
-  items: GeneratedChecklistItem[];
-  model: string;
-  tokensIn: number;
-  tokensOut: number;
-}
+export type { GeneratedChecklist, GeneratedChecklistItem };
 
 /** Tool Use の構造化出力スキーマ。Haiku 4.5 にこれを呼ばせて、自由文ではなく構造化された配列を返させる。 */
 const SUBMIT_CHECKLIST_TOOL = buildChecklistItemsTool({
@@ -63,7 +56,7 @@ export class ChecklistGenService {
   async generate(input: GenerateChecklistInput): Promise<GeneratedChecklist> {
     const { project, instructions, categories, references } = input;
     // categories は DTO の `@ArrayMinSize(1)` で空配列が弾かれているため、未指定 = undefined のみ全カテゴリにフォールバック。
-    const targetCategories = categories ?? (CATEGORY_VALUES as Category[]);
+    const targetCategories = categories ?? CATEGORY_VALUES;
 
     const systemPrompt = [
       AI_PERSONA_INTRO,

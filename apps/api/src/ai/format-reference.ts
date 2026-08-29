@@ -18,6 +18,9 @@ export interface RagReference {
 /** 既定の見出し。REFINE_DOC 等で「過去ドキュメントではなく同一ドキュメントの旧版」を参考にする場合のみ上書きする。 */
 const DEFAULT_HEADING = '# 参考(過去プロジェクトのドキュメント)';
 
+/** 各ブロックの既定ラベル(`## 参考 N: <title>`)。参考以外を注入する用途でのみ上書きする。 */
+const DEFAULT_BLOCK_LABEL = '参考';
+
 /**
  * プロンプトインジェクション対策の **固定文言**。引数化しないことで:
  * - 呼び出し側で書き忘れて無防備になることを構造的に防ぐ
@@ -31,13 +34,19 @@ export interface ReferenceSectionOptions {
   usageHint: string;
   /** 既定: `# 参考(過去プロジェクトのドキュメント)`。他用途で見出しを変える必要があるときだけ指定。 */
   heading?: string;
+  /**
+   * 既定: `参考`(= `## 参考 N: <title>`)。F17 のように RAG ヒット以外を注入する場合に
+   * `提案` 等へ変える。ブロックを ```` ```markdown ```` で囲む構造と `SECURITY_GUIDANCE` の
+   * 自動付与をそのまま流用するための逃がし口。
+   */
+  blockLabel?: string;
 }
 
 /**
  * 参考ドキュメントを整形した文字列を返す。空配列なら空文字を返し、`prompt.filter(Boolean)` で
  * 自然に除外される(コールドスタート対応)。
  *
- * 各参考は `## 参考 N: <title>` で区切り、本文は ` ```markdown ``` ` で囲む。
+ * 各参考は `## <blockLabel> N: <title>`(既定 `## 参考 N: ...`)で区切り、本文は ` ```markdown ``` ` で囲む。
  * guidance は `usageHint` + `SECURITY_GUIDANCE`(固定)を結合したものを使う。
  */
 export function formatReferenceSection(
@@ -46,9 +55,10 @@ export function formatReferenceSection(
 ): string {
   if (!references || references.length === 0) return '';
   const heading = options.heading ?? DEFAULT_HEADING;
+  const blockLabel = options.blockLabel ?? DEFAULT_BLOCK_LABEL;
   const guidance = `${options.usageHint} ${SECURITY_GUIDANCE}`;
   const blocks = references.map(
-    (ref, i) => `## 参考 ${i + 1}: ${ref.title}\n\n\`\`\`markdown\n${ref.content}\n\`\`\``,
+    (ref, i) => `## ${blockLabel} ${i + 1}: ${ref.title}\n\n\`\`\`markdown\n${ref.content}\n\`\`\``,
   );
   return [`\n${heading}`, guidance, ...blocks].join('\n\n');
 }

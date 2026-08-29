@@ -12,8 +12,11 @@ import { Category } from '@shipyard/db';
  * Vitest から呼べない)。先例は `announcements/announcement-tool.ts`。
  */
 
-/** Tool 入力スキーマで受け取る `category` の文字列値(= Category enum のキー、`Object.values` で生成)。 */
-export const CATEGORY_VALUES = Object.values(Category);
+/**
+ * Tool 入力スキーマで受け取る `category` の文字列値(= Category enum のキー)。
+ * 利用側にキャストを配らないよう、ここで型を確定させる。
+ */
+export const CATEGORY_VALUES: Category[] = Object.values(Category);
 
 /** 1 件の生成済みチェックリスト項目(DB 保存前の中間表現)。 */
 export interface GeneratedChecklistItem {
@@ -21,6 +24,14 @@ export interface GeneratedChecklistItem {
   title: string;
   /** 任意。AI が必要と判断したら埋める。 */
   description?: string;
+}
+
+/** 生成結果 + AIUsage 記録用のトークン数。CHECKLIST_GEN と F17 の両方が返す。 */
+export interface GeneratedChecklist {
+  items: GeneratedChecklistItem[];
+  model: string;
+  tokensIn: number;
+  tokensOut: number;
 }
 
 /** `buildChecklistItemsTool` の引数。Feature 間で変わるのはこの 4 つだけ。 */
