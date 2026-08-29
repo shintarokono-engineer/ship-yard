@@ -4,8 +4,11 @@ import Link from 'next/link';
 import { useActionState, useEffect, useMemo, useOptimistic, useRef } from 'react';
 
 import { CreditCostBadge } from '@/components/credit-cost-badge';
+import { InlineEmpty } from '@/components/inline-empty';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { EMPTY_MESSAGES } from '@/lib/empty-messages';
 import type { MonthlyUsageSummary, RagQaMessage } from '@/lib/api/types';
 
 import { askMessageAction, type AskMessageFormState } from '../../_actions/ask-message';
@@ -120,9 +123,9 @@ export function RagQaChatPanel({
             <RagQaMessageItem key={message.id} message={message} pending={message.pending} />
           ))
         ) : (
-          <p className="text-muted-foreground rounded-lg border border-dashed py-10 text-center text-sm">
-            まだメッセージがありません。下の入力欄からプロジェクトについて質問してみましょう。
-          </p>
+          <InlineEmpty className="rounded-lg border border-dashed py-10 text-center">
+            {EMPTY_MESSAGES.ragQaMessages}
+          </InlineEmpty>
         )}
         <div ref={bottomRef} />
       </div>
@@ -153,18 +156,15 @@ export function RagQaChatPanel({
           )}
 
           {state.quotaExceeded && (
-            <div
-              role="alert"
-              className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100"
-            >
+            <Alert variant="warning">
               <p>{state.formError}</p>
               <Link
-                href={`/w/${slug}`}
+                href={`/w/${slug}/settings/billing`}
                 className="mt-1 inline-block text-xs underline underline-offset-2"
               >
-                プランのアップグレードについて(準備中)
+                プランをアップグレード
               </Link>
-            </div>
+            </Alert>
           )}
 
           <div className="flex items-center justify-between gap-2">

@@ -90,7 +90,7 @@ export default async function IdeaValidationsPage({
       ) : (
         <EmptyState
           icon={Lightbulb}
-          title="まだアイデア検証の履歴がありません。"
+          title="まだアイデア検証の履歴がありません"
           description={
             canWrite
               ? '「検証を実行する」 から最初の検証を行いましょう。'

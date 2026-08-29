@@ -1,11 +1,14 @@
 import Link from 'next/link';
 import { Sparkles } from 'lucide-react';
 
+import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { InlineEmpty } from '@/components/inline-empty';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FEATURE_META, PLAN_META, type MonthlyUsageSummary } from '@/lib/api/types';
 import { fetchUsage } from '@/lib/api/workspaces';
+import { EMPTY_MESSAGES } from '@/lib/empty-messages';
 import { formatYearMonth } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -76,7 +79,7 @@ function UsageSummaryCard({
 /** FREE(トライアル終了後)向け。AI 機能停止のメッセージ + プラン選択画面への導線。 */
 function FreeFallbackUsage({ slug }: { slug: string }) {
   return (
-    <div className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 space-y-2 rounded-md border px-3 py-2 text-sm">
+    <Alert variant="warning" className="space-y-2">
       <p className="font-medium">AI 機能は停止中です</p>
       <p className="text-xs">Pro / Team プランへアップグレードすると AI 機能が再開します。</p>
       <Link href={`/w/${slug}/settings/billing`}>
@@ -84,7 +87,7 @@ function FreeFallbackUsage({ slug }: { slug: string }) {
           プランを選ぶ
         </Button>
       </Link>
-    </div>
+    </Alert>
   );
 }
 
@@ -152,9 +155,9 @@ function FeatureBreakdownCard({ byFeature }: { byFeature: MonthlyUsageSummary['b
       </CardHeader>
       <CardContent>
         {byFeature.length === 0 ? (
-          <p className="text-muted-foreground py-4 text-center text-sm">
-            今月の AI 利用はまだありません。
-          </p>
+          <InlineEmpty className="py-4 text-center">
+            {EMPTY_MESSAGES.monthlyUsageByFeature}
+          </InlineEmpty>
         ) : (
           <ul className="space-y-3">
             {byFeature.map(({ feature, credits }) => (

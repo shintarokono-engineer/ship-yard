@@ -2,6 +2,7 @@ import { LayoutTemplate, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { EmptyState } from '@/components/empty-state';
 import { LpRenderer } from '@/components/lp-blocks/lp-renderer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -129,20 +130,20 @@ export default async function LandingPagePreviewPage({
           </p>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-16 text-center">
-          <LayoutTemplate className="text-muted-foreground/60 size-8" aria-hidden="true" />
-          <p className="text-muted-foreground text-sm">まだランディングページがありません。</p>
-          <p className="text-muted-foreground max-w-sm text-xs">
-            {canWrite
+        <EmptyState
+          icon={LayoutTemplate}
+          title="まだランディングページがありません"
+          description={
+            canWrite
               ? 'プロジェクトの概要や状態をもとに、AI がヒーロー・機能紹介・CTA などのブロックを生成します。'
-              : '書き込み権限を持つメンバーが生成すると、ここにプレビューが表示されます。'}
-          </p>
-          {canWrite && (
-            <div className="pt-1">
+              : '書き込み権限を持つメンバーが生成すると、ここにプレビューが表示されます。'
+          }
+          action={
+            canWrite ? (
               <GenerateLpDialog slug={slug} projectId={projectId} mode="create" usage={usage} />
-            </div>
-          )}
-        </div>
+            ) : undefined
+          }
+        />
       )}
     </div>
   );

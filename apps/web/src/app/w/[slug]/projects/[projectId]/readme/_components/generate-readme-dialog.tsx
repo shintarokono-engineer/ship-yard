@@ -7,6 +7,7 @@ import { Sparkles } from 'lucide-react';
 
 import { FormField } from '@/app/w/[slug]/_shared/form-field';
 import { CreditCostBadge } from '@/components/credit-cost-badge';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -123,18 +124,15 @@ export function GenerateReadmeDialog({
           )}
 
           {state.quotaExceeded && (
-            <div
-              role="alert"
-              className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100"
-            >
+            <Alert variant="warning">
               <p>{state.formError}</p>
               <Link
-                href={`/w/${slug}`}
+                href={`/w/${slug}/settings/billing`}
                 className="mt-1 inline-block text-xs underline underline-offset-2"
               >
-                プランのアップグレードについて(準備中)
+                プランをアップグレード
               </Link>
-            </div>
+            </Alert>
           )}
 
           <p aria-live="polite" className="text-muted-foreground text-xs">

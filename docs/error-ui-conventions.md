@@ -1,6 +1,6 @@
 # エラー UI 表示形式ガイド
 
-最終更新: 2026-05-29(F6 / §9.12.2 観点 6 起票時に作成)
+最終更新: 2026-08-29(shadcn/ui の `alert` 導入に伴い実装例を更新)
 
 Neorie のフロントエンド(`apps/web`)で、エラー / 警告 / 情報を画面に表示するときの**表示形式の使い分け基準**を定義する。逸脱は §9.12.2 観点 6 のセルフ評価で監査する。
 
@@ -25,22 +25,27 @@ Neorie のフロントエンド(`apps/web`)で、エラー / 警告 / 情報を�
 - **権限不足**:閲覧専用ロールが書き込み操作を試みた場合の告知
 - **データの不整合・サービス障害**:画面全体が部分的に動かないことを継続的に伝える必要があるとき
 
-実装:`role="alert"` + 既存のトーン別色(destructive / amber / emerald)。
+実装:**shadcn/ui の `alert`**(`components/ui/alert.tsx`、`npx shadcn@latest add alert` で導入)。
+`role="alert"` と枠線・余白を内包するので、**クラス文字列を直接書かない**。
 
 ```tsx
-<div
-  role="alert"
-  className="border-destructive/40 bg-destructive/10 text-destructive rounded-md border px-3 py-2 text-sm"
->
-  {message}
-</div>
+import { Alert } from '@/components/ui/alert';
+
+<Alert variant="warning">{message}</Alert>;
 ```
 
-| トーン      | 用途                         | クラス                                                                           |
-| ----------- | ---------------------------- | -------------------------------------------------------------------------------- |
-| destructive | 失敗・拒否(赤系)             | `border-destructive/40 bg-destructive/10 text-destructive`                       |
-| amber       | クォータ・期限切れ警告(黄系) | `border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100`         |
-| emerald     | 公開状態の肯定的告知(緑系)   | `border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300` |
+shadcn の既定 variant は `default` / `destructive` の 2 つだけなので、`warning` / `success` は
+Neorie 側で追記している(`shadcn add` で上書きすると消えるため、再取得時は入れ直すこと)。
+
+| variant       | 用途                         | 追加で当たるクラス                                                               |
+| ------------- | ---------------------------- | -------------------------------------------------------------------------------- |
+| `default`     | 中立のお知らせ(既定)         | `bg-card text-card-foreground`                                                   |
+| `destructive` | 失敗・拒否(赤系)             | `bg-card text-destructive`                                                       |
+| `warning`     | クォータ・期限切れ警告(黄系) | `border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100`         |
+| `success`     | 公開状態の肯定的告知(緑系)   | `border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300` |
+
+見出し + 本文の 2 段構成にするときは `<AlertTitle>` / `<AlertDescription>` を使う(shadcn 同梱)。
+トーンが同じでもバッジ(`<Badge>`)は Alert ではない。状態ラベルは引き続き `<Badge>` を使う。
 
 ### Toast(瞬時)を使う場面
 
@@ -86,30 +91,23 @@ toast.warning('一部のメンバーへの送信に失敗しました。');
 
 ```tsx
 {
-  state.formError && !state.quotaExceeded && (
-    <p
-      role="alert"
-      className="border-destructive/40 bg-destructive/10 text-destructive rounded-md border px-3 py-2 text-sm"
-    >
-      {state.formError}
-    </p>
-  );
+  state.formError && !state.quotaExceeded && <Alert>{state.formError}</Alert>;
 }
 
 {
   state.quotaExceeded && (
-    <div
-      role="alert"
-      className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100"
-    >
+    <Alert variant="warning">
       <p>{state.formError}</p>
       <Link href={`/w/${slug}/settings/billing`} className="...">
         プランをアップグレード
       </Link>
-    </div>
+    </Alert>
   );
 }
 ```
+
+**アップグレード導線のリンク先は必ず `/w/{slug}/settings/billing`**。クォータ超過はトライアル
+終了直後に最も多く踏むため、ここが行き止まりだと ADR-012 の転換率 KPI に直接響く。
 
 ---
 
@@ -153,9 +151,9 @@ toast.warning('一部のメンバーへの送信に失敗しました。');
 
 ## 6. 監査方法
 
-1. `grep -rn 'role="alert"\\|toast\\.\\|<Alert' apps/web/src` で全 4 形式の出現箇所を列挙
+1. `grep -rn '<Alert\\|toast\\.\\|role="alert"' apps/web/src` で全 4 形式の出現箇所を列挙
 2. 各箇所について本ガイドの「使い分けの基準」と照合
-3. 逸脱があれば本ガイドに沿わせる
+3. 逸脱があれば本ガイドに沿わせる。**`role="alert"` を直書きしている箇所は `<Alert>` 未移行のサイン**
 4. **新規実装時は本ガイドを参照することを `apps/web/CLAUDE.md`(将来作成)or PR テンプレに明記**
 
 ---
@@ -163,6 +161,7 @@ toast.warning('一部のメンバーへの送信に失敗しました。');
 ## 7. 関連ドキュメント
 
 - `docs/implementation-rules.md` — 横断的な実装制約(ガイド全体の親)
+- `apps/web/src/components/ui/alert.tsx` — shadcn/ui の alert + `warning` / `success` variant
 - `apps/web/src/app/w/[slug]/_shared/form-field.tsx` — Inline errors の実装
 - `apps/web/src/components/ui/sonner.tsx` — Toast 基盤
 - `apps/web/src/lib/api/errors.ts` — `classifyAiApiError` などのエラー分類ヘルパー
