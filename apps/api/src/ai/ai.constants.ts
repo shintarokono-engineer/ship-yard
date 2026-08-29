@@ -116,6 +116,26 @@ export const TASK_SPLIT_MAX_ITEMS = 10;
 export const TASK_SPLIT_MAX_TOKENS = 2048;
 
 /**
+ * F17(改善提案 → ChecklistItem 変換)で 1 回に出力できる項目の最大数。
+ *
+ * 入力は提案 3〜5 件で、1 提案あたり実質 2〜3 タスクに分かれる想定なので 6〜15 件が目安。
+ * CHECKLIST_GEN と同じ 30 にすると「1 提案 6 タスク」まで許してしまい、粒度が細かすぎて
+ * かえって使えないリストになる。12 に抑えることで AI 側に優先順位付けを強制する。
+ */
+export const SUGGESTION_TASKS_MAX_ITEMS = 12;
+
+/** F17 の Anthropic API `max_tokens`。12 件 × 平均 80 トークン + 余裕 ≈ 2000(TASK_SPLIT と同じ計算)。 */
+export const SUGGESTION_TASKS_MAX_TOKENS = 2048;
+
+/**
+ * F17 のプロンプトに載せる既存 ChecklistItem の最大件数。
+ *
+ * 重複生成を避けるため既存項目の title を渡すが、全件入れるとプロジェクトによっては
+ * 数百件になりトークンを圧迫する。先頭 50 件(= position 順の若い方)で足りる。
+ */
+export const SUGGESTION_TASKS_EXISTING_TITLES_MAX = 50;
+
+/**
  * RAG 検索で取得する類似ドキュメントの上限件数。
  *
  * 5 件 × `RAG_CONTENT_TRUNCATE_CHARS`(800)≈ 2000 tokens は Sonnet 4 の context window

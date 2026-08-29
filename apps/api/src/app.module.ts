@@ -5,6 +5,8 @@ import { AIUsageService } from './ai/ai-usage.service';
 import { AnthropicModule } from './ai/anthropic.module';
 import { ChecklistGenController } from './ai/checklist-gen.controller';
 import { ChecklistGenService } from './ai/checklist-gen.service';
+import { SuggestionTasksController } from './ai/suggestion-tasks.controller';
+import { SuggestionTasksService } from './ai/suggestion-tasks.service';
 import { DraftGenController } from './ai/draft-gen.controller';
 import { DraftGenService } from './ai/draft-gen.service';
 import { EmbeddingService } from './ai/embedding.service';
@@ -80,6 +82,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     ProjectsController,
     ChecklistController,
     ChecklistGenController,
+    SuggestionTasksController,
     DocumentsController,
     DraftGenController,
     RagQaController,
@@ -109,6 +112,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     AIUsageService,
     DraftGenService,
     ChecklistGenService,
+    SuggestionTasksService,
     EmbeddingService,
     RagSearchService,
     RagQaService,
