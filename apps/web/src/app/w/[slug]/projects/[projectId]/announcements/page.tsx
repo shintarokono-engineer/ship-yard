@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 
+import { EmptyState } from '@/components/empty-state';
 import { ProjectBreadcrumbs } from '@/components/project-breadcrumbs';
 import { listAnnouncements } from '@/lib/api/announcements';
 import { isWriterRole } from '@/lib/api/types';
@@ -60,12 +61,15 @@ export default async function AnnouncementsPage({
           initialNextCursor={announcements.nextCursor}
         />
       ) : (
-        <div className="border-border rounded-lg border border-dashed p-8 text-center">
-          <p className="text-muted-foreground text-sm">
-            まだ告知はありません。
-            {canWrite && '右上の「告知を作成」から開始してください。'}
-          </p>
-        </div>
+        <EmptyState
+          icon={AnnouncementIcon}
+          title="まだ告知はありません"
+          description={
+            canWrite
+              ? '右上の「告知を作成」 からリリースのお知らせを書き始められます。'
+              : '書き込み権限を持つメンバーが告知を作成すると、ここに表示されます。'
+          }
+        />
       )}
     </div>
   );

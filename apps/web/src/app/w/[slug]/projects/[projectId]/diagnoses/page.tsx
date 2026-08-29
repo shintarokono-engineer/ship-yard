@@ -79,7 +79,7 @@ export default async function DiagnosesPage({
       ) : (
         <EmptyState
           icon={Gauge}
-          title="まだ診断の履歴がありません。"
+          title="まだ診断の履歴がありません"
           description={
             canWrite
               ? '「診断を実行する」 から最初の診断を行いましょう。'

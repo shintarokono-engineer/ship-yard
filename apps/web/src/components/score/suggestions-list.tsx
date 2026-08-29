@@ -1,6 +1,8 @@
+import { InlineEmpty } from '@/components/inline-empty';
 import { Badge } from '@/components/ui/badge';
 import { MarkdownViewer } from '@/components/markdown-viewer';
 import { SUGGESTION_PRIORITY_META, type Suggestion } from '@/lib/api/types';
+import { EMPTY_MESSAGES } from '@/lib/empty-messages';
 
 /**
  * 改善提案リスト(プロダクト診断 / アイデア検証 共通)。
@@ -17,7 +19,7 @@ export function SuggestionsList<A extends string>({
   axisLabel: Record<A, string>;
 }) {
   if (suggestions.length === 0) {
-    return <p className="text-muted-foreground text-sm">改善提案はありません。</p>;
+    return <InlineEmpty>{EMPTY_MESSAGES.suggestions}</InlineEmpty>;
   }
 
   return (

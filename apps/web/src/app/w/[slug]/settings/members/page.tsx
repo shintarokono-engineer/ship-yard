@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { InlineEmpty } from '@/components/inline-empty';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { listInvitations } from '@/lib/api/invitations';
 import { listMembers } from '@/lib/api/members';
+import { EMPTY_MESSAGES } from '@/lib/empty-messages';
 import { formatDateTime } from '@/lib/format';
 import {
   type BadgeVariant,
@@ -213,9 +215,9 @@ function InvitationTable({
 }) {
   if (invitations.length === 0) {
     return (
-      <p className="text-muted-foreground rounded-md border px-4 py-6 text-center text-sm">
-        まだ招待は発行されていません。
-      </p>
+      <InlineEmpty className="rounded-md border px-4 py-6 text-center">
+        {EMPTY_MESSAGES.invitations}
+      </InlineEmpty>
     );
   }
 

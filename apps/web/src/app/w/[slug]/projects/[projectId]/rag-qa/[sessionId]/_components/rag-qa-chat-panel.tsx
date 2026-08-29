@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { useActionState, useEffect, useMemo, useOptimistic, useRef } from 'react';
 
 import { CreditCostBadge } from '@/components/credit-cost-badge';
+import { InlineEmpty } from '@/components/inline-empty';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { EMPTY_MESSAGES } from '@/lib/empty-messages';
 import type { MonthlyUsageSummary, RagQaMessage } from '@/lib/api/types';
 
 import { askMessageAction, type AskMessageFormState } from '../../_actions/ask-message';
@@ -120,9 +122,9 @@ export function RagQaChatPanel({
             <RagQaMessageItem key={message.id} message={message} pending={message.pending} />
           ))
         ) : (
-          <p className="text-muted-foreground rounded-lg border border-dashed py-10 text-center text-sm">
-            まだメッセージがありません。下の入力欄からプロジェクトについて質問してみましょう。
-          </p>
+          <InlineEmpty className="rounded-lg border border-dashed py-10 text-center">
+            {EMPTY_MESSAGES.ragQaMessages}
+          </InlineEmpty>
         )}
         <div ref={bottomRef} />
       </div>

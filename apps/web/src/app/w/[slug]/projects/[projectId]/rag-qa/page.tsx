@@ -58,7 +58,7 @@ export default async function RagQaSessionsPage({
       ) : (
         <EmptyState
           icon={MessageCircle}
-          title="まだ壁打ちセッションがありません。"
+          title="まだ壁打ちセッションがありません"
           description={
             canWrite
               ? '「新しい壁打ち」 から AI への相談を始めましょう。'

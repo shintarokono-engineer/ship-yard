@@ -1,9 +1,10 @@
 import { notFound } from 'next/navigation';
+import { Rocket } from 'lucide-react';
 
+import { EmptyState } from '@/components/empty-state';
 import { isWriterRole } from '@/lib/api/types';
 import { fetchWorkspace, listProjects } from '@/lib/api/workspaces';
 
-import { EmptyState } from './_components/empty-state';
 import { NewProjectDialog } from './_components/new-project-dialog';
 import { ProjectCard } from './_components/project-card';
 
@@ -53,7 +54,12 @@ export default async function WorkspaceProjectsPage({
           ))}
         </div>
       ) : (
-        <EmptyState>{canWrite ? <NewProjectDialog slug={slug} /> : null}</EmptyState>
+        <EmptyState
+          icon={Rocket}
+          title="最初のプロジェクトを作成しましょう"
+          description="アイデアを 1 行で書き留めるところから始められます。あとから AI に README やチェックリストを生成させられます。"
+          action={canWrite ? <NewProjectDialog slug={slug} /> : undefined}
+        />
       )}
     </div>
   );

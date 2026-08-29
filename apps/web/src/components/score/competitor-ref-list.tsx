@@ -1,5 +1,7 @@
 import { safeHref } from '@/components/lp-blocks/safe-href';
+import { InlineEmpty } from '@/components/inline-empty';
 import type { CompetitorRef } from '@/lib/api/types';
+import { EMPTY_MESSAGES } from '@/lib/empty-messages';
 
 /**
  * 競合プロダクトの参照リスト(プロダクト診断 / アイデア検証 共通)。
@@ -10,11 +12,7 @@ import type { CompetitorRef } from '@/lib/api/types';
  */
 export function CompetitorRefList({ competitorRefs }: { competitorRefs: CompetitorRef[] }) {
   if (competitorRefs.length === 0) {
-    return (
-      <p className="text-muted-foreground text-sm">
-        競合参照はありません(Web 検索が利用できなかった可能性があります)。
-      </p>
-    );
+    return <InlineEmpty>{EMPTY_MESSAGES.competitorRefs}</InlineEmpty>;
   }
 
   return (

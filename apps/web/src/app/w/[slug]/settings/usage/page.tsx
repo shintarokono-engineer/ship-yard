@@ -2,10 +2,12 @@ import Link from 'next/link';
 import { Sparkles } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
+import { InlineEmpty } from '@/components/inline-empty';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FEATURE_META, PLAN_META, type MonthlyUsageSummary } from '@/lib/api/types';
 import { fetchUsage } from '@/lib/api/workspaces';
+import { EMPTY_MESSAGES } from '@/lib/empty-messages';
 import { formatYearMonth } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -152,9 +154,9 @@ function FeatureBreakdownCard({ byFeature }: { byFeature: MonthlyUsageSummary['b
       </CardHeader>
       <CardContent>
         {byFeature.length === 0 ? (
-          <p className="text-muted-foreground py-4 text-center text-sm">
-            今月の AI 利用はまだありません。
-          </p>
+          <InlineEmpty className="py-4 text-center">
+            {EMPTY_MESSAGES.monthlyUsageByFeature}
+          </InlineEmpty>
         ) : (
           <ul className="space-y-3">
             {byFeature.map(({ feature, credits }) => (
