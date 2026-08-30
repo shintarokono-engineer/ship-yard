@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import { Category } from '@shipyard/db';
 
-import { buildChecklistItemsTool, parseChecklistItems } from './checklist-items-tool';
+import {
+  buildChecklistItemsTool,
+  excludeKnownTitles,
+  parseChecklistItems,
+} from './checklist-items-tool';
 
 const ALL: Category[] = [
   Category.TECH,
@@ -76,7 +80,7 @@ describe('buildChecklistItemsTool', () => {
       titleExample: 'OG 画像を用意する',
     });
 
-    expect(JSON.parse(JSON.stringify(actual))).toEqual(expected);
+    expect(actual).toEqual(expected);
   });
 });
 
@@ -172,5 +176,50 @@ describe('parseChecklistItems', () => {
       30,
     );
     expect(items).toEqual([]);
+  });
+});
+
+describe('excludeKnownTitles', () => {
+  const ITEMS = [
+    { category: Category.TECH, title: 'CI を通す' },
+    { category: Category.UX, title: '導線を直す' },
+    { category: Category.LEGAL, title: '利用規約を書く' },
+  ];
+
+  it('既存 title と完全一致する項目を落とす', () => {
+    const out = excludeKnownTitles(ITEMS, ['導線を直す']);
+    expect(out.map((i) => i.title)).toEqual(['CI を通す', '利用規約を書く']);
+  });
+
+  it('全件が既存と重複したら空配列を返す(呼び出し側は 0 件として扱う)', () => {
+    expect(
+      excludeKnownTitles(
+        ITEMS,
+        ITEMS.map((i) => i.title),
+      ),
+    ).toEqual([]);
+  });
+
+  it('既存 title が空なら何も落とさない', () => {
+    expect(excludeKnownTitles(ITEMS, [])).toHaveLength(3);
+  });
+
+  it('category が違っても title が同じなら落とす(重複の判定は title のみ)', () => {
+    const out = excludeKnownTitles(
+      [{ category: Category.MARKETING, title: 'CI を通す' }],
+      ['CI を通す'],
+    );
+    expect(out).toEqual([]);
+  });
+
+  it('部分一致では落とさない(完全一致のみ)', () => {
+    const out = excludeKnownTitles(ITEMS, ['CI']);
+    expect(out).toHaveLength(3);
+  });
+
+  it('入力配列を破壊しない', () => {
+    const input = [...ITEMS];
+    excludeKnownTitles(input, ['CI を通す']);
+    expect(input).toHaveLength(3);
   });
 });

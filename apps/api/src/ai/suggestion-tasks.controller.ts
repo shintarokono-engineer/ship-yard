@@ -1,4 +1,12 @@
-import { Body, Controller, NotFoundException, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Logger,
+  NotFoundException,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 
 import { Feature } from '@shipyard/db';
 
@@ -13,6 +21,7 @@ import { ProjectsService } from '../projects/projects.service';
 import type { WorkspaceAccess } from '../workspaces/membership.service';
 import { AI_MODEL_HAIKU, SUGGESTION_TASKS_EXISTING_TITLES_MAX } from './ai.constants';
 import { AIUsageService } from './ai-usage.service';
+import { excludeKnownTitles } from './checklist-items-tool';
 import { CreateChecklistFromSuggestionsDto } from './dto/create-checklist-from-suggestions.dto';
 import { pickSuggestions } from './suggestion-source';
 import { SuggestionTasksService } from './suggestion-tasks.service';
@@ -35,6 +44,8 @@ import { SuggestionTasksService } from './suggestion-tasks.service';
 @Controller('workspaces/:slug/projects/:projectId/checklist')
 @UseGuards(ClerkAuthGuard, WorkspaceGuard)
 export class SuggestionTasksController {
+  private readonly logger = new Logger(SuggestionTasksController.name);
+
   constructor(
     private readonly projects: ProjectsService,
     private readonly checklist: ChecklistService,
@@ -50,6 +61,9 @@ export class SuggestionTasksController {
    * - DEVELOPER 未満のロール → 403(`WorkspaceGuard` + `@Roles`)
    * - FREE プラン / 月次クレジット上限超過 → 403(`withCreditReservation`)
    * - index が範囲外 / 選択した提案が読み取れない → 400(`pickSuggestions`)
+   *
+   * 生成結果が既存項目とすべて重複した場合は `items: []` を返す(エラーにしない)。
+   * AI 呼び出しは行われているのでクレジットは消費される。
    */
   @Post('from-suggestions')
   @Roles(...WRITER_ROLES)
@@ -98,8 +112,22 @@ export class SuggestionTasksController {
           instructions,
         });
 
-        // 既存項目の後ろに追記する(position は既存件数から連番)。
-        const items = await this.checklist.bulkCreate(ws.tenantId, project.id, generated.items, {
+        // プロンプトで「既存と重複するな」と指示しているが、モデルの遵守は保証されない
+        // (実測でも完全一致の重複が出た)。コードで確定的に落とせる制約をモデルに委ねない。
+        // 突き合わせる範囲はプロンプトに渡したものと同一にする(渡していない古い項目まで
+        // 弾くと、ユーザーから見て「なぜ消えたか」が説明できないため)。
+        const fresh = excludeKnownTitles(generated.items, existingTitles);
+        if (fresh.length < generated.items.length) {
+          // 落とした件数はユーザーにもレスポンスにも出ないので、ログだけが唯一の観測点。
+          // 常に落ちているようならプロンプト側の指示が効いていないサイン。
+          this.logger.log(
+            `from-suggestions: dropped ${generated.items.length - fresh.length} duplicate item(s) of ${generated.items.length}`,
+          );
+        }
+
+        // 全件重複は AI の異常ではなく「もう十分タスク化されている」という正常な結果なので、
+        // 502 にはせず空配列を返す。呼び出し側が件数 0 として扱う。
+        const items = await this.checklist.bulkCreate(ws.tenantId, project.id, fresh, {
           baseOffset: project._count?.checklist ?? 0,
         });
 

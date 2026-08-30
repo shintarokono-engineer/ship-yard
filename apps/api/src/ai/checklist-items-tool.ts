@@ -98,6 +98,27 @@ export function buildChecklistItemsTool(options: ChecklistItemsToolOptions) {
  * 二重防御で TS 側でも検証する。不正な category / 空 title の項目は捨てる
  * (全部捨てた場合は呼び出し側で 502 相当のエラーにする契約)。
  */
+/**
+ * 既に存在する title と完全一致する項目を落とす。
+ *
+ * プロンプトでも「既存と重複するな」と指示するが、モデルの遵守は保証されない
+ * (F17 の実測で完全一致の重複が発生した)。コードで確定的に落とせる制約を
+ * モデルに委ねないための後段フィルタ。
+ *
+ * 突き合わせるのは **プロンプトに渡した title と同じ範囲** にすること。渡していない
+ * 項目まで弾くと、ユーザーから見て「なぜ生成されなかったか」が説明できなくなる。
+ *
+ * 表現違いの意味的な重複は落とせない。そこはプロンプト側の指示に任せる。
+ */
+export function excludeKnownTitles(
+  items: readonly GeneratedChecklistItem[],
+  knownTitles: readonly string[],
+): GeneratedChecklistItem[] {
+  if (knownTitles.length === 0) return [...items];
+  const known = new Set(knownTitles);
+  return items.filter((item) => !known.has(item.title));
+}
+
 export function parseChecklistItems(
   input: unknown,
   allowedCategories: Category[],
