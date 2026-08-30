@@ -5,8 +5,9 @@
 
 :root {
   --radius: 0.5rem;
-  /* 背景はわずかにグレーへ落とし、純白のカードと段差をつくる(白 on 白の解消)。 */
-  --background: oklch(0.985 0.002 286.32);
+  /* 背景はグレーへ落とし、純白のカードと段差をつくる(白 on 白の解消)。
+     0.985 では card との差が 1.04:1 しか無く段差として機能していなかった。 */
+  --background: oklch(0.968 0.003 286.32);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.141 0.005 285.823);
@@ -29,8 +30,21 @@
   --accent: oklch(0.962 0.018 292);
   --accent-foreground: oklch(0.457 0.24 292);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
+  /*
+     非テキストのコントラストは 3 系統に分ける(いずれも --card = 白 に対する比)。
+     テキスト色と違い以前は 3 つとも同値 oklch(0.92)= 1.27:1 で、面と面の境界も
+     コントロールの枠も同じ濃さだった。カード自体も背景との差が 1.04:1 しかなく、
+     画面全体が「白い平面」に見える原因になっていた。
+
+       --border          区切り線・カードの枠      1.41:1(装飾。WCAG の対象外)
+       --input           入力できるものの枠        2.29:1(存在が分かればよい)
+       --control-border  状態を枠だけで示すもの    3.13:1(WCAG 1.4.11 を満たす)
+
+     `--control-border` は checkbox のように「枠線が状態そのもの」 な部品に使う。
+     未チェックの checkbox は枠しか手がかりが無いため、区切り線と同じ濃さでは見えない。 */
+  --border: oklch(0.885 0.005 286.32);
+  --input: oklch(0.75 0.008 286.32);
+  --control-border: oklch(0.66 0.012 286.32);
   --ring: oklch(0.585 0.233 292);
 }
 
@@ -55,8 +69,11 @@
   --accent: oklch(0.36 0.055 292);
   --accent-foreground: oklch(0.962 0.018 292);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  /* ライト側と同じ 3 系統。暗い面の上なので白の不透明度で作る。
+     --card に合成したうえでの実測比: 1.52 / 2.17 / 3.14(ライト側とほぼ同じ)。 */
+  --border: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 24%);
+  --control-border: oklch(1 0 0 / 34%);
   --ring: oklch(0.585 0.233 292);
 }
 
@@ -83,6 +100,7 @@
   --color-destructive: var(--destructive);
   --color-border: var(--border);
   --color-input: var(--input);
+  --color-control-border: var(--control-border);
   --color-ring: var(--ring);
 }
 
