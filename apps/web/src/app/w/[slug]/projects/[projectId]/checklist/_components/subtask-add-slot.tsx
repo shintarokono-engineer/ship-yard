@@ -27,12 +27,14 @@ export function SubtaskAddSlot({
 
   if (!open) {
     return (
+      // 全項目の間に常時挟まると行のリズムを乱すので、既定は控えめにして
+      // ホバー / フォーカスで前に出す(存在は分かる濃さを残す)。
       <div className="ml-8">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setOpen(true)}
-          className="text-muted-foreground h-7 px-2 text-xs"
+          className="text-muted-foreground h-7 px-2 text-xs opacity-55 transition-opacity hover:opacity-100 focus-visible:opacity-100"
         >
           <Plus aria-hidden="true" />
           サブタスクを追加

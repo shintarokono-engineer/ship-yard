@@ -400,13 +400,55 @@ export type Category = (typeof CATEGORIES)[number];
 export const ITEM_STATUSES = ['TODO', 'IN_PROGRESS', 'DONE', 'NOT_APPLICABLE'] as const;
 export type ItemStatus = (typeof ITEM_STATUSES)[number];
 
-/** カテゴリの表示ラベル。 */
-export const CATEGORY_META: Record<Category, { label: string }> = {
-  TECH: { label: '技術' },
-  LEGAL: { label: '法務' },
-  MARKETING: { label: 'マーケティング' },
-  UX: { label: 'UX' },
-  OTHER: { label: 'その他' },
+/**
+ * カテゴリの表示ラベルと識別色。
+ *
+ * 以前は `label` だけを持っていたため、5 つのセクションが「見出しの文字」 でしか区別できず、
+ * 同じ形の行が並ぶチェックリストでは、どこが何のカテゴリか読み取るのに毎回文字を読む必要があった。
+ * 色相を離した 5 色を割り当てて、文字を読む前に識別できるようにする。
+ *
+ * Tailwind はクラス名を静的に走査するため、色名から動的に組み立てず完成形の文字列で持つ
+ * (`PROJECT_STATUS_META.badgeClassName` と同じ方針)。
+ *
+ * - `accentClassName`   … セクション左端の色帯
+ * - `dotClassName`      … 見出しのドット
+ * - `progressClassName` … shadcn `Progress` のトラックと Indicator を同系色に塗る
+ *   (Indicator は `data-slot="progress-indicator"` を持つのでセレクタで上書きする)
+ */
+export const CATEGORY_META: Record<
+  Category,
+  { label: string; accentClassName: string; dotClassName: string; progressClassName: string }
+> = {
+  TECH: {
+    label: '技術',
+    accentClassName: 'border-l-blue-500',
+    dotClassName: 'bg-blue-500',
+    progressClassName: 'bg-blue-500/15 [&>[data-slot=progress-indicator]]:bg-blue-500',
+  },
+  LEGAL: {
+    label: '法務',
+    accentClassName: 'border-l-slate-500',
+    dotClassName: 'bg-slate-500',
+    progressClassName: 'bg-slate-500/15 [&>[data-slot=progress-indicator]]:bg-slate-500',
+  },
+  MARKETING: {
+    label: 'マーケティング',
+    accentClassName: 'border-l-amber-500',
+    dotClassName: 'bg-amber-500',
+    progressClassName: 'bg-amber-500/15 [&>[data-slot=progress-indicator]]:bg-amber-500',
+  },
+  UX: {
+    label: 'UX',
+    accentClassName: 'border-l-violet-500',
+    dotClassName: 'bg-violet-500',
+    progressClassName: 'bg-violet-500/15 [&>[data-slot=progress-indicator]]:bg-violet-500',
+  },
+  OTHER: {
+    label: 'その他',
+    accentClassName: 'border-l-emerald-500',
+    dotClassName: 'bg-emerald-500',
+    progressClassName: 'bg-emerald-500/15 [&>[data-slot=progress-indicator]]:bg-emerald-500',
+  },
 };
 
 /** 進捗状態の表示ラベル + バッジ。 */
