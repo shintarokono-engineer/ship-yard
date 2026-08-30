@@ -131,6 +131,8 @@ enum Feature {
   IDEA_VALIDATION
   /// マルチチャネル告知配信の文面生成(Sonnet 4 + Tool Use、Twitter + Blog を一括、ADR-014)
   ANNOUNCEMENT_GEN
+  /// 壁打ちセッションの要約による Project.description 更新(Sonnet 4 + Tool Use)
+  DESCRIPTION_SYNC
   /// その他の AI 機能
   OTHER
 }
