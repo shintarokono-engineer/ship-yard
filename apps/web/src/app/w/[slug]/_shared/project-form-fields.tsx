@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
   CATEGORY_DOMAIN_LABEL,
   CATEGORY_DOMAINS,
@@ -121,6 +122,9 @@ export function ProjectFormFields({
   // 開閉を自前で持つ理由は `CollapsibleContent` のコメントを参照。
   const [briefOpen, setBriefOpen] = useState(briefHasContent);
 
+  // ライフサイクル状態は ToggleGroup(button 群)なので、値を state で持って hidden input で送る。
+  const [status, setStatus] = useState(initialStatus);
+
   const nameOnly = variant === 'name-only';
 
   return (
@@ -179,27 +183,39 @@ export function ProjectFormFields({
             </InputGroup>
           </FormField>
 
-          <FormField id="status" label="ライフサイクル状態" errors={statusErrors}>
-            <Select name="status" defaultValue={initialStatus}>
-              {/* 既定の SelectTrigger は内容幅。他のフィールドが全幅なので左右のラインが揃わない。 */}
-              <SelectTrigger
-                id="status"
-                className="w-full"
-                aria-invalid={statusErrors && statusErrors.length > 0 ? 'true' : undefined}
-                aria-describedby={
-                  statusErrors && statusErrors.length > 0 ? 'status-error' : undefined
-                }
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PROJECT_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {PROJECT_STATUS_META[s].label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/*
+            5 個固定で順序のある段階なので、開かないと中身が見えない Select ではなく
+            全部が一度に見えるセグメントにする。現在地と残りの段階が同時に読める。
+            グループなので `as="fieldset"`(legend でグループ名を読ませる)。
+          */}
+          <FormField as="fieldset" id="status" label="ライフサイクル状態" errors={statusErrors}>
+            {/* ToggleGroup は button 群なので FormData に載らない。値は hidden input で送る。 */}
+            <input type="hidden" name="status" value={status} />
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              value={status}
+              // 選択済みの項目をもう一度押すと `''` が来る。状態は必ず 1 つなので無視する。
+              onValueChange={(next) => {
+                if (next) setStatus(next);
+              }}
+              className="w-full flex-wrap"
+              aria-describedby={
+                statusErrors && statusErrors.length > 0 ? 'status-error' : undefined
+              }
+            >
+              {PROJECT_STATUSES.map((s) => (
+                <ToggleGroupItem
+                  key={s}
+                  value={s}
+                  // 既定の on 状態は `bg-accent`(淡い紫)で、5 個並ぶと現在地が判別しづらい。
+                  // セグメントコントロールの慣習どおり選択中を塗って浮かせる。
+                  className="data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground flex-1 whitespace-nowrap data-[state=on]:font-medium"
+                >
+                  {PROJECT_STATUS_META[s].label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
           </FormField>
 
           {/*
