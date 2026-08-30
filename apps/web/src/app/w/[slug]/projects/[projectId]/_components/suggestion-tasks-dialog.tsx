@@ -10,6 +10,7 @@ import { CreditCostBadge } from '@/components/credit-cost-badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -161,14 +162,13 @@ export function SuggestionTasksDialog<A extends string>({
                         : 'border-input hover:bg-accent/20')
                     }
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       name="indexes"
                       value={i}
                       checked={checked}
-                      onChange={() => toggle(i)}
+                      onCheckedChange={() => toggle(i)}
                       disabled={pending}
-                      className="mt-1 size-4 shrink-0"
+                      className="mt-1 shrink-0"
                     />
                     <div className="min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-1.5">

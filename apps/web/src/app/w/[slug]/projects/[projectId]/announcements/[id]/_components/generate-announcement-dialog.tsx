@@ -8,6 +8,7 @@ import { FormField } from '@/app/w/[slug]/_shared/form-field';
 import { CreditCostBadge } from '@/components/credit-cost-badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -142,14 +143,12 @@ export function GenerateAnnouncementDialog({
             <FormField as="fieldset" id="channels" label="再生成するチャネル(未選択 = 全チャネル)">
               <div className="flex flex-wrap gap-4">
                 {DELIVERY_CHANNELS.map((c: DeliveryChannel) => (
-                  <label key={c} className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      name="channels"
-                      value={c}
-                      disabled={pending}
-                      className="border-input size-4 rounded border"
-                    />
+                  <label key={c} className="flex cursor-pointer items-center gap-2 text-sm">
+                    {/*
+                      Radix Checkbox は実体が <button>。フォーム内では name/value を持つ
+                      hidden input を内部で生成するので、FormData.getAll('channels') は従来どおり。
+                    */}
+                    <Checkbox name="channels" value={c} disabled={pending} />
                     {DELIVERY_CHANNEL_META[c].label}
                   </label>
                 ))}

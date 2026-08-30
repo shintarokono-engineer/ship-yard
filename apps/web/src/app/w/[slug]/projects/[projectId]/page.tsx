@@ -2,19 +2,12 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronRight, FileText } from 'lucide-react';
 
+import { EmptyState } from '@/components/empty-state';
 import { InlineEmpty } from '@/components/inline-empty';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
 import { Card, CardAction, CardContent, CardHeader } from '@/components/ui/card';
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty';
 import { Item, ItemContent, ItemGroup, ItemMedia, ItemTitle } from '@/components/ui/item';
 import { ProjectBreadcrumbs } from '@/components/project-breadcrumbs';
 import { isAdminRole, isWriterRole, PROJECT_STATUS_META } from '@/lib/api/types';
@@ -238,24 +231,22 @@ export default async function ProjectDetailPage({
                   </div>
                 </div>
               ) : (
-                <Empty className="border-border rounded-lg border border-dashed py-8">
-                  <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                      <FileText aria-hidden="true" />
-                    </EmptyMedia>
-                    <EmptyTitle className="text-sm">README はまだありません</EmptyTitle>
-                    <EmptyDescription>
-                      {canWrite
-                        ? 'プロジェクト情報をもとに AI が下書きを作れます。'
-                        : EMPTY_MESSAGES.readme.readOnly}
-                    </EmptyDescription>
-                  </EmptyHeader>
-                  {canWrite && (
-                    <EmptyContent>
+                /* 全画面の空状態と同じ部品を使う。カード内なので余白だけ詰める。 */
+                <EmptyState
+                  icon={FileText}
+                  title="README はまだありません"
+                  description={
+                    canWrite
+                      ? 'プロジェクト情報をもとに AI が下書きを作れます。'
+                      : EMPTY_MESSAGES.readme.readOnly
+                  }
+                  action={
+                    canWrite ? (
                       <GenerateReadmeDialog slug={slug} projectId={projectId} usage={usage} />
-                    </EmptyContent>
-                  )}
-                </Empty>
+                    ) : undefined
+                  }
+                  className="bg-transparent py-8 md:p-8"
+                />
               )}
             </CardContent>
           </Card>

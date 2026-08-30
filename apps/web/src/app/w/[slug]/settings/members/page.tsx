@@ -4,6 +4,14 @@ import { notFound } from 'next/navigation';
 import { InlineEmpty } from '@/components/inline-empty';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { listInvitations } from '@/lib/api/invitations';
 import { listMembers } from '@/lib/api/members';
 import { EMPTY_MESSAGES } from '@/lib/empty-messages';
@@ -138,25 +146,26 @@ function MemberTable({
   currentUserId: string | undefined;
 }) {
   return (
-    <div className="overflow-x-auto rounded-md border">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/40 text-muted-foreground">
-          <tr>
-            <th scope="col" className="px-4 py-2 text-left font-medium">
+    // 横スクロールのラッパーは `Table` が内包するので、ここは枠線だけ持つ。
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader className="bg-muted/40">
+          <TableRow className="hover:bg-transparent">
+            <TableHead scope="col" className="px-4">
               メンバー
-            </th>
-            <th scope="col" className="px-4 py-2 text-left font-medium">
+            </TableHead>
+            <TableHead scope="col" className="px-4">
               ロール
-            </th>
-            <th scope="col" className="px-4 py-2 text-left font-medium">
+            </TableHead>
+            <TableHead scope="col" className="px-4">
               参加日
-            </th>
-            <th scope="col" className="px-4 py-2 text-right font-medium">
+            </TableHead>
+            <TableHead scope="col" className="px-4 text-right">
               操作
-            </th>
-          </tr>
-        </thead>
-        <tbody>
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {members.map((m) => {
             const isSelf = m.userId === currentUserId;
             // OWNER のロール・削除は誰も操作できない(所有権譲渡は別 API)。
@@ -169,15 +178,16 @@ function MemberTable({
             const showDelete = !isOwner && ((isAdmin && !isAdminVsAdmin) || isSelf);
             const memberName = m.user.name?.trim() || m.user.email;
             return (
-              <tr key={m.userId} className="border-t">
-                <td className="px-4 py-3">
+              <TableRow key={m.userId}>
+                {/* `TableCell` の既定は whitespace-nowrap。名前 + メールの 2 段は折り返させる。 */}
+                <TableCell className="px-4 py-3 whitespace-normal">
                   <div className="font-medium">
                     {memberName}
                     {isSelf && <span className="text-muted-foreground ml-2 text-xs">(あなた)</span>}
                   </div>
                   <div className="text-muted-foreground text-xs">{m.user.email}</div>
-                </td>
-                <td className="px-4 py-3">
+                </TableCell>
+                <TableCell className="px-4 py-3">
                   {showRoleSelect ? (
                     <RoleSelect
                       slug={slug}
@@ -190,18 +200,20 @@ function MemberTable({
                       {ROLE_LABELS[m.role]}
                     </Badge>
                   )}
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">{formatDateTime(m.joinedAt)}</td>
-                <td className="px-4 py-3 text-right">
+                </TableCell>
+                <TableCell className="text-muted-foreground px-4 py-3">
+                  {formatDateTime(m.joinedAt)}
+                </TableCell>
+                <TableCell className="px-4 py-3 text-right">
                   {showDelete && (
                     <DeleteMemberDialog slug={slug} member={m} isSelfWithdrawal={isSelf} />
                   )}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }
@@ -222,57 +234,59 @@ function InvitationTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-md border">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/40 text-muted-foreground">
-          <tr>
-            <th scope="col" className="px-4 py-2 text-left font-medium">
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader className="bg-muted/40">
+          <TableRow className="hover:bg-transparent">
+            <TableHead scope="col" className="px-4">
               メールアドレス
-            </th>
-            <th scope="col" className="px-4 py-2 text-left font-medium">
+            </TableHead>
+            <TableHead scope="col" className="px-4">
               ロール
-            </th>
-            <th scope="col" className="px-4 py-2 text-left font-medium">
+            </TableHead>
+            <TableHead scope="col" className="px-4">
               状態
-            </th>
-            <th scope="col" className="px-4 py-2 text-left font-medium">
+            </TableHead>
+            <TableHead scope="col" className="px-4">
               有効期限
-            </th>
-            <th scope="col" className="px-4 py-2 text-left font-medium">
+            </TableHead>
+            <TableHead scope="col" className="px-4">
               招待者
-            </th>
-            <th scope="col" className="px-4 py-2 text-right font-medium">
+            </TableHead>
+            <TableHead scope="col" className="px-4 text-right">
               操作
-            </th>
-          </tr>
-        </thead>
-        <tbody>
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {invitations.map((inv) => {
             const meta = INVITATION_STATUS_META[inv.status];
             const inviter = inv.invitedBy.name?.trim() || inv.invitedBy.email;
             return (
-              <tr key={inv.id} className="border-t">
-                <td className="px-4 py-3">{inv.email}</td>
-                <td className="px-4 py-3">
+              <TableRow key={inv.id}>
+                <TableCell className="px-4 py-3">{inv.email}</TableCell>
+                <TableCell className="px-4 py-3">
                   <Badge variant="outline" className="font-mono">
                     {ROLE_LABELS[inv.role]}
                   </Badge>
-                </td>
-                <td className="px-4 py-3">
+                </TableCell>
+                <TableCell className="px-4 py-3">
                   <Badge variant={meta.variant} className={meta.className}>
                     {meta.label}
                   </Badge>
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">{formatDateTime(inv.expiresAt)}</td>
-                <td className="px-4 py-3 text-muted-foreground">{inviter}</td>
-                <td className="px-4 py-3 text-right">
+                </TableCell>
+                <TableCell className="text-muted-foreground px-4 py-3">
+                  {formatDateTime(inv.expiresAt)}
+                </TableCell>
+                <TableCell className="text-muted-foreground px-4 py-3">{inviter}</TableCell>
+                <TableCell className="px-4 py-3 text-right">
                   <InvitationRowActions slug={slug} invitationId={inv.id} status={inv.status} />
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }
