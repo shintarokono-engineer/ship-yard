@@ -34,12 +34,22 @@
 
 ## AI(ADR-005)
 
-- Sonnet 4: 競合調査 / ドキュメント生成 / RAG QA(品質要件が高い場面)
-- Haiku 4.5: タスク分解 / チェックリスト生成 / 文章推敲(構造化中心)
+- Sonnet 4: ドキュメント生成 / RAG QA / **採点・診断**(品質要件が高い場面)
+- Haiku 4.5: タスク分解 / チェックリスト生成 / 文章推敲 / **Web 検索と要約**(構造化中心)
+- **2-step 機能(`PRODUCT_DIAGNOSIS` / `IDEA_VALIDATION`)はターンごとにモデルを分ける**(ADR-016)。
+  turn 1(Web 検索 + 競合の要約)は Haiku、turn 2(rubric に沿った採点)は Sonnet。
+  実測でトークンの 63% が turn 1 に乗るため、採点しない turn を Haiku にするのが最大のコスト削減になる
+  (¥50.1 → ¥27.8 / 回、スコア・競合件数は変化なし)。**turn 1 を Sonnet に戻すとコストが倍近くなる**
+- モデルが混在する機能の `AIUsage.costJpy` は `sumCostJpy` で turn ごとに積算する
+  (行の `model` 単価だけで見積もると実費を 4 割ほど過大に記録する)
 - Tool Use は構造化出力が必要な場面のみ。利用箇所はコードコメントで理由を残す
 - pgvector + text-embedding-3-small(1536 次元)、HNSW インデックスで RAG
 - 全 AI 呼び出しは `AIUsage` テーブルにテナント単位で記録(プラン別 AI クレジット上限の判定にも使う、ADR-012)
-- 上限は AI クレジット制(Haiku 4.5=1cr、Sonnet 4=3cr、`Feature.OTHER`=0cr)。`AIUsage.credits` 列の月次合計が Free=0(停止)/ Pro=300 / Team=seats×800 を超えたら 403(`assertWithinPlanCredits`)。`OTHER` は 0cr で記録されるため自然に上限から除外され、ユーザー視点の「残りクレジット」と一致する
+- 上限は AI クレジット制(既定は Haiku 4.5=1cr、Sonnet 4=3cr、`Feature.OTHER`=0cr。複数ターン呼ぶ機能は `turnCount` 倍)。
+  **実コストがモデル基準から乖離する機能は `FEATURE_CREDIT_OVERRIDES` で明示的に固定する**
+  (`ANNOUNCEMENT_GEN`=4cr、`PRODUCT_DIAGNOSIS` / `IDEA_VALIDATION`=10cr)。
+  **モデルを安くしただけでは支出は減らない**。cr が自動で下がると月間の実行回数が増えて相殺されるため、
+  支出の天井を決めているのは実費ではなく cr 価格である(ADR-016)。`AIUsage.credits` 列の月次合計が Free=0(停止)/ Pro=300 / Team=seats×800 を超えたら 403(`assertWithinPlanCredits`)。`OTHER` は 0cr で記録されるため自然に上限から除外され、ユーザー視点の「残りクレジット」と一致する
 
 ## フロントエンド(Next.js App Router / React)
 
@@ -56,7 +66,7 @@
 
 ## マジックナンバー / 設定値
 
-- 上限回数・モデル ID・単価・為替・タイムアウト等、**変更されうる値は定数ファイルに集約**する(コード中に直書きしない)。例: AI 関連は `apps/api/src/ai/ai.constants.ts`
+- 上限回数・モデル ID・単価・為替・タイムアウト等、**変更されうる値は定数ファイルに集約**する(コード中に直書きしない)。例: AI 関連は `apps/api/src/ai/shared/ai.constants.ts`
 - schema の enum がある値はマジック文字列ではなく enum(`@shipyard/db` 経由)を使う(`'PRO'` ではなく `Plan.PRO`)
 
 ## 環境変数を追加するとき(本番だけ壊れる事故の防止)
