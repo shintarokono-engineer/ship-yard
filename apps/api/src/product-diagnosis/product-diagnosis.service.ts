@@ -3,6 +3,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Feature, type Plan, type Prisma, type ServiceScore } from '@shipyard/db';
 
 import {
+  AI_MODEL_HAIKU,
   AI_MODEL_SONNET,
   PRODUCT_DIAGNOSIS_MAX_TOKENS,
   PRODUCT_DIAGNOSIS_TEMPERATURE,
@@ -10,10 +11,11 @@ import {
   WEB_SEARCH_TOOL_NAME,
   WEB_SEARCH_TOOL_TYPE,
 } from '../ai/shared/ai.constants';
-import { AIUsageService } from '../ai/shared/ai-usage.service';
+import { AIUsageService, sumCostJpy } from '../ai/shared/ai-usage.service';
 import { AnthropicService } from '../ai/shared/anthropic.service';
 import { AI_PERSONA_INTRO } from '../ai/shared/prompts';
-import { extractToolUseBlock } from '../ai/shared/tool-use';
+import { extractTextContentOrNull, extractToolUseBlock } from '../ai/shared/tool-use';
+import { logTwoStepUsage } from '../ai/shared/turn-usage-log';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatStructuredBriefForPrompt } from '../projects/project-brief.constants';
 import { formatRubricForPrompt } from './diagnosis.constants';
@@ -208,12 +210,20 @@ export class ProductDiagnosisService {
         '- Web Search Tool を使い、類似 / 競合サービスを **3〜5 件** 取得してください。',
         '- 検索クエリはプロダクト名・カテゴリ・想定機能から組み立ててください。複数回検索しても構いません(最大 5 回)。',
         '- 結果は箇条書きで「名前 / 公式 URL / 概要(2〜3 文) / 本プロダクトとの類似性」 を 1 件ずつまとめてください。',
+        '- URL は**その製品の公式ページ**を指してください。製品自身のサイト、または制作者が出している製品ページ(公式ストア・出展ページ等)が該当します。',
+        '  ニュース記事・プレスリリース・まとめサイト・第三者のデータベース・小売店の商品ページは公式ではありません。',
+        '  独自ドメインを持つ製品ならトップページで構いません。企業サイトやマーケットプレイス内の製品なら、その製品のページを指してください。',
+        '  **検索結果で実際に開いて確認した URL だけを使い、URL の規則から推測して組み立てないでください。**確認できなければ、その競合は含めなくて構いません。',
         '- 競合が見つからない場合は「該当なし」 と明示してください(無理に捏造しない)。',
         '- 採点は次のターンで行うので、このターンでは採点コメントは出さないでください。',
       ].join('\n');
 
+      // ADR-016:turn 1 は Web 検索と要約のみで採点しないため Haiku で足りる。
+      // 2026-08-30 の実測でトークンの 63%(44,383 / 70,145)が turn 1 に乗っており、
+      // ここを Sonnet($3/$15)から Haiku($1/$5)に落とすのが最大の削減になる。
+      // 採点は turn 2 の Sonnet が行うのでスコアの質には影響しない。
       const turn1 = await this.anthropic.client.messages.create({
-        model: AI_MODEL_SONNET,
+        model: AI_MODEL_HAIKU,
         max_tokens: PRODUCT_DIAGNOSIS_MAX_TOKENS,
         temperature: PRODUCT_DIAGNOSIS_TEMPERATURE,
         system: researchSystemPrompt,
@@ -235,6 +245,12 @@ export class ProductDiagnosisService {
       const webSearchRequests = (turn1.usage as any)?.server_tool_use?.web_search_requests ?? 0;
       const webSearchUsed = webSearchRequests > 0;
 
+      // 🔴 `extractTextContent` は text が空だと 502 を投げる。turn 1 が要約を出し切れなかっただけで
+      // 診断全体を落とす理由は無いため、非 throw 版を使い「競合 0 件」 として採点を続行する。
+      const researchText =
+        extractTextContentOrNull(turn1) ??
+        '(競合調査の結果を取得できませんでした。競合は 0 件として扱ってください)';
+
       // 6. ターン 2: ターン 1 の調査結果を context に含めて構造化出力(Day 47.5、2-step 化の後半)
       const scoringSystemPrompt = [
         AI_PERSONA_INTRO,
@@ -247,6 +263,8 @@ export class ProductDiagnosisService {
         '## 採点ポリシー(厳格性確保)',
         '- 高得点(15 点以上)は明確な強みがある場合のみ付けてください。安易に高得点を付けないこと。',
         '- 各軸の comment には採点根拠を 1-3 文で具体的に書いてください(「〇〇が△△で評価できる」 等)。',
+        '- **記述の巧拙ではなく、記述されている内容の実質**を評価してください。文章表現や書き方の改善提案は出さないこと。',
+        '- 実質を判断できるだけの材料が無い場合は、文章を採点せず「判断材料が不足している」 として低く付け、何を書けば判断できるかを提案に書いてください。',
         '- totalScore は breakdown の 5 軸合計と必ず一致させてください(不一致は不正回答として扱われます)。',
         '',
         '## 改善提案',
@@ -255,7 +273,7 @@ export class ProductDiagnosisService {
         '',
         '## 競合参照',
         '- 直前のターンで Web Search で取得した類似プロダクトを `competitorRefs` に格納してください。',
-        '- 各 ref は実在する URL を必須とし、Web Search 結果に含まれていたものに限定してください(捏造禁止)。',
+        '- 各 ref は実在する URL を必須とし、**直前のターンの調査結果に記載されていたもの**に限定してください(捏造禁止)。',
         '- 競合が 0 件なら空配列で構いません。',
       ].join('\n');
 
@@ -268,7 +286,11 @@ export class ProductDiagnosisService {
         tool_choice: { type: 'tool', name: SUBMIT_SERVICE_SCORE_TOOL.name },
         messages: [
           { role: 'user', content: userText },
-          { role: 'assistant', content: turn1.content },
+          // ADR-016:turn 1 の**最終テキストだけ**を渡す。`turn1.content` をそのまま渡すと
+          // `web_search_tool_result`(実測 64,838 文字)まで再送され、turn 2 の入力が二重に膨らむ。
+          // turn 1 の system prompt が「名前 / URL / 概要 / 類似性を箇条書きで」 とまとめさせているため、
+          // 採点に必要な情報は最終テキストに揃っている。
+          { role: 'assistant', content: researchText },
           {
             role: 'user',
             content:
@@ -276,6 +298,9 @@ export class ProductDiagnosisService {
           },
         ],
       });
+
+      // コスト検討用の turn 別内訳(AIUsage は合算しか持たないため。`turn-usage-log.ts` 参照)
+      logTwoStepUsage(this.logger, 'PRODUCT_DIAGNOSIS', turn1, turn2);
 
       // 7. 整合性検証(totalScore = sum of breakdown、URL 安全性)
       const block = extractToolUseBlock(turn2, 'PRODUCT_DIAGNOSIS');
@@ -292,6 +317,8 @@ export class ProductDiagnosisService {
             suggestions: output.suggestions as unknown as Prisma.InputJsonValue,
             competitorRefs: output.competitorRefs as unknown as Prisma.InputJsonValue,
             webSearchUsed,
+            // ADR-016 以降 turn 1 は Haiku、turn 2 は Sonnet の混在。ここは**採点したモデル**
+            // (turn 2)を記録する。実費の内訳は `AIUsage.costJpy`(`sumCostJpy` で turn 別に積算)を見る。
             modelUsed: AI_MODEL_SONNET,
             createdById: input.userId,
           },
@@ -307,10 +334,29 @@ export class ProductDiagnosisService {
       // クレジット消費は `turnCount: 2` を渡して 6cr(Sonnet 3cr × 2)とする。
       // これにより `usedCredits` が実 API call 回数と一致し、ADR-012 のプラン上限判定が原価と整合する。
       // 予約したクレジット行に実トークン数を確定する(credits は予約時の 6cr のまま)。
-      await this.aiUsage.finalizeReservation(reservationId, {
-        tokensIn: turn1.usage.input_tokens + turn2.usage.input_tokens,
-        tokensOut: turn1.usage.output_tokens + turn2.usage.output_tokens,
-      });
+      // ADR-016:turn 1 = Haiku / turn 2 = Sonnet でモデルが異なるため、円コストは turn ごとに積算する
+      // (行の model = Sonnet だけで見積もると turn 1 まで Sonnet 単価になり実費を過大記録する)。
+      await this.aiUsage.finalizeReservation(
+        reservationId,
+        {
+          tokensIn: turn1.usage.input_tokens + turn2.usage.input_tokens,
+          tokensOut: turn1.usage.output_tokens + turn2.usage.output_tokens,
+        },
+        sumCostJpy([
+          // 定数を直書きせず応答の model を使う。turn の model を変えたときに
+          // ここを直し忘れて costJpy が静かに誤るのを防ぐ。
+          {
+            model: turn1.model,
+            tokensIn: turn1.usage.input_tokens,
+            tokensOut: turn1.usage.output_tokens,
+          },
+          {
+            model: turn2.model,
+            tokensIn: turn2.usage.input_tokens,
+            tokensOut: turn2.usage.output_tokens,
+          },
+        ]),
+      );
       if (webSearchUsed) {
         await this.aiUsage.record({
           tenantId: input.tenantId,

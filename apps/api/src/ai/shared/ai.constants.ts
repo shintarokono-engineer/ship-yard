@@ -57,6 +57,21 @@ export const FALLBACK_MODEL_CREDITS = 3;
 export const FEATURE_CREDIT_OVERRIDES: Partial<Record<Feature, number>> = {
   // ADR-014:Sonnet 4 + Tool Use で Twitter + Blog をマルチチャネル一括生成、max_tokens 3072 + tool 呼び出しオーバーヘッド
   [Feature.ANNOUNCEMENT_GEN]: 4,
+
+  // ADR-016 / F23:Web Search + 2-step で実コストがモデル基準から大きく乖離するため固定する。
+  //
+  // **値は turnCount(= 2)に掛かるので 5 = 10cr。** ここを空けておくと `MODEL_CREDITS` から
+  // 自動計算され、turn 1 を Haiku にした結果 4cr に下がってしまう。そうなると Pro の 300cr で
+  // 回せる回数が 50 → 75 に増え、**実費を半減させた分がそのまま回数増で相殺される**。
+  // 支出の天井を決めているのは実費ではなくクレジット価格なので、モデル式から切り離して固定する。
+  //
+  // 根拠(2026-08-30 実測 + Haiku 化後の試算):
+  //   実費 約 ¥26.6 / 回(モデル ¥20.6 + Web Search ¥6)
+  //   10cr なら 300cr = 月 30 回 → 最悪支出 ¥798、単価 ¥2.66/cr
+  //   ¥4.93/cr(= ¥1,480 ÷ 300cr)は売上を全額 AI に使う前提で甘い。Stripe(約 ¥53)と
+  //   インフラ(月 $38 の頭割り)を引くと、初期の人数では実質 ¥3/cr 前後が上限。
+  [Feature.PRODUCT_DIAGNOSIS]: 5,
+  [Feature.IDEA_VALIDATION]: 5,
 };
 
 /** Team プランの 1 seat(メンバー)あたり月次クレジット上限(ADR-012)。共有プールで `seats × 800 cr` が上限。 */
@@ -251,12 +266,27 @@ export const IDEA_VALIDATION_MAX_PER_MONTH_PRO = 30;
 /**
  * Anthropic server-side Web Search Tool の type 名(ADR-013、PRODUCT_DIAGNOSIS / IDEA_VALIDATION で使用)。
  *
- * Anthropic 公式ドキュメント(docs.claude.com、2026-02 時点)で確認した正式 type 名。
  * 採用バージョン:`web_search_20250305`(標準版、動的フィルタリングなし)。
  *
- * 別バージョン `web_search_20260209`(動的フィルタリング対応)は code_execution tool の有効化が必須で、
- * モデルも Claude Mythos / Opus 4.7・4.6 / Sonnet 4.6 限定。MVP では標準版で必要十分のため不採用。
- * v1.x で診断品質改善が必要になったら 20260209 への切替を検討。
+ * **`web_search_20260209`(動的フィルタリング版)は 2026-08-30 に実測して不採用に戻した。**
+ * コスト削減を狙って切り替えたが、逆に悪化した(同一プロジェクトで比較):
+ *
+ * |            | 20250305(08-29) | 20260209(08-30) |
+ * | ---------- | ---------------- | ---------------- |
+ * | tokensIn   | 67,831           | **141,632**      |
+ * | costJpy    | ¥41.65           | **¥79.03**       |
+ * | 所要時間   | 53〜113 秒       | **153 秒**       |
+ *
+ * 原因は本機能の 2-step 構成。turn 2 が `{ role: 'assistant', content: turn1.content }` で
+ * **turn 1 の内容を丸ごと再送する**ため、動的フィルタリングが内部の code execution で増やした
+ * ブロックが turn 2 の入力として二重に乗る。フィルタリングの節約分を再送が食い潰す。
+ * さらに 153 秒は FE の `API_TIMEOUT_MS = 55_000`(`apps/web/src/lib/api/client.ts`)を超えるため、
+ * **UI からは 504 で失敗する**。
+ *
+ * 再挑戦するなら、先に turn 2 へ渡す内容を turn 1 の最終テキストだけに絞る改修が必要。
+ * その際の注意: `tools` に `code_execution` を併記してはいけない(動的フィルタリングは内部で
+ * 実行するため別途宣言は不要。宣言すると実行環境が二重になりモデルが混乱する)。ベータヘッダも不要。
+ * 対応モデルは Opus 4.6 以降 / Sonnet 4.6 以降で、現行の `AI_MODEL_SONNET` は該当する。
  */
 export const WEB_SEARCH_TOOL_TYPE = 'web_search_20250305';
 
@@ -266,6 +296,12 @@ export const WEB_SEARCH_TOOL_NAME = 'web_search';
 /**
  * Web Search Tool の `max_uses`(PRODUCT_DIAGNOSIS / IDEA_VALIDATION の競合 3-5 件取得想定で 5 回まで)。
  * Anthropic の Web Search は $10 / 1000 searches なので、5 回でも 1 回あたり最大 $0.05 ≒ 7.5 円。
+ *
+ * **意図的に 5 のまま**(ADR-016)。下げれば検索料金と結果トークンが減るが、失われるのは
+ * 「クエリを言い換えて再挑戦する余地」 で、ニッチなプロダクトほど競合を拾えなくなる。
+ * 影響するのは `competitiveAdvantage` / `marketPotential` = 本機能の差別化価値そのもの。
+ * 動的フィルタリング(`WEB_SEARCH_TOOL_TYPE`)の削減幅をまず実測し、それでも損益分岐
+ * (¥4.93/cr × 6cr = ¥29.6 / 回)を超える場合に限り、5 → 3 と 1 段ずつ下げて競合取得数を確認する。
  */
 export const WEB_SEARCH_MAX_USES = 5;
 

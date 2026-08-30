@@ -23,7 +23,7 @@ import { SuggestionTasksDialog } from '../../_components/suggestion-tasks-dialog
 /**
  * `/w/{slug}/projects/{projectId}/idea-validations/{id}` — アイデア検証 1 件の結果ページ。
  *
- * 5 軸ブレークダウン(問題明確性 / ターゲット明確性 / 差別化 / 競合優位性 / 市場性)に加え、
+ * 5 軸ブレークダウン(課題の強度 / 対象の到達可能性 / 打ち手の妥当性 / 競合優位性 / 市場性)に加え、
  * GO / PIVOT / NO_GO の意思決定支援値、改善提案、競合参照を表示する。
  * 全テナントメンバーが閲覧可。再実行は履歴一覧から(本ページにはボタンを置かない)。
  */

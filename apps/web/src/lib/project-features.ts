@@ -84,7 +84,7 @@ export const PROJECT_FEATURE_META: Record<ProjectFeature, ProjectFeatureMeta> = 
     segment: 'diagnoses',
     description: 'AI が実競合と比較してプロダクトの実用性を 100 点満点でスコア化します。',
     detail:
-      '開発中以降のプロジェクトを 5 軸(差別化 / ターゲット明確性 / 機能完成度 / リリース準備度 / 競合優位性)で AI がスコア化し、改善提案と競合参照を提示します。',
+      '開発中以降のプロジェクトを 5 軸(差別化の実効性 / 対象の到達可能性 / 機能完成度 / リリース準備度 / 競合優位性)で AI がスコア化し、改善提案と競合参照を提示します。',
     planLimited: true,
   },
 };
