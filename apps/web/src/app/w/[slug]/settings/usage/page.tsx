@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Sparkles } from 'lucide-react';
 
-import { Alert } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { InlineEmpty } from '@/components/inline-empty';
 import { Button } from '@/components/ui/button';
@@ -79,14 +79,18 @@ function UsageSummaryCard({
 /** FREE(トライアル終了後)向け。AI 機能停止のメッセージ + プラン選択画面への導線。 */
 function FreeFallbackUsage({ slug }: { slug: string }) {
   return (
-    <Alert variant="warning" className="space-y-2">
-      <p className="font-medium">AI 機能は停止中です</p>
-      <p className="text-xs">Pro / Team プランへアップグレードすると AI 機能が再開します。</p>
-      <Link href={`/w/${slug}/settings/billing`}>
-        <Button size="sm" variant="outline">
-          プランを選ぶ
-        </Button>
-      </Link>
+    <Alert variant="warning">
+      <AlertTitle>AI 機能は停止中です</AlertTitle>
+      <AlertDescription>
+        <span className="text-xs">
+          Pro / Team プランへアップグレードすると AI 機能が再開します。
+        </span>
+        <Link href={`/w/${slug}/settings/billing`}>
+          <Button size="sm" variant="outline">
+            プランを選ぶ
+          </Button>
+        </Link>
+      </AlertDescription>
     </Alert>
   );
 }
