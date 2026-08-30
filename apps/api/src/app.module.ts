@@ -13,6 +13,8 @@ import { EmbeddingService } from './ai/embedding.service';
 import { OpenAIModule } from './ai/openai.module';
 import { RagQaController } from './ai/rag-qa.controller';
 import { RagQaService } from './ai/rag-qa.service';
+import { SessionSummaryController } from './ai/session-summary.controller';
+import { SessionSummaryService } from './ai/session-summary.service';
 import { RagSearchService } from './ai/rag-search.service';
 import { RefineDocController } from './ai/refine-doc.controller';
 import { RefineDocService } from './ai/refine-doc.service';
@@ -86,6 +88,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     DocumentsController,
     DraftGenController,
     RagQaController,
+    SessionSummaryController,
     RefineDocController,
     TaskSplitController,
     UsageController,
@@ -116,6 +119,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     EmbeddingService,
     RagSearchService,
     RagQaService,
+    SessionSummaryService,
     RefineDocService,
     TaskSplitService,
     InvitationsService,

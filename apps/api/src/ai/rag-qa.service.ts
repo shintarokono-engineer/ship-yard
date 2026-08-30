@@ -136,6 +136,23 @@ export class RagQaService {
   }
 
   /**
+   * セッションの直近 `limit` 件のメッセージを古い順で返す。
+   * 存在確認・プロジェクト整合性は見ないので、呼び出し側で `assertSessionInProject` を先に通すこと。
+   */
+  async listRecentMessages(
+    tenantId: string,
+    sessionId: string,
+    limit: number,
+  ): Promise<RagQaMessage[]> {
+    const recentDesc = await this.prisma.ragQaMessage.findMany({
+      where: { sessionId, tenantId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+    return recentDesc.reverse();
+  }
+
+  /**
    * セッションに質問を投げて回答を生成する。
    * 内部: 直近 N=10 ターン取得 → Anthropic API → user + assistant 同時保存(transaction)。
    *
