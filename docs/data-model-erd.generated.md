@@ -127,6 +127,14 @@ FAILED FAILED
 LAST_DAY LAST_DAY
         }
     
+
+
+        AiJobStatus {
+            RUNNING RUNNING
+DONE DONE
+FAILED FAILED
+        }
+    
   "User" {
     String id "🗝️"
     String clerkUserId 
@@ -345,6 +353,17 @@ LAST_DAY LAST_DAY
     DateTime sentAt 
     }
   
+
+  "AiJob" {
+    String id "🗝️"
+    Feature feature 
+    AiJobStatus status 
+    String resultId "❓"
+    String errorMessage "❓"
+    DateTime createdAt 
+    DateTime updatedAt 
+    }
+  
     "Tenant" |o--|| "Plan" : "enum:plan"
     "Tenant" }o--|| "User" : "owner"
     "TenantMember" |o--|| "Role" : "enum:role"
@@ -397,4 +416,9 @@ LAST_DAY LAST_DAY
     "BlogPost" |o--|o "Delivery" : "delivery"
     "TrialNotification" |o--|| "TrialNotificationKind" : "enum:kind"
     "TrialNotification" }o--|| "Tenant" : "tenant"
+    "AiJob" |o--|| "Feature" : "enum:feature"
+    "AiJob" |o--|| "AiJobStatus" : "enum:status"
+    "AiJob" }o--|| "Tenant" : "tenant"
+    "AiJob" }o--|| "Project" : "project"
+    "AiJob" }o--|| "User" : "createdBy"
 ```

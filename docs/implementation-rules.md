@@ -51,6 +51,44 @@
   **モデルを安くしただけでは支出は減らない**。cr が自動で下がると月間の実行回数が増えて相殺されるため、
   支出の天井を決めているのは実費ではなく cr 価格である(ADR-016)。`AIUsage.credits` 列の月次合計が Free=0(停止)/ Pro=300 / Team=seats×800 を超えたら 403(`assertWithinPlanCredits`)。`OTHER` は 0cr で記録されるため自然に上限から除外され、ユーザー視点の「残りクレジット」と一致する
 
+## Prisma マイグレーション
+
+### `migrate dev` が生成した SQL は必ず読む(消してはいけないものを消す)
+
+`npx prisma migrate dev` は **schema.prisma で管理していないオブジェクトを drift と見なして削除する SQL を混ぜてくる**。生成物をそのまま採用してはいけない。**毎回**次の 2 つが混入するので、migration.sql から手で除去し、除去した旨をファイル冒頭のコメントに残す。
+
+| 混入するもの                                                                                          | 対処         | 理由                                                                                               |
+| ----------------------------------------------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------- |
+| `DROP INDEX "ProjectDocument_embedding_hnsw_idx"`                                                     | **除去する** | RAG の HNSW インデックス(ADR-005)。Prisma が認識できないだけで、消すとベクトル検索が全件走査になる |
+| `ServiceScore_createdById_fkey` / `IdeaValidation_createdById_fkey` の DropForeignKey + AddForeignKey | **除去する** | 同一制約の付け直しでしかなく、どの migration のスコープにも属さない                                |
+
+除去し忘れると**ローカル DB からもインデックスが実際に消える**。消してしまった場合は次で復旧する。
+
+```sql
+CREATE INDEX IF NOT EXISTS "ProjectDocument_embedding_hnsw_idx"
+  ON "ProjectDocument" USING hnsw (embedding vector_cosine_ops);
+```
+
+migration.sql を手で直したら `_prisma_migrations` の checksum も実ファイルに合わせる(下記)。
+
+**実績**: Day 14 / 15 / 26 / 27 / 49 と ADR-016 で毎回踏んでいる。過去は各 migration.sql のコメントにしか書かれておらず、`migrate dev` を叩くたびに同じ罠にかかっていたため本ファイルに昇格した。
+
+### 適用済み migration のファイルを編集しない
+
+Prisma は migration.sql の SHA-256 を `_prisma_migrations.checksum` に記録しており、**適用後にファイルを編集すると次の `migrate dev` が DB リセットを要求する**(`We need to reset the "public" schema`)。**リセットするとローカルの全データが消える**ので実行しないこと。コメントの追記だけでも checksum は変わる。
+
+編集が避けられなかった場合(上記の DROP 除去など)は、リセットせず checksum を実ファイルに合わせる。
+
+```bash
+NEW=$(shasum -a 256 packages/db/prisma/migrations/<name>/migration.sql | awk '{print $1}')
+docker compose exec -T postgres psql -U shipyard -d shipyard \
+  -c "UPDATE \"_prisma_migrations\" SET checksum = '$NEW' WHERE migration_name = '<name>';"
+```
+
+スキーマ実体がズレていないことを必ず先に確認する(enum なら `enum_range`、インデックスなら `pg_indexes`)。ズレている場合は帳簿ではなくスキーマ側の問題なので、checksum を書き換えて隠してはいけない。
+
+**本番への影響**: 本番の `_prisma_migrations` には旧 checksum が残るため、`prisma migrate deploy` 実行時に同じ不一致が起きる。**デプロイ前に挙動を確認すること**(未検証)。
+
 ## フロントエンド(Next.js App Router / React)
 
 - **`<body>` には固定属性のみ置く**(固定 `className` は OK。theme 切替・動的 class・状態フラグ等の動的属性を `<body>` に付けない)

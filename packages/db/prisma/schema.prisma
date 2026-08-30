@@ -233,6 +233,7 @@ model User {
   ragQaSessions        RagQaSession[]
   serviceScores        ServiceScore[]
   ideaValidations      IdeaValidation[]
+  aiJobs               AiJob[]
   announcementsCreated Announcement[]
   deliveriesExecuted   Delivery[]
 }
@@ -263,6 +264,7 @@ model Tenant {
   landingPages       LandingPage[]
   serviceScores      ServiceScore[]
   ideaValidations    IdeaValidation[]
+  aiJobs             AiJob[]
   announcements      Announcement[]
   deliveries         Delivery[]
   blogPosts          BlogPost[]
@@ -341,6 +343,7 @@ model Project {
   landingPage     LandingPage?
   serviceScores   ServiceScore[]
   ideaValidations IdeaValidation[]
+  aiJobs          AiJob[]
   announcements   Announcement[]
   blogPosts       BlogPost[]
 
@@ -832,4 +835,54 @@ model TrialNotification {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, kind])
+}
+
+/// 長時間 AI 処理の進行状態(ADR-016)。
+///
+/// プロダクト診断 / アイデア検証は 1 回 88〜113 秒かかり、Vercel Hobby の関数実行上限(60 秒)と
+/// `apps/web/src/lib/api/client.ts` の `API_TIMEOUT_MS`(55 秒)を超えるため、同期実行では UI から
+/// 完走できない。`architecture.md`「非同期処理基盤(キュー)をいつ導入するか」トリガー 1 に該当。
+///
+/// キューは導入せず「実行を投げて結果は後から取得する」形にした。App Runner は常駐 Node プロセスの
+/// ため、レスポンスを返した後も処理を継続できる。
+///
+/// 結果本体は `ServiceScore` / `IdeaValidation` が持つ(それらは「完了した結果」のみを表す設計を維持し、
+/// 進行状態のために nullable 化しない)。本テーブルは進行状態と結果への参照だけを持つ。
+model AiJob {
+  /// 内部 ID(cuid)
+  id           String      @id @default(cuid())
+  /// 所属テナント ID(マルチテナント分離キー、必須)
+  tenantId     String
+  /// 所属プロジェクト ID
+  projectId    String
+  /// 対象機能。現状は PRODUCT_DIAGNOSIS / IDEA_VALIDATION の 2 つ
+  feature      Feature
+  /// 進行状態
+  status       AiJobStatus @default(RUNNING)
+  /// 完了時の結果 ID(`ServiceScore.id` または `IdeaValidation.id`)。RUNNING / FAILED では null
+  resultId     String?
+  /// 失敗時のユーザー向けメッセージ。DONE では null
+  errorMessage String?
+  /// 実行者 User ID
+  createdById  String
+  createdAt    DateTime    @default(now())
+  /// 最終更新日時。**RUNNING のまま古くなった行を「取り残し」と判定するのに使う**
+  /// (App Runner の再起動で処理が消えても RUNNING が残り続けるため)
+  updatedAt    DateTime    @updatedAt
+
+  tenant    Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User    @relation(fields: [createdById], references: [id])
+
+  @@index([tenantId])
+  /// 「このプロジェクトの実行中ジョブ」 をポーリングで引くため
+  @@index([tenantId, projectId, status])
+}
+
+/// `AiJob.status`。PENDING は持たない(予約とジョブ作成が同一トランザクションで、
+/// 作成された時点で必ず実行が始まっているため)。
+enum AiJobStatus {
+  RUNNING
+  DONE
+  FAILED
 }
