@@ -8,6 +8,8 @@ import {
   MaxLength,
 } from 'class-validator';
 
+import { AI_INSTRUCTIONS_MAX_LENGTH } from '../ai.constants';
+
 import { Category } from '@shipyard/db';
 
 /** `POST /workspaces/:slug/projects/:projectId/checklist/generate` のリクエストボディ。 */
@@ -18,7 +20,7 @@ export class GenerateChecklistDto {
    */
   @IsOptional()
   @IsString()
-  @MaxLength(2000)
+  @MaxLength(AI_INSTRUCTIONS_MAX_LENGTH)
   instructions?: string;
 
   /**

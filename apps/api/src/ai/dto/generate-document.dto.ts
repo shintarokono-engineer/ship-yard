@@ -1,5 +1,7 @@
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 
+import { AI_INSTRUCTIONS_MAX_LENGTH } from '../ai.constants';
+
 import { type DocKind, GENERATABLE_DOC_TYPES } from '../ai.constants';
 
 /** `POST /workspaces/:slug/projects/:projectId/documents/generate` のリクエストボディ。 */
@@ -11,6 +13,6 @@ export class GenerateDocumentDto {
   /** 生成への追加指示(任意)。 */
   @IsOptional()
   @IsString()
-  @MaxLength(2000)
+  @MaxLength(AI_INSTRUCTIONS_MAX_LENGTH)
   instructions?: string;
 }

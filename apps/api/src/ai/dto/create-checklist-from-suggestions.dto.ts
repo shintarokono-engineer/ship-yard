@@ -13,6 +13,8 @@ import {
   Min,
 } from 'class-validator';
 
+import { AI_INSTRUCTIONS_MAX_LENGTH } from '../ai.constants';
+
 import {
   SUGGESTION_MAX_COUNT,
   SUGGESTION_SOURCES,
@@ -52,6 +54,6 @@ export class CreateChecklistFromSuggestionsDto {
   /** 分解方針への追加指示(任意)。 */
   @IsOptional()
   @IsString()
-  @MaxLength(2000)
+  @MaxLength(AI_INSTRUCTIONS_MAX_LENGTH)
   instructions?: string;
 }

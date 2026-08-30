@@ -103,6 +103,12 @@ export const GENERATABLE_DOC_TYPES = [DocType.README] as const;
 /** AI 生成に対応している DocType のユニオン型(= `GENERATABLE_DOC_TYPES` の要素型)。 */
 export type DocKind = (typeof GENERATABLE_DOC_TYPES)[number];
 
+/**
+ * AI 機能の DTO が受け取る追加指示の最大文字数。
+ * FE 側 `ai-form.ts` の `INSTRUCTIONS_MAX_LENGTH` と手動同期が必要(型では担保できない)。
+ */
+export const AI_INSTRUCTIONS_MAX_LENGTH = 2000;
+
 /** CHECKLIST_GEN で 1 回の生成で出力できる ChecklistItem の最大数。Tool 入力スキーマの `maxItems` にも反映する。 */
 export const CHECKLIST_GEN_MAX_ITEMS = 30;
 
@@ -159,6 +165,25 @@ export const RAG_QA_MAX_MESSAGE_LENGTH = 8000;
 
 /** RAG_QA の 1 セッションあたり最大メッセージ数(ADR-005 Day 27 改訂、暴走防止)。超過時は新規セッション作成を促す。 */
 export const RAG_QA_MAX_MESSAGES_PER_SESSION = 100;
+
+/**
+ * 壁打ちセッションの要約で対象にする直近ターン数の上限。
+ * 12 ターン × `SESSION_SUMMARY_MESSAGE_TRUNCATE_CHARS` ≒ 13k tokens で、実測 ¥1.6〜2.2/回。
+ * 上げるときは実費を測ってから(3cr の損益分岐は ¥14.8)。
+ */
+export const SESSION_SUMMARY_MAX_TURNS = 12;
+
+/** 壁打ちの要約で 1 メッセージあたりプロンプトに載せる最大文字数(`RAG_QA_MAX_MESSAGE_LENGTH` は 8,000)。 */
+export const SESSION_SUMMARY_MESSAGE_TRUNCATE_CHARS = 800;
+
+/** 壁打ちの要約の Anthropic API `max_tokens`。 */
+export const SESSION_SUMMARY_MAX_TOKENS = 2048;
+
+/**
+ * 壁打ちの要約が出力する description の最大文字数。
+ * `UpdateProjectDto` の上限は 20,000 字だが、長い概要は下流機能の入力を圧迫するため生成側で抑える。
+ */
+export const SESSION_SUMMARY_MAX_CHARS = 2000;
 
 /** RAG context として LLM に渡す各ドキュメントの本文切り詰め文字数(prompt 圧迫対策)。 */
 export const RAG_CONTENT_TRUNCATE_CHARS = 800;

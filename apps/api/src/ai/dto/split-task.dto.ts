@@ -1,5 +1,7 @@
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
+import { AI_INSTRUCTIONS_MAX_LENGTH } from '../ai.constants';
+
 /** `POST /workspaces/:slug/projects/:projectId/checklist/:itemId/split` のリクエストボディ。 */
 export class SplitTaskDto {
   /**
@@ -8,6 +10,6 @@ export class SplitTaskDto {
    */
   @IsOptional()
   @IsString()
-  @MaxLength(2000)
+  @MaxLength(AI_INSTRUCTIONS_MAX_LENGTH)
   instructions?: string;
 }
