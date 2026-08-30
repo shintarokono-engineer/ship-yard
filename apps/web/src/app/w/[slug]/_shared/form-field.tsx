@@ -19,6 +19,7 @@ export function FormField({
   id,
   label,
   required,
+  hint,
   counter,
   errors,
   children,
@@ -27,6 +28,15 @@ export function FormField({
   id: string;
   label: string;
   required?: boolean;
+  /**
+   * ラベル脇の補足(`Markdown 可` など)。
+   *
+   * `<label>` / `<legend>` の内側に描画するので accessible name の一部になり、
+   * 「概要 Markdown 可」 と読み上げられる。ラベル文字列に直接混ぜるのと読み上げ結果は同じで、
+   * 違いは見た目(サイズ・色を落とす)だけ。名前から外したい補足はここではなく
+   * `aria-describedby` で結ぶこと。
+   */
+  hint?: string;
   counter?: { current: number; max: number };
   errors?: string[];
   children: ReactNode;
@@ -37,6 +47,7 @@ export function FormField({
       *
     </span>
   );
+  const hintEl = hint && <span className="text-muted-foreground text-xs font-normal">{hint}</span>;
   const errorList = errors && errors.length > 0 && (
     <ul id={`${id}-error`} role="alert" className="text-destructive space-y-0.5 text-sm">
       {errors.map((m) => (
@@ -55,6 +66,7 @@ export function FormField({
           <legend className="text-sm font-medium leading-none">
             {label}
             {requiredMark}
+            {hintEl && <span className="ml-1.5">{hintEl}</span>}
           </legend>
           {counterEl}
         </div>
@@ -70,6 +82,7 @@ export function FormField({
         <Label htmlFor={id}>
           {label}
           {requiredMark}
+          {hintEl && <span className="ml-1.5">{hintEl}</span>}
         </Label>
         {counterEl}
       </div>

@@ -1,18 +1,17 @@
 'use client';
 
-import { useActionState, useMemo, useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { useActionState, useMemo } from 'react';
 
-import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import type { Project } from '@/lib/api/types';
 
 import { deleteProjectAction, type DeleteProjectFormState } from '../_actions/delete-project';
@@ -20,14 +19,30 @@ import { deleteProjectAction, type DeleteProjectFormState } from '../_actions/de
 const INITIAL_STATE: DeleteProjectFormState = { ok: false };
 
 /**
- * プロジェクト削除ボタン + 確認ダイアログ。
+ * プロジェクト削除の確認ダイアログ。
+ *
+ * 以前は赤い `destructive` ボタンをヘッダーに常時出していたが、ページ内で最も彩度の高い要素が
+ * 破壊的操作になり、主要導線(機能カード)より目立っていた。トリガーは `ProjectActions` の
+ * オーバーフローメニューに移し、ここは確認だけを担う。
+ *
+ * 素の Dialog ではなく AlertDialog を使うのは、破壊的操作の確認は
+ * 「明示的にどちらかを選ぶまで閉じない」 のが適切なため(外側クリックで閉じない)。
  *
  * 子リソース(チェックリスト / ドキュメント)も連鎖削除される旨を明示し、
  * 件数を表示してユーザーに影響範囲を把握させる。成功時は Server Action 側で
  * `/w/{slug}` にリダイレクトするのでこちら側に close ロジックは不要。
  */
-export function DeleteProjectButton({ slug, project }: { slug: string; project: Project }) {
-  const [open, setOpen] = useState(false);
+export function DeleteProjectDialog({
+  slug,
+  project,
+  open,
+  onOpenChange,
+}: {
+  slug: string;
+  project: Project;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const boundAction = useMemo(
     () => deleteProjectAction.bind(null, slug, project.id),
     [slug, project.id],
@@ -40,21 +55,15 @@ export function DeleteProjectButton({ slug, project }: { slug: string; project: 
   const hasChildren = project._count.documents > 0 || project._count.checklist > 0;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="destructive">
-          <Trash2 aria-hidden="true" />
-          削除
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>プロジェクトを削除しますか?</DialogTitle>
-          <DialogDescription>
-            <span className="font-medium text-foreground">{project.name}</span>{' '}
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent className="sm:max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle>プロジェクトを削除しますか?</AlertDialogTitle>
+          <AlertDialogDescription>
+            <span className="text-foreground font-medium">{project.name}</span>{' '}
             を削除します。この操作は取り消せません。
-          </DialogDescription>
-        </DialogHeader>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
 
         {hasChildren && (
           <p className="text-muted-foreground rounded-md border px-3 py-2 text-sm">
@@ -72,16 +81,14 @@ export function DeleteProjectButton({ slug, project }: { slug: string; project: 
               {state.formError}
             </p>
           )}
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-              キャンセル
-            </Button>
+          <AlertDialogFooter>
+            <AlertDialogCancel type="button">キャンセル</AlertDialogCancel>
             <Button type="submit" variant="destructive" disabled={pending}>
               {pending ? '削除中...' : '削除する'}
             </Button>
-          </DialogFooter>
+          </AlertDialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

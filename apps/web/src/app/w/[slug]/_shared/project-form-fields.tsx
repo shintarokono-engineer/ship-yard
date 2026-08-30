@@ -1,8 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupTextarea,
+} from '@/components/ui/input-group';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -10,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import {
   CATEGORY_DOMAIN_LABEL,
   CATEGORY_DOMAINS,
@@ -20,7 +28,7 @@ import {
   PROJECT_STATUSES,
 } from '@/lib/api/types';
 
-import { FormField } from './form-field';
+import { CharCounter, FormField } from './form-field';
 import {
   DESCRIPTION_MAX_LENGTH,
   NAME_MAX_LENGTH,
@@ -55,6 +63,9 @@ export interface ProjectFormDefaults {
  * - `state` … 直前の Server Action の戻り値。`fieldErrors` / `formError` / `fields` を表示に反映
  * - `defaults` … 編集時の現在値(state.fields が無いときの fallback として使う)
  * - `variant` … `'name-only'` は名前のみ表示し概要・状態を省く(AI 壁打ちモード、§9.7)
+ *
+ * **カウンタは `InputGroup` の内側に置く**。フィールド枠の外(ラベル行の右端)に出すと、
+ * スクロール領域のスクロールバーと重なって数字の末尾が欠ける(Sheet / Dialog の両方で再現)。
  */
 export function ProjectFormFields({
   state,
@@ -107,29 +118,35 @@ export function ProjectFormFields({
     !!categoryDomainErrors ||
     !!pricingTierErrors;
 
+  // 開閉を自前で持つ理由は `CollapsibleContent` のコメントを参照。
+  const [briefOpen, setBriefOpen] = useState(briefHasContent);
+
   const nameOnly = variant === 'name-only';
 
   return (
     <>
-      <FormField
-        id="name"
-        label="名前"
-        required
-        counter={{ current: nameLength, max: NAME_MAX_LENGTH }}
-        errors={nameErrors}
-      >
-        <Input
-          id="name"
-          name="name"
-          required
-          aria-required="true"
-          aria-invalid={nameErrors && nameErrors.length > 0 ? 'true' : undefined}
-          aria-describedby={nameErrors && nameErrors.length > 0 ? 'name-error' : undefined}
-          maxLength={NAME_MAX_LENGTH}
-          placeholder="例: roadster-cost-tracker"
-          defaultValue={initialName}
-          onChange={(e) => setNameLength(e.currentTarget.value.length)}
-        />
+      <FormField id="name" label="名前" required errors={nameErrors}>
+        <InputGroup>
+          <InputGroupInput
+            id="name"
+            name="name"
+            required
+            aria-required="true"
+            aria-invalid={nameErrors && nameErrors.length > 0 ? 'true' : undefined}
+            aria-describedby={nameErrors && nameErrors.length > 0 ? 'name-error' : undefined}
+            maxLength={NAME_MAX_LENGTH}
+            placeholder="例: roadster-cost-tracker"
+            defaultValue={initialName}
+            onChange={(e) => setNameLength(e.currentTarget.value.length)}
+          />
+          {/*
+            条件付きでマウントすると live region が「後から挿入された」 扱いになり読み上げられず、
+            上限到達時の `text-destructive` も出せない。常時マウントして中身だけ変える。
+          */}
+          <InputGroupAddon align="inline-end">
+            <CharCounter current={nameLength} max={NAME_MAX_LENGTH} />
+          </InputGroupAddon>
+        </InputGroup>
       </FormField>
 
       {nameOnly ? (
@@ -137,31 +154,37 @@ export function ProjectFormFields({
         <input type="hidden" name="status" value="IDEA" />
       ) : (
         <>
-          <FormField
-            id="description"
-            label="概要(Markdown 可)"
-            counter={{ current: descriptionLength, max: DESCRIPTION_MAX_LENGTH }}
-            errors={descriptionErrors}
-          >
-            <Textarea
-              id="description"
-              name="description"
-              rows={5}
-              aria-invalid={descriptionErrors && descriptionErrors.length > 0 ? 'true' : undefined}
-              aria-describedby={
-                descriptionErrors && descriptionErrors.length > 0 ? 'description-error' : undefined
-              }
-              maxLength={DESCRIPTION_MAX_LENGTH}
-              placeholder="解きたい課題、想定ユーザー、差別化のメモなど"
-              defaultValue={initialDescription}
-              onChange={(e) => setDescriptionLength(e.currentTarget.value.length)}
-            />
+          <FormField id="description" label="概要" hint="Markdown 可" errors={descriptionErrors}>
+            <InputGroup>
+              <InputGroupTextarea
+                id="description"
+                name="description"
+                rows={6}
+                aria-invalid={
+                  descriptionErrors && descriptionErrors.length > 0 ? 'true' : undefined
+                }
+                aria-describedby={
+                  descriptionErrors && descriptionErrors.length > 0
+                    ? 'description-error'
+                    : undefined
+                }
+                maxLength={DESCRIPTION_MAX_LENGTH}
+                placeholder="解きたい課題、想定ユーザー、差別化のメモなど"
+                defaultValue={initialDescription}
+                onChange={(e) => setDescriptionLength(e.currentTarget.value.length)}
+              />
+              <InputGroupAddon align="block-end" className="justify-end">
+                <CharCounter current={descriptionLength} max={DESCRIPTION_MAX_LENGTH} />
+              </InputGroupAddon>
+            </InputGroup>
           </FormField>
 
           <FormField id="status" label="ライフサイクル状態" errors={statusErrors}>
             <Select name="status" defaultValue={initialStatus}>
+              {/* 既定の SelectTrigger は内容幅。他のフィールドが全幅なので左右のラインが揃わない。 */}
               <SelectTrigger
                 id="status"
+                className="w-full"
                 aria-invalid={statusErrors && statusErrors.length > 0 ? 'true' : undefined}
                 aria-describedby={
                   statusErrors && statusErrors.length > 0 ? 'status-error' : undefined
@@ -184,153 +207,192 @@ export function ProjectFormFields({
             - 上段: 構造化セレクト 2 軸(ドメイン分類 + 課金モデル統合、B2C/B2B 両対応)
             - 下段: 自由補足 4 つ(textarea、プレースホルダーで「何を書くか」 を誘導)
             アイデア検証(IDEA 状態)/ プロダクト診断(IN_DEV 以降)の入力源として AI が読む。
+
+            ネイティブ `<details>` から Radix Collapsible に変更している。`<details>` は
+            マーカー(▶/▼)が OS 依存で他の Radix 製 UI から浮くうえ、開閉状態を
+            トリガー側の見た目に反映できなかった。
           */}
-          <details className="bg-muted/30 group rounded-md border" open={briefHasContent}>
-            <summary className="hover:bg-muted/50 cursor-pointer rounded-md px-3 py-2 text-sm font-medium select-none">
-              詳細情報(アイデア検証 / プロダクト診断の入力源、任意)
-            </summary>
-            <div className="space-y-5 border-t px-3 py-4">
-              <p className="text-muted-foreground text-xs leading-relaxed">
-                以下を具体的に書くほど AI 診断の精度が上がります(全項目任意)。 B2C(個人向け)/
-                B2B(組織向け)どちらのプロダクトでも入力できます。
-              </p>
+          <Collapsible
+            open={briefOpen}
+            onOpenChange={setBriefOpen}
+            className="bg-muted/30 rounded-md border"
+          >
+            <CollapsibleTrigger className="hover:bg-muted/50 focus-visible:ring-ring/50 flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm font-medium outline-none select-none focus-visible:ring-[3px] [&[data-state=open]>svg]:rotate-180">
+              <span>
+                詳細情報
+                <span className="text-muted-foreground ml-1.5 text-xs font-normal">
+                  アイデア検証 / プロダクト診断の入力源・任意
+                </span>
+              </span>
+              <ChevronDown
+                className="text-muted-foreground size-4 shrink-0 transition-transform duration-200"
+                aria-hidden="true"
+              />
+            </CollapsibleTrigger>
+            {/*
+              `forceMount` は必須。既定の Radix Collapsible は閉じている間 children を
+              unmount するため、折りたたんだまま保存すると中の 6 フィールドが FormData に
+              載らず、`updateProjectAction` が「空文字 = クリア」 と解釈して既存値を
+              null で潰す(ネイティブ `<details>` は閉じても子を DOM に残すので起きなかった)。
 
-              {/* ===== 構造化セレクト 2 フィールド(Day 46.5 案 A) ===== */}
-              <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField
-                  id="categoryDomain"
-                  label="プロダクトのドメイン"
-                  errors={categoryDomainErrors}
-                >
-                  <Select name="categoryDomain" defaultValue={initialCategoryDomain || NONE_VALUE}>
-                    <SelectTrigger id="categoryDomain">
-                      <SelectValue placeholder="選択する" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE_VALUE}>選択しない(クリア)</SelectItem>
-                      {CATEGORY_DOMAINS.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {CATEGORY_DOMAIN_LABEL[c]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormField>
+              ただし `forceMount` を付けると Radix 側の `present` が常に true になり、
+              閉じていても `hidden` が付かず中身が見えたままになる。表示制御は自前で行う
+              (`display: none` 配下のフォームコントロールも FormData には載るので送信は保たれる)。
+            */}
+            <CollapsibleContent forceMount hidden={!briefOpen}>
+              <div className="space-y-5 border-t px-3 py-4">
+                {/*
+                  JSX の改行はそのまま半角スペースになる。日本語の文中で折り返すと
+                  「(組織向け) どちら」 のように不要な空きが出るので、1 つの文字列で渡す。
+                */}
+                <p className="text-muted-foreground text-xs leading-relaxed">
+                  {
+                    '以下を具体的に書くほど AI 診断の精度が上がります。B2C(個人向け) / B2B(組織向け) どちらのプロダクトでも入力できます。'
+                  }
+                </p>
 
-                <FormField
-                  id="pricingTier"
-                  label="課金モデル + 月額レンジ"
-                  errors={pricingTierErrors}
-                >
-                  <Select name="pricingTier" defaultValue={initialPricingTier || NONE_VALUE}>
-                    <SelectTrigger id="pricingTier">
-                      <SelectValue placeholder="選択する" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE_VALUE}>選択しない(クリア)</SelectItem>
-                      {PRICING_TIERS.map((p) => (
-                        <SelectItem key={p} value={p}>
-                          {PRICING_TIER_LABEL[p]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormField>
-              </section>
+                {/* ===== 構造化セレクト 2 フィールド(Day 46.5 案 A) ===== */}
+                <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField
+                    id="categoryDomain"
+                    label="プロダクトのドメイン"
+                    errors={categoryDomainErrors}
+                  >
+                    <Select
+                      name="categoryDomain"
+                      defaultValue={initialCategoryDomain || NONE_VALUE}
+                    >
+                      <SelectTrigger id="categoryDomain" className="w-full">
+                        <SelectValue placeholder="選択する" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {/* 未選択の既定表示。「クリア」 は初回入力時に意味を成さないので使わない。 */}
+                        <SelectItem value={NONE_VALUE}>指定しない</SelectItem>
+                        {CATEGORY_DOMAINS.map((c) => (
+                          <SelectItem key={c} value={c}>
+                            {CATEGORY_DOMAIN_LABEL[c]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormField>
 
-              {/* ===== 自由補足 4 フィールド(Day 44、プレースホルダー強化) ===== */}
-              <section className="border-border/60 space-y-4 border-t pt-4">
-                <FormField id="targetUsers" label="想定ユーザー" errors={targetUsersErrors}>
-                  <Textarea
-                    id="targetUsers"
-                    name="targetUsers"
-                    rows={2}
-                    aria-invalid={
-                      targetUsersErrors && targetUsersErrors.length > 0 ? 'true' : undefined
-                    }
-                    aria-describedby={
-                      targetUsersErrors && targetUsersErrors.length > 0
-                        ? 'targetUsers-error'
-                        : undefined
-                    }
-                    maxLength={TARGET_USERS_MAX_LENGTH}
-                    placeholder="ユーザー像を 1〜2 行で。例: 20〜30 代の社会人で集中力を高めたい個人 / 中小企業の経理担当者 / 子育て中の親"
-                    defaultValue={initialTargetUsers}
-                  />
-                </FormField>
+                  <FormField
+                    id="pricingTier"
+                    label="課金モデル + 月額レンジ"
+                    errors={pricingTierErrors}
+                  >
+                    <Select name="pricingTier" defaultValue={initialPricingTier || NONE_VALUE}>
+                      <SelectTrigger id="pricingTier" className="w-full">
+                        <SelectValue placeholder="選択する" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NONE_VALUE}>指定しない</SelectItem>
+                        {PRICING_TIERS.map((p) => (
+                          <SelectItem key={p} value={p}>
+                            {PRICING_TIER_LABEL[p]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormField>
+                </section>
 
-                <FormField
-                  id="problemStatement"
-                  label="解きたい課題"
-                  errors={problemStatementErrors}
-                >
-                  <Textarea
+                {/* ===== 自由補足 4 フィールド(Day 44、プレースホルダー強化) ===== */}
+                <section className="border-border/60 space-y-4 border-t pt-4">
+                  <FormField id="targetUsers" label="想定ユーザー" errors={targetUsersErrors}>
+                    <Textarea
+                      id="targetUsers"
+                      name="targetUsers"
+                      rows={2}
+                      aria-invalid={
+                        targetUsersErrors && targetUsersErrors.length > 0 ? 'true' : undefined
+                      }
+                      aria-describedby={
+                        targetUsersErrors && targetUsersErrors.length > 0
+                          ? 'targetUsers-error'
+                          : undefined
+                      }
+                      maxLength={TARGET_USERS_MAX_LENGTH}
+                      placeholder="ユーザー像を 1〜2 行で。例: 20〜30 代の社会人で集中力を高めたい個人 / 中小企業の経理担当者 / 子育て中の親"
+                      defaultValue={initialTargetUsers}
+                    />
+                  </FormField>
+
+                  <FormField
                     id="problemStatement"
-                    name="problemStatement"
-                    rows={3}
-                    aria-invalid={
-                      problemStatementErrors && problemStatementErrors.length > 0
-                        ? 'true'
-                        : undefined
-                    }
-                    aria-describedby={
-                      problemStatementErrors && problemStatementErrors.length > 0
-                        ? 'problemStatement-error'
-                        : undefined
-                    }
-                    maxLength={PROBLEM_STATEMENT_MAX_LENGTH}
-                    placeholder="何の課題を解決するか具体的に。例: 集中阻害要因の可視化機能を持つタイマーアプリが少ない / 既存ツールは複雑で使いこなせない"
-                    defaultValue={initialProblemStatement}
-                  />
-                </FormField>
+                    label="解きたい課題"
+                    errors={problemStatementErrors}
+                  >
+                    <Textarea
+                      id="problemStatement"
+                      name="problemStatement"
+                      rows={3}
+                      aria-invalid={
+                        problemStatementErrors && problemStatementErrors.length > 0
+                          ? 'true'
+                          : undefined
+                      }
+                      aria-describedby={
+                        problemStatementErrors && problemStatementErrors.length > 0
+                          ? 'problemStatement-error'
+                          : undefined
+                      }
+                      maxLength={PROBLEM_STATEMENT_MAX_LENGTH}
+                      placeholder="何の課題を解決するか具体的に。例: 集中阻害要因の可視化機能を持つタイマーアプリが少ない / 既存ツールは複雑で使いこなせない"
+                      defaultValue={initialProblemStatement}
+                    />
+                  </FormField>
 
-                <FormField
-                  id="proposedFeatures"
-                  label="想定機能(Markdown 可)"
-                  errors={proposedFeaturesErrors}
-                >
-                  <Textarea
+                  <FormField
                     id="proposedFeatures"
-                    name="proposedFeatures"
-                    rows={4}
-                    aria-invalid={
-                      proposedFeaturesErrors && proposedFeaturesErrors.length > 0
-                        ? 'true'
-                        : undefined
-                    }
-                    aria-describedby={
-                      proposedFeaturesErrors && proposedFeaturesErrors.length > 0
-                        ? 'proposedFeatures-error'
-                        : undefined
-                    }
-                    maxLength={PROPOSED_FEATURES_MAX_LENGTH}
-                    placeholder={
-                      'コア機能を箇条書きで 3〜10 個。\n例:\n- ポモドーロタイマー\n- 中断ログ自動記録\n- 週次レポート\n- ソーシャル共有'
-                    }
-                    defaultValue={initialProposedFeatures}
-                  />
-                </FormField>
+                    label="想定機能"
+                    hint="Markdown 可"
+                    errors={proposedFeaturesErrors}
+                  >
+                    <Textarea
+                      id="proposedFeatures"
+                      name="proposedFeatures"
+                      rows={4}
+                      aria-invalid={
+                        proposedFeaturesErrors && proposedFeaturesErrors.length > 0
+                          ? 'true'
+                          : undefined
+                      }
+                      aria-describedby={
+                        proposedFeaturesErrors && proposedFeaturesErrors.length > 0
+                          ? 'proposedFeatures-error'
+                          : undefined
+                      }
+                      maxLength={PROPOSED_FEATURES_MAX_LENGTH}
+                      placeholder={
+                        'コア機能を箇条書きで 3〜10 個。\n例:\n- ポモドーロタイマー\n- 中断ログ自動記録\n- 週次レポート\n- ソーシャル共有'
+                      }
+                      defaultValue={initialProposedFeatures}
+                    />
+                  </FormField>
 
-                <FormField id="pricingModel" label="価格モデルの補足" errors={pricingModelErrors}>
-                  <Input
-                    id="pricingModel"
-                    name="pricingModel"
-                    aria-invalid={
-                      pricingModelErrors && pricingModelErrors.length > 0 ? 'true' : undefined
-                    }
-                    aria-describedby={
-                      pricingModelErrors && pricingModelErrors.length > 0
-                        ? 'pricingModel-error'
-                        : undefined
-                    }
-                    maxLength={PRICING_MODEL_MAX_LENGTH}
-                    placeholder="上の課金モデルで表現しきれない補足。例: 年払い 20% 割引 / 学生プラン半額 / Team は人数課金 ¥2,800/人"
-                    defaultValue={initialPricingModel}
-                  />
-                </FormField>
-              </section>
-            </div>
-          </details>
+                  <FormField id="pricingModel" label="価格モデルの補足" errors={pricingModelErrors}>
+                    <Input
+                      id="pricingModel"
+                      name="pricingModel"
+                      aria-invalid={
+                        pricingModelErrors && pricingModelErrors.length > 0 ? 'true' : undefined
+                      }
+                      aria-describedby={
+                        pricingModelErrors && pricingModelErrors.length > 0
+                          ? 'pricingModel-error'
+                          : undefined
+                      }
+                      maxLength={PRICING_MODEL_MAX_LENGTH}
+                      placeholder="上の課金モデルで表現しきれない補足。例: 年払い 20% 割引 / 学生プラン半額"
+                      defaultValue={initialPricingModel}
+                    />
+                  </FormField>
+                </section>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </>
       )}
 

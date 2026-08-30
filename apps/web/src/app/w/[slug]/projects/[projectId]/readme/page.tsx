@@ -115,7 +115,15 @@ export default async function ReadmePage({
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_240px]">
+      {/*
+        履歴パネルは 2 版以上あるときだけ出す。カラムを常時確保すると v1 だけのときに
+        右へ 240px + gap の死んだ余白ができ、本文だけが左に寄って右端が揃わなくなる。
+      */}
+      <div
+        className={
+          versions.length > 1 ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_240px]' : 'grid gap-6'
+        }
+      >
         <article aria-label="本文">
           {currentWithContent.content && currentWithContent.content.length > 0 ? (
             <MarkdownViewer source={currentWithContent.content} />
