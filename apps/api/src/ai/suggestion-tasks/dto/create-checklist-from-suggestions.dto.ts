@@ -13,7 +13,7 @@ import {
   Min,
 } from 'class-validator';
 
-import { AI_INSTRUCTIONS_MAX_LENGTH } from '../../_shared/ai.constants';
+import { AI_INSTRUCTIONS_MAX_LENGTH } from '../../shared/ai.constants';
 
 import {
   SUGGESTION_MAX_COUNT,

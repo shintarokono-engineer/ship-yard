@@ -2,12 +2,12 @@ import { Injectable } from '@nestjs/common';
 
 import { DocType } from '@shipyard/db';
 
-import { AnthropicService } from '../_shared/anthropic.service';
-import { AI_MODEL_SONNET, DRAFT_GEN_MAX_TOKENS, type DocKind } from '../_shared/ai.constants';
-import { AIBadResponseError } from '../_shared/ai-error';
-import { formatReferenceSection, type RagReference } from '../_shared/format-reference';
-import { AI_PERSONA_INTRO } from '../_shared/prompts';
-import { extractToolUseBlock } from '../_shared/tool-use';
+import { AnthropicService } from '../shared/anthropic.service';
+import { AI_MODEL_SONNET, DRAFT_GEN_MAX_TOKENS, type DocKind } from '../shared/ai.constants';
+import { AIBadResponseError } from '../shared/ai-error';
+import { formatReferenceSection, type RagReference } from '../shared/format-reference';
+import { AI_PERSONA_INTRO } from '../shared/prompts';
+import { extractToolUseBlock } from '../shared/tool-use';
 
 interface ProjectContext {
   name: string;

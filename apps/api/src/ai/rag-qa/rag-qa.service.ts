@@ -9,12 +9,12 @@ import {
   RAG_QA_MAX_MESSAGES_PER_SESSION,
   RAG_QA_MAX_TOKENS,
   RAG_QA_MAX_TURNS,
-} from '../_shared/ai.constants';
-import { AnthropicService } from '../_shared/anthropic.service';
-import { formatReferenceSection } from '../_shared/format-reference';
-import { AI_PERSONA_INTRO } from '../_shared/prompts';
-import type { RagSearchHit } from '../_shared/rag-search.service';
-import { extractTextContent } from '../_shared/tool-use';
+} from '../shared/ai.constants';
+import { AnthropicService } from '../shared/anthropic.service';
+import { formatReferenceSection } from '../shared/format-reference';
+import { AI_PERSONA_INTRO } from '../shared/prompts';
+import type { RagSearchHit } from '../shared/rag-search.service';
+import { extractTextContent } from '../shared/tool-use';
 
 /** RagQaService が想定するプロジェクト情報の最小型。controller 側で取得して渡す。 */
 interface ProjectContext {

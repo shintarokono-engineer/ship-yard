@@ -1,23 +1,23 @@
 import { Injectable } from '@nestjs/common';
 
-import { AnthropicService } from '../_shared/anthropic.service';
+import { AnthropicService } from '../shared/anthropic.service';
 import {
   AI_MODEL_HAIKU,
   SUGGESTION_TASKS_MAX_ITEMS,
   SUGGESTION_TASKS_MAX_TOKENS,
-} from '../_shared/ai.constants';
-import { AIBadResponseError } from '../_shared/ai-error';
+} from '../shared/ai.constants';
+import { AIBadResponseError } from '../shared/ai-error';
 import {
   CATEGORY_VALUES,
   buildChecklistItemsTool,
   parseChecklistItems,
   type GeneratedChecklist,
-} from '../_shared/checklist-items-tool';
+} from '../shared/checklist-items-tool';
 import {
   buildSuggestionTasksPrompt,
   type SuggestionTasksPromptInput,
 } from './suggestion-tasks.prompt';
-import { extractToolUseBlock } from '../_shared/tool-use';
+import { extractToolUseBlock } from '../shared/tool-use';
 
 /**
  * 改善提案を実行可能な ChecklistItem へ分解する(F17、ADR-013 / ADR-005)。

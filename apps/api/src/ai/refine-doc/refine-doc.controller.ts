@@ -8,10 +8,10 @@ import { Roles, WRITER_ROLES } from '../../auth/roles';
 import { WorkspaceGuard } from '../../auth/workspace.guard';
 import { DocumentsService } from '../../documents/documents.service';
 import type { WorkspaceAccess } from '../../workspaces/membership.service';
-import { AI_MODEL_SONNET } from '../_shared/ai.constants';
-import { AIUsageService } from '../_shared/ai-usage.service';
+import { AI_MODEL_SONNET } from '../shared/ai.constants';
+import { AIUsageService } from '../shared/ai-usage.service';
 import { RefineDocumentDto } from './dto/refine-document.dto';
-import { RagSearchService } from '../_shared/rag-search.service';
+import { RagSearchService } from '../shared/rag-search.service';
 import { RefineDocService } from './refine-doc.service';
 
 /**

@@ -1,7 +1,7 @@
-import { SUGGESTION_TASKS_MAX_ITEMS } from '../_shared/ai.constants';
-import { CATEGORY_VALUES } from '../_shared/checklist-items-tool';
-import { formatReferenceSection } from '../_shared/format-reference';
-import { AI_PERSONA_INTRO, taskItemGuidance } from '../_shared/prompts';
+import { SUGGESTION_TASKS_MAX_ITEMS } from '../shared/ai.constants';
+import { CATEGORY_VALUES } from '../shared/checklist-items-tool';
+import { formatReferenceSection } from '../shared/format-reference';
+import { AI_PERSONA_INTRO, taskItemGuidance } from '../shared/prompts';
 import type { SelectedSuggestion } from './suggestion-source';
 
 /**

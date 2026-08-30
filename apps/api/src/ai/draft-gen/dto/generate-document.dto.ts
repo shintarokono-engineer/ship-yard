@@ -1,8 +1,8 @@
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 
-import { AI_INSTRUCTIONS_MAX_LENGTH } from '../../_shared/ai.constants';
+import { AI_INSTRUCTIONS_MAX_LENGTH } from '../../shared/ai.constants';
 
-import { type DocKind, GENERATABLE_DOC_TYPES } from '../../_shared/ai.constants';
+import { type DocKind, GENERATABLE_DOC_TYPES } from '../../shared/ai.constants';
 
 /** `POST /workspaces/:slug/projects/:projectId/documents/generate` のリクエストボディ。 */
 export class GenerateDocumentDto {

@@ -9,10 +9,10 @@ import { WorkspaceGuard } from '../../auth/workspace.guard';
 import { ChecklistService } from '../../checklist/checklist.service';
 import { ProjectsService } from '../../projects/projects.service';
 import type { WorkspaceAccess } from '../../workspaces/membership.service';
-import { AI_MODEL_HAIKU } from '../_shared/ai.constants';
-import { AIUsageService } from '../_shared/ai-usage.service';
+import { AI_MODEL_HAIKU } from '../shared/ai.constants';
+import { AIUsageService } from '../shared/ai-usage.service';
 import { SplitTaskDto } from './dto/split-task.dto';
-import { RagSearchService } from '../_shared/rag-search.service';
+import { RagSearchService } from '../shared/rag-search.service';
 import { TaskSplitService } from './task-split.service';
 
 /**

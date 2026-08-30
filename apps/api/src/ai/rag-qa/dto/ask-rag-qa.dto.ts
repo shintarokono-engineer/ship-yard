@@ -1,6 +1,6 @@
 import { IsString, MaxLength, MinLength } from 'class-validator';
 
-import { RAG_QA_MAX_MESSAGE_LENGTH } from '../../_shared/ai.constants';
+import { RAG_QA_MAX_MESSAGE_LENGTH } from '../../shared/ai.constants';
 
 /** `POST /workspaces/:slug/projects/:projectId/qa/sessions/:sessionId/messages` のリクエストボディ。 */
 export class AskRagQaDto {

@@ -2,16 +2,16 @@ import { Injectable } from '@nestjs/common';
 
 import { Category } from '@shipyard/db';
 
-import { AnthropicService } from '../_shared/anthropic.service';
+import { AnthropicService } from '../shared/anthropic.service';
 import {
   AI_MODEL_HAIKU,
   TASK_SPLIT_MAX_ITEMS,
   TASK_SPLIT_MAX_TOKENS,
-} from '../_shared/ai.constants';
-import { AIBadResponseError } from '../_shared/ai-error';
-import { formatReferenceSection, type RagReference } from '../_shared/format-reference';
-import { AI_PERSONA_INTRO, taskItemGuidance } from '../_shared/prompts';
-import { extractToolUseBlock } from '../_shared/tool-use';
+} from '../shared/ai.constants';
+import { AIBadResponseError } from '../shared/ai-error';
+import { formatReferenceSection, type RagReference } from '../shared/format-reference';
+import { AI_PERSONA_INTRO, taskItemGuidance } from '../shared/prompts';
+import { extractToolUseBlock } from '../shared/tool-use';
 
 interface ProjectContext {
   name: string;

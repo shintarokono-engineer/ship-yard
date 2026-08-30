@@ -104,8 +104,8 @@ apps/api/src/
 ├── projects/                # Project CRUD(controller / service / dto)
 ├── checklist/               # ChecklistItem CRUD + 一括生成
 ├── documents/               # ProjectDocument 閲覧 / 編集(append-only) / soft delete
-├── ai/                      # AI 機能(`_shared/` の基盤 + 機能ごとのサブディレクトリ)
-│   ├── _shared/                          # 全 AI 機能が使う基盤
+├── ai/                      # AI 機能(`shared/` の基盤 + 機能ごとのサブディレクトリ)
+│   ├── shared/                          # 全 AI 機能が使う基盤
 │   │   ├── ai.constants.ts               # モデル ID / 上限 / 単価 / 為替の集約
 │   │   ├── ai-usage.service.ts           # AIUsage 記録 + クレジット予約 / 上限チェック
 │   │   ├── ai-error.ts                   # AI 例外(502 変換等)
@@ -137,8 +137,8 @@ apps/api/src/
 - path slug ベース(`workspaces/:slug/...`)は ALS テナントコンテキストを持たない。Service は引数の `tenantId` を `where`/`data` に明示注入
 - Raw SQL は原則禁止、必要時は `WHERE tenantId = $1` 明示(ESLint `no-raw-sql-without-tenant-filter` で検出)
 - 日付・時刻は `common/time.ts` の dayjs(UTC プラグイン extend 済み)を使う(`new Date(...)` での日付演算は避ける)
-- 上限・モデル ID・単価・為替・タイムアウト等の変動値は定数ファイルに集約(AI 関連は `ai/_shared/ai.constants.ts`)
-- **AI 機能は `ai/<feature>/` に controller / service / prompt / tool / dto をまとめる**。2 つ以上の機能が使う部品だけ `ai/_shared/` へ上げる
+- 上限・モデル ID・単価・為替・タイムアウト等の変動値は定数ファイルに集約(AI 関連は `ai/shared/ai.constants.ts`)
+- **AI 機能は `ai/<feature>/` に controller / service / prompt / tool / dto をまとめる**。2 つ以上の機能が使う部品だけ `ai/shared/` へ上げる
 - ただし `product-diagnosis/` `idea-validation/` `announcements/` は AI 機能だが独立ディレクトリを持つ(それぞれ専用の model / schema / 型を抱えており、`ai/` の外で完結するため)
 - schema 由来 enum はマジック文字列ではなく `@shipyard/db` 経由(`Plan.PRO` 等)で参照
 

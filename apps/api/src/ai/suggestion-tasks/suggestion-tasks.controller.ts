@@ -19,9 +19,9 @@ import { IdeaValidationService } from '../../idea-validation/idea-validation.ser
 import { ProductDiagnosisService } from '../../product-diagnosis/product-diagnosis.service';
 import { ProjectsService } from '../../projects/projects.service';
 import type { WorkspaceAccess } from '../../workspaces/membership.service';
-import { AI_MODEL_HAIKU, SUGGESTION_TASKS_EXISTING_TITLES_MAX } from '../_shared/ai.constants';
-import { AIUsageService } from '../_shared/ai-usage.service';
-import { excludeKnownTitles } from '../_shared/checklist-items-tool';
+import { AI_MODEL_HAIKU, SUGGESTION_TASKS_EXISTING_TITLES_MAX } from '../shared/ai.constants';
+import { AIUsageService } from '../shared/ai-usage.service';
+import { excludeKnownTitles } from '../shared/checklist-items-tool';
 import { CreateChecklistFromSuggestionsDto } from './dto/create-checklist-from-suggestions.dto';
 import { pickSuggestions } from './suggestion-source';
 import { SuggestionTasksService } from './suggestion-tasks.service';

@@ -1,6 +1,6 @@
-import { SESSION_SUMMARY_MAX_CHARS } from '../_shared/ai.constants';
-import { formatReferenceSection } from '../_shared/format-reference';
-import { AI_PERSONA_INTRO } from '../_shared/prompts';
+import { SESSION_SUMMARY_MAX_CHARS } from '../shared/ai.constants';
+import { formatReferenceSection } from '../shared/format-reference';
+import { AI_PERSONA_INTRO } from '../shared/prompts';
 import { toTranscriptReferences, type TranscriptMessage } from './rag-qa-transcript';
 
 /**

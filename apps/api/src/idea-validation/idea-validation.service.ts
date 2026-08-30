@@ -9,11 +9,11 @@ import {
   WEB_SEARCH_MAX_USES,
   WEB_SEARCH_TOOL_NAME,
   WEB_SEARCH_TOOL_TYPE,
-} from '../ai/_shared/ai.constants';
-import { AIUsageService } from '../ai/_shared/ai-usage.service';
-import { AnthropicService } from '../ai/_shared/anthropic.service';
-import { AI_PERSONA_INTRO } from '../ai/_shared/prompts';
-import { extractToolUseBlock } from '../ai/_shared/tool-use';
+} from '../ai/shared/ai.constants';
+import { AIUsageService } from '../ai/shared/ai-usage.service';
+import { AnthropicService } from '../ai/shared/anthropic.service';
+import { AI_PERSONA_INTRO } from '../ai/shared/prompts';
+import { extractToolUseBlock } from '../ai/shared/tool-use';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatStructuredBriefForPrompt } from '../projects/project-brief.constants';
 import {
@@ -22,7 +22,7 @@ import {
 } from './validation.constants';
 import { parseValidationOutput, SUBMIT_IDEA_VALIDATION_TOOL } from './validation-schema';
 import type { ValidationOutput } from './validation-types';
-import { translateAIProviderError } from '../ai/_shared/ai-error';
+import { translateAIProviderError } from '../ai/shared/ai-error';
 
 /**
  * アイデア検証(IDEA_VALIDATION、ADR-013 改訂版「2 モード化」)の Service。

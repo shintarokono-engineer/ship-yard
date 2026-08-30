@@ -8,7 +8,7 @@ import {
   MaxLength,
 } from 'class-validator';
 
-import { AI_INSTRUCTIONS_MAX_LENGTH } from '../../_shared/ai.constants';
+import { AI_INSTRUCTIONS_MAX_LENGTH } from '../../shared/ai.constants';
 
 import { Category } from '@shipyard/db';
 

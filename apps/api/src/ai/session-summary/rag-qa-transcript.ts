@@ -1,7 +1,7 @@
 import { RagQaRole } from '@shipyard/db';
 
-import { SESSION_SUMMARY_MESSAGE_TRUNCATE_CHARS } from '../_shared/ai.constants';
-import type { RagReference } from '../_shared/format-reference';
+import { SESSION_SUMMARY_MESSAGE_TRUNCATE_CHARS } from '../shared/ai.constants';
+import type { RagReference } from '../shared/format-reference';
 
 /** プロンプト整形に必要な最小型。 */
 export interface TranscriptMessage {

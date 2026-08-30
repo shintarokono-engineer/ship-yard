@@ -1,7 +1,7 @@
 import { RagQaRole } from '@shipyard/db';
 import { describe, expect, it } from 'vitest';
 
-import { SESSION_SUMMARY_MESSAGE_TRUNCATE_CHARS } from '../_shared/ai.constants';
+import { SESSION_SUMMARY_MESSAGE_TRUNCATE_CHARS } from '../shared/ai.constants';
 import { takeRecentWindow, toTranscriptReferences } from './rag-qa-transcript';
 
 const MESSAGES = [

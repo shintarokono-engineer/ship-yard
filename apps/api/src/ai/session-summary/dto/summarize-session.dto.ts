@@ -1,6 +1,6 @@
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
-import { AI_INSTRUCTIONS_MAX_LENGTH } from '../../_shared/ai.constants';
+import { AI_INSTRUCTIONS_MAX_LENGTH } from '../../shared/ai.constants';
 
 /**
  * `POST /workspaces/:slug/projects/:projectId/qa/sessions/:sessionId/summary` のボディ。

@@ -1,6 +1,6 @@
 import type Anthropic from '@anthropic-ai/sdk';
 
-import { SESSION_SUMMARY_MAX_CHARS } from '../_shared/ai.constants';
+import { SESSION_SUMMARY_MAX_CHARS } from '../shared/ai.constants';
 
 export const SUBMIT_PROJECT_DESCRIPTION_TOOL: Anthropic.Messages.Tool = {
   name: 'submit_project_description',

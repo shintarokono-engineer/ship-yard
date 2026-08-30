@@ -4,9 +4,9 @@ import {
   AI_MODEL_SONNET,
   SESSION_SUMMARY_MAX_CHARS,
   SESSION_SUMMARY_MAX_TOKENS,
-} from '../_shared/ai.constants';
-import { AIBadResponseError } from '../_shared/ai-error';
-import { AnthropicService } from '../_shared/anthropic.service';
+} from '../shared/ai.constants';
+import { AIBadResponseError } from '../shared/ai-error';
+import { AnthropicService } from '../shared/anthropic.service';
 import {
   parseProjectDescription,
   SUBMIT_PROJECT_DESCRIPTION_TOOL,
@@ -15,7 +15,7 @@ import {
   buildSessionSummaryPrompt,
   type SessionSummaryPromptInput,
 } from './session-summary.prompt';
-import { extractToolUseBlock } from '../_shared/tool-use';
+import { extractToolUseBlock } from '../shared/tool-use';
 
 /**
  * 壁打ちセッションを要約して `Project.description` の候補文を作る。
