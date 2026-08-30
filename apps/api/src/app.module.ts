@@ -1,22 +1,26 @@
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
-import { AIUsageService } from './ai/ai-usage.service';
-import { AnthropicModule } from './ai/anthropic.module';
-import { ChecklistGenController } from './ai/checklist-gen.controller';
-import { ChecklistGenService } from './ai/checklist-gen.service';
-import { DraftGenController } from './ai/draft-gen.controller';
-import { DraftGenService } from './ai/draft-gen.service';
-import { EmbeddingService } from './ai/embedding.service';
-import { OpenAIModule } from './ai/openai.module';
-import { RagQaController } from './ai/rag-qa.controller';
-import { RagQaService } from './ai/rag-qa.service';
-import { RagSearchService } from './ai/rag-search.service';
-import { RefineDocController } from './ai/refine-doc.controller';
-import { RefineDocService } from './ai/refine-doc.service';
-import { TaskSplitController } from './ai/task-split.controller';
-import { TaskSplitService } from './ai/task-split.service';
-import { UsageController } from './ai/usage.controller';
+import { AIUsageService } from './ai/shared/ai-usage.service';
+import { AnthropicModule } from './ai/shared/anthropic.module';
+import { ChecklistGenController } from './ai/checklist-gen/checklist-gen.controller';
+import { ChecklistGenService } from './ai/checklist-gen/checklist-gen.service';
+import { SuggestionTasksController } from './ai/suggestion-tasks/suggestion-tasks.controller';
+import { SuggestionTasksService } from './ai/suggestion-tasks/suggestion-tasks.service';
+import { DraftGenController } from './ai/draft-gen/draft-gen.controller';
+import { DraftGenService } from './ai/draft-gen/draft-gen.service';
+import { EmbeddingService } from './ai/shared/embedding.service';
+import { OpenAIModule } from './ai/shared/openai.module';
+import { RagQaController } from './ai/rag-qa/rag-qa.controller';
+import { RagQaService } from './ai/rag-qa/rag-qa.service';
+import { SessionSummaryController } from './ai/session-summary/session-summary.controller';
+import { SessionSummaryService } from './ai/session-summary/session-summary.service';
+import { RagSearchService } from './ai/shared/rag-search.service';
+import { RefineDocController } from './ai/refine-doc/refine-doc.controller';
+import { RefineDocService } from './ai/refine-doc/refine-doc.service';
+import { TaskSplitController } from './ai/task-split/task-split.controller';
+import { TaskSplitService } from './ai/task-split/task-split.service';
+import { UsageController } from './ai/shared/usage.controller';
 import { AnnouncementGenService } from './announcements/announcement-gen.service';
 import { AnnouncementController } from './announcements/announcement.controller';
 import { AnnouncementService } from './announcements/announcement.service';
@@ -80,9 +84,11 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     ProjectsController,
     ChecklistController,
     ChecklistGenController,
+    SuggestionTasksController,
     DocumentsController,
     DraftGenController,
     RagQaController,
+    SessionSummaryController,
     RefineDocController,
     TaskSplitController,
     UsageController,
@@ -109,9 +115,11 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     AIUsageService,
     DraftGenService,
     ChecklistGenService,
+    SuggestionTasksService,
     EmbeddingService,
     RagSearchService,
     RagQaService,
+    SessionSummaryService,
     RefineDocService,
     TaskSplitService,
     InvitationsService,

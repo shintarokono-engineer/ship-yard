@@ -5,12 +5,15 @@ import { isWriterRole } from '@/lib/api/types';
 import { fetchProject, fetchRagQaSession, fetchUsage, fetchWorkspace } from '@/lib/api/workspaces';
 
 import { RagQaChatPanel } from './_components/rag-qa-chat-panel';
+import { ReflectDescriptionDialog } from './_components/reflect-description-dialog';
 
 /**
  * `/w/{slug}/projects/{projectId}/rag-qa/{sessionId}` — AI 壁打ちのチャット画面。
  *
  * メッセージ履歴は Server Component で取得し、`RagQaChatPanel`(Client)に渡す。
  * 質問送信時は Server Action + `revalidatePath` でこのページが再実行され、履歴が更新される。
+ *
+ * 会話が 1 件以上ある書き込み権限者には「この会話を概要に反映」を出す。
  */
 export default async function RagQaSessionPage({
   params,
@@ -42,7 +45,17 @@ export default async function RagQaSessionPage({
           feature="RAG_QA"
           current={detail.session.title}
         />
-        <h1 className="text-2xl font-semibold">{detail.session.title}</h1>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-2xl font-semibold">{detail.session.title}</h1>
+          {canWrite && detail.messages.length > 0 && (
+            <ReflectDescriptionDialog
+              slug={slug}
+              projectId={projectId}
+              sessionId={sessionId}
+              usage={usage}
+            />
+          )}
+        </div>
         <p className="text-muted-foreground text-sm">
           {project.name} について AI と相談します。過去のドキュメントを参照して回答します。
         </p>

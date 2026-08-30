@@ -8,9 +8,11 @@ import {
   SuggestionsList,
 } from '@/components/score';
 import { ProjectBreadcrumbs } from '@/components/project-breadcrumbs';
-import { DIAGNOSIS_AXIS_LABEL } from '@/lib/api/types';
-import { fetchDiagnosis, fetchProject, fetchWorkspace } from '@/lib/api/workspaces';
+import { DIAGNOSIS_AXIS_LABEL, isWriterRole } from '@/lib/api/types';
+import { fetchDiagnosis, fetchProject, fetchUsage, fetchWorkspace } from '@/lib/api/workspaces';
 import { formatDateTime } from '@/lib/format';
+
+import { SuggestionTasksDialog } from '../../_components/suggestion-tasks-dialog';
 
 /**
  * `/w/{slug}/projects/{projectId}/diagnoses/{id}` — プロダクト診断 1 件の結果ページ。
@@ -26,14 +28,20 @@ export default async function DiagnosisDetailPage({
 }) {
   const { slug, projectId, id } = await params;
 
-  const workspace = await fetchWorkspace(slug);
-  if (!workspace) notFound();
+  const [workspace, project] = await Promise.all([
+    fetchWorkspace(slug),
+    fetchProject(slug, projectId),
+  ]);
+  if (!workspace || !project) notFound();
 
-  const project = await fetchProject(slug, projectId);
-  if (!project) notFound();
-
-  const diagnosis = await fetchDiagnosis(slug, projectId, id);
+  // usage は F17 のタスク化ダイアログでクレジット残量を出すために取る(fetchUsage は cache 済み)。
+  const [diagnosis, usage] = await Promise.all([
+    fetchDiagnosis(slug, projectId, id),
+    fetchUsage(slug),
+  ]);
   if (!diagnosis) notFound();
+
+  const canWrite = isWriterRole(workspace.role);
 
   return (
     <div className="cursor-default space-y-6">
@@ -70,9 +78,22 @@ export default async function DiagnosisDetailPage({
       </section>
 
       <section aria-labelledby="suggestions-heading" className="space-y-3">
-        <h2 id="suggestions-heading" className="text-lg font-semibold">
-          改善提案
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="suggestions-heading" className="text-lg font-semibold">
+            改善提案
+          </h2>
+          {canWrite && diagnosis.suggestions.length > 0 && (
+            <SuggestionTasksDialog
+              slug={slug}
+              projectId={projectId}
+              source="DIAGNOSIS"
+              sourceId={diagnosis.id}
+              suggestions={diagnosis.suggestions}
+              axisLabel={DIAGNOSIS_AXIS_LABEL}
+              usage={usage}
+            />
+          )}
+        </div>
         <SuggestionsList suggestions={diagnosis.suggestions} axisLabel={DIAGNOSIS_AXIS_LABEL} />
       </section>
 

@@ -6,7 +6,7 @@
  * の整合性アサートで不一致を弾く(ADR-013 LLM スコアの限界対策)。
  */
 
-import { AIBadResponseError } from '../ai/ai-error';
+import { AIBadResponseError } from '../ai/shared/ai-error';
 import {
   DIAGNOSIS_AXES,
   DIAGNOSIS_AXIS_MAX_SCORE,

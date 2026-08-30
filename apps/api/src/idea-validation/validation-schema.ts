@@ -7,7 +7,7 @@
  * (3) totalScore = sum of breakdown.score の整合性アサートは同じ。
  */
 
-import { AIBadResponseError } from '../ai/ai-error';
+import { AIBadResponseError } from '../ai/shared/ai-error';
 import type {
   ValidationBreakdown,
   ValidationCompetitorRef,

@@ -9,8 +9,8 @@ import {
   type Plan,
 } from '@shipyard/db';
 
-import { AI_MODEL_SONNET } from '../ai/ai.constants';
-import { AIUsageService } from '../ai/ai-usage.service';
+import { AI_MODEL_SONNET } from '../ai/shared/ai.constants';
+import { AIUsageService } from '../ai/shared/ai-usage.service';
 import { cursorArgs, resolveLimit, toCursorPage } from '../common/pagination';
 import { dayjs } from '../common/time';
 import { PrismaService } from '../prisma/prisma.service';
@@ -21,7 +21,7 @@ import type { BlogDeliveryContent, TwitterDeliveryContent } from './announcement
 import type { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import type { GenerateAnnouncementDto } from './dto/generate-announcement.dto';
 import type { UpdateAnnouncementDto } from './dto/update-announcement.dto';
-import { translateAIProviderError } from '../ai/ai-error';
+import { translateAIProviderError } from '../ai/shared/ai-error';
 
 /** Prisma JSON 型へ Delivery.content を安全に入れるためのヘルパー。 */
 function toJson(value: TwitterDeliveryContent | BlogDeliveryContent): Prisma.InputJsonValue {

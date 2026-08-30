@@ -9,9 +9,16 @@ import {
   SuggestionsList,
 } from '@/components/score';
 import { ProjectBreadcrumbs } from '@/components/project-breadcrumbs';
-import { VALIDATION_AXIS_LABEL } from '@/lib/api/types';
-import { fetchIdeaValidation, fetchProject, fetchWorkspace } from '@/lib/api/workspaces';
+import { VALIDATION_AXIS_LABEL, isWriterRole } from '@/lib/api/types';
+import {
+  fetchIdeaValidation,
+  fetchProject,
+  fetchUsage,
+  fetchWorkspace,
+} from '@/lib/api/workspaces';
 import { formatDateTime } from '@/lib/format';
+
+import { SuggestionTasksDialog } from '../../_components/suggestion-tasks-dialog';
 
 /**
  * `/w/{slug}/projects/{projectId}/idea-validations/{id}` — アイデア検証 1 件の結果ページ。
@@ -27,14 +34,20 @@ export default async function IdeaValidationDetailPage({
 }) {
   const { slug, projectId, id } = await params;
 
-  const workspace = await fetchWorkspace(slug);
-  if (!workspace) notFound();
+  const [workspace, project] = await Promise.all([
+    fetchWorkspace(slug),
+    fetchProject(slug, projectId),
+  ]);
+  if (!workspace || !project) notFound();
 
-  const project = await fetchProject(slug, projectId);
-  if (!project) notFound();
-
-  const validation = await fetchIdeaValidation(slug, projectId, id);
+  // usage は F17 のタスク化ダイアログでクレジット残量を出すために取る(fetchUsage は cache 済み)。
+  const [validation, usage] = await Promise.all([
+    fetchIdeaValidation(slug, projectId, id),
+    fetchUsage(slug),
+  ]);
   if (!validation) notFound();
+
+  const canWrite = isWriterRole(workspace.role);
 
   return (
     <div className="cursor-default space-y-6">
@@ -78,9 +91,22 @@ export default async function IdeaValidationDetailPage({
       </section>
 
       <section aria-labelledby="suggestions-heading" className="space-y-3">
-        <h2 id="suggestions-heading" className="text-lg font-semibold">
-          改善提案
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="suggestions-heading" className="text-lg font-semibold">
+            改善提案
+          </h2>
+          {canWrite && validation.suggestions.length > 0 && (
+            <SuggestionTasksDialog
+              slug={slug}
+              projectId={projectId}
+              source="IDEA_VALIDATION"
+              sourceId={validation.id}
+              suggestions={validation.suggestions}
+              axisLabel={VALIDATION_AXIS_LABEL}
+              usage={usage}
+            />
+          )}
+        </div>
         <SuggestionsList suggestions={validation.suggestions} axisLabel={VALIDATION_AXIS_LABEL} />
       </section>
 

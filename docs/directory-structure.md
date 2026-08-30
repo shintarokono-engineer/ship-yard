@@ -104,14 +104,27 @@ apps/api/src/
 ├── projects/                # Project CRUD(controller / service / dto)
 ├── checklist/               # ChecklistItem CRUD + 一括生成
 ├── documents/               # ProjectDocument 閲覧 / 編集(append-only) / soft delete
-├── ai/                      # AI 関連の全モジュール
-│   ├── ai.constants.ts                   # モデル ID / 上限 / 単価 / 為替の集約
-│   ├── ai-usage.service.ts               # AIUsage 記録 + Free 月次上限チェック
-│   ├── anthropic.{module,service}.ts     # Claude SDK ラッパー
-│   ├── openai.{module,service}.ts        # OpenAI SDK ラッパー(embedding)
-│   ├── embedding.service.ts              # ProjectDocument.embedding の埋め込み
-│   ├── draft-gen.{controller,service}.ts # README/LP 生成(Sonnet 4 + Tool Use)
-│   └── checklist-gen.{controller,service}.ts # チェックリスト一括生成(Haiku 4.5)
+├── ai/                      # AI 機能(`shared/` の基盤 + 機能ごとのサブディレクトリ)
+│   ├── shared/                          # 全 AI 機能が使う基盤
+│   │   ├── ai.constants.ts               # モデル ID / 上限 / 単価 / 為替の集約
+│   │   ├── ai-usage.service.ts           # AIUsage 記録 + クレジット予約 / 上限チェック
+│   │   ├── ai-error.ts                   # AI 例外(502 変換等)
+│   │   ├── anthropic.{module,service}.ts # Claude SDK ラッパー
+│   │   ├── openai.{module,service}.ts    # OpenAI SDK ラッパー(embedding)
+│   │   ├── embedding.service.ts          # ProjectDocument.embedding の埋め込み
+│   │   ├── rag-search.service.ts         # pgvector 類似検索
+│   │   ├── format-reference.ts           # プロンプト封入(コードブロック + 注入対策文言)
+│   │   ├── tool-use.ts                   # Tool Use / text ブロック抽出
+│   │   ├── prompts.ts                    # systemPrompt の共通部品
+│   │   ├── checklist-items-tool.ts       # ChecklistItem 配列の Tool スキーマ(2 機能で共有)
+│   │   └── usage.controller.ts           # GET /workspaces/:slug/usage
+│   ├── draft-gen/                        # README 生成(Sonnet 4 + Tool Use)
+│   ├── checklist-gen/                    # チェックリスト一括生成(Haiku 4.5)
+│   ├── task-split/                       # タスク分解(Haiku 4.5)
+│   ├── refine-doc/                       # 文章推敲(append-only で新版作成)
+│   ├── rag-qa/                           # 壁打ち(セッション + メッセージ永続化)
+│   ├── suggestion-tasks/                 # 改善提案 → ChecklistItem 変換
+│   └── session-summary/                  # 壁打ち → Project.description 反映
 ├── billing/                 # Stripe ↔ DB 同期(BillingService)
 ├── stripe/                  # Stripe SDK ラッパー
 └── webhooks/                # POST /webhooks/stripe(署名検証 + Idempotency)
@@ -124,7 +137,9 @@ apps/api/src/
 - path slug ベース(`workspaces/:slug/...`)は ALS テナントコンテキストを持たない。Service は引数の `tenantId` を `where`/`data` に明示注入
 - Raw SQL は原則禁止、必要時は `WHERE tenantId = $1` 明示(ESLint `no-raw-sql-without-tenant-filter` で検出)
 - 日付・時刻は `common/time.ts` の dayjs(UTC プラグイン extend 済み)を使う(`new Date(...)` での日付演算は避ける)
-- 上限・モデル ID・単価・為替・タイムアウト等の変動値は定数ファイルに集約(AI 関連は `ai/ai.constants.ts`)
+- 上限・モデル ID・単価・為替・タイムアウト等の変動値は定数ファイルに集約(AI 関連は `ai/shared/ai.constants.ts`)
+- **AI 機能は `ai/<feature>/` に controller / service / prompt / tool / dto をまとめる**。2 つ以上の機能が使う部品だけ `ai/shared/` へ上げる
+- ただし `product-diagnosis/` `idea-validation/` `announcements/` は AI 機能だが独立ディレクトリを持つ(それぞれ専用の model / schema / 型を抱えており、`ai/` の外で完結するため)
 - schema 由来 enum はマジック文字列ではなく `@shipyard/db` 経由(`Plan.PRO` 等)で参照
 
 > 関連: ADR-002(マルチテナント)/ ADR-004(課金)/ ADR-005(AI)

@@ -27,6 +27,8 @@ import type {
   RagQaSession,
   RagQaSessionDetail,
   ServiceScore,
+  SessionSummaryResult,
+  SuggestionSource,
   Workspace,
 } from './types';
 
@@ -396,6 +398,38 @@ export async function generateChecklist(
 }
 
 /**
+ * `POST /workspaces/:slug/projects/:projectId/checklist/from-suggestions`
+ *
+ * 診断 / 検証の改善提案を Haiku 4.5 + Tool Use で実行可能なタスクへ分解し、最大 12 件を
+ * 既存項目の後ろに一括追加する(F17)。1 対 1 の転記ではなく分解なので、1 つの提案が
+ * 技術とマーケに跨る場合も項目ごとに Category が付く。
+ *
+ * **提案の本文は送らない。** `sourceId` と配列 index だけを渡し、本文は API 側が DB から
+ * 引き直す(任意文字列をプロンプトに載せる経路を作らないため)。
+ *
+ * 何件選んでも AI 呼び出しは 1 回で、プラン別 AI クレジットを 1cr 消費する
+ * (ADR-012、Feature は CHECKLIST_GEN を再利用)。
+ */
+export async function createChecklistFromSuggestions(
+  slug: string,
+  projectId: string,
+  body: {
+    source: SuggestionSource;
+    sourceId: string;
+    indexes: number[];
+    instructions?: string;
+  },
+): Promise<{ items: ChecklistItem[] }> {
+  return apiFetch<{ items: ChecklistItem[] }>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/checklist/from-suggestions`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+/**
  * `POST /workspaces/:slug/projects/:projectId/checklist/:itemId/split`
  *
  * Haiku 4.5 + Tool Use で親 ChecklistItem を最大 10 件のサブタスクに分解(TASK_SPLIT、Day 15)。
@@ -515,6 +549,27 @@ export async function askRagQaMessage(
 ): Promise<AskRagQaResult> {
   return apiFetch<AskRagQaResult>(
     `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/qa/sessions/${encodeURIComponent(sessionId)}/messages`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+/**
+ * `POST /workspaces/:slug/projects/:projectId/qa/sessions/:sessionId/summary`
+ *
+ * 壁打ちの記録を Sonnet 4 で要約し、`Project.description` の候補文を返す。
+ * 保存はしない(`updateProject` で別途行う)。WRITER_ROLES のみ。Sonnet=3cr を消費。
+ */
+export async function summarizeRagQaSession(
+  slug: string,
+  projectId: string,
+  sessionId: string,
+  body: { instructions?: string },
+): Promise<SessionSummaryResult> {
+  return apiFetch<SessionSummaryResult>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/qa/sessions/${encodeURIComponent(sessionId)}/summary`,
     {
       method: 'POST',
       body: JSON.stringify(body),

@@ -5,7 +5,7 @@ import { useActionState, useEffect, useMemo, useOptimistic, useRef } from 'react
 
 import { CreditCostBadge } from '@/components/credit-cost-badge';
 import { InlineEmpty } from '@/components/inline-empty';
-import { Alert } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { EMPTY_MESSAGES } from '@/lib/empty-messages';
@@ -157,13 +157,15 @@ export function RagQaChatPanel({
 
           {state.quotaExceeded && (
             <Alert variant="warning">
-              <p>{state.formError}</p>
-              <Link
-                href={`/w/${slug}/settings/billing`}
-                className="mt-1 inline-block text-xs underline underline-offset-2"
-              >
-                プランをアップグレード
-              </Link>
+              <AlertDescription>
+                {state.formError}
+                <Link
+                  href={`/w/${slug}/settings/billing`}
+                  className="text-xs underline underline-offset-2"
+                >
+                  プランをアップグレード
+                </Link>
+              </AlertDescription>
             </Alert>
           )}
 

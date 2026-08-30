@@ -98,6 +98,26 @@ export class ChecklistService {
     });
   }
 
+  /**
+   * 直近に追加された項目の title を取得する(F17 の重複生成抑制用)。
+   *
+   * `position` 降順で `take` してから反転する。上限に当たったとき、**重複が起きやすい直近の項目**
+   * (前回の生成結果など)が残るようにするため。昇順の先頭から取ると最も古い項目が残り、
+   * 重複回避の材料として意味が薄くなる。
+   *
+   * `assertExists` は呼ばない。呼び出し側が `ProjectsService.getOwnedOrThrow` で解決済みで、
+   * where に `tenantId` と `projectId` を両方置いているためテナント越境も起きない。
+   */
+  async listRecentTitles(tenantId: string, projectId: string, limit: number): Promise<string[]> {
+    const rows = await this.prisma.checklistItem.findMany({
+      where: { tenantId, projectId },
+      select: { title: true },
+      orderBy: [{ position: 'desc' }, { createdAt: 'desc' }],
+      take: limit,
+    });
+    return rows.map((r) => r.title).reverse();
+  }
+
   async getOwnedOrThrow(tenantId: string, projectId: string, itemId: string) {
     await this.projects.assertExists(tenantId, projectId);
     const item = await this.prisma.checklistItem.findFirst({

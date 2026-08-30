@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { type DocType, isPrismaError, type Prisma, PrismaErrorCode } from '@shipyard/db';
 
-import { EmbeddingService } from '../ai/embedding.service';
+import { EmbeddingService } from '../ai/shared/embedding.service';
 import { dayjs } from '../common/time';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectsService } from '../projects/projects.service';

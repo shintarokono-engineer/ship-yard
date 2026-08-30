@@ -93,6 +93,19 @@ export class ProjectsService {
     return project;
   }
 
+  /**
+   * プロンプトに載せる最小限のプロジェクト情報だけを取る(存在しなければ 404)。
+   * 件数が要る場合は `_count` まで引く `getOwnedOrThrow` を使う。
+   */
+  async getContextOrThrow(tenantId: string, projectId: string) {
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, tenantId },
+      select: { id: true, name: true, description: true, status: true },
+    });
+    if (!project) throw new NotFoundException();
+    return project;
+  }
+
   /** プロジェクトがこのテナントに存在しなければ 404(子リソースのコントローラから使う)。 */
   async assertExists(tenantId: string, projectId: string): Promise<void> {
     const found = await this.prisma.project.findFirst({
