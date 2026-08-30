@@ -20,6 +20,8 @@ export const EMPTY_MESSAGES = {
     canWrite: '概要はまだありません。「編集」から追加できます。',
     readOnly: '概要はまだ設定されていません。',
   },
+  /** 壁打ち要約ダイアログの「現在の概要」。保存後に設定されるので readOnly 版は持たない。 */
+  currentProjectDescription: 'まだ設定されていません。保存すると新しく設定されます。',
   /** プロジェクト詳細の README プレビュー / README ページ本体。 */
   readme: {
     canWrite: 'README はまだありません。「AI で生成」で下書きを作れます。',

@@ -27,6 +27,7 @@ import type {
   RagQaSession,
   RagQaSessionDetail,
   ServiceScore,
+  SessionSummaryResult,
   SuggestionSource,
   Workspace,
 } from './types';
@@ -548,6 +549,27 @@ export async function askRagQaMessage(
 ): Promise<AskRagQaResult> {
   return apiFetch<AskRagQaResult>(
     `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/qa/sessions/${encodeURIComponent(sessionId)}/messages`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+/**
+ * `POST /workspaces/:slug/projects/:projectId/qa/sessions/:sessionId/summary`
+ *
+ * 壁打ちの記録を Sonnet 4 で要約し、`Project.description` の候補文を返す。
+ * 保存はしない(`updateProject` で別途行う)。WRITER_ROLES のみ。Sonnet=3cr を消費。
+ */
+export async function summarizeRagQaSession(
+  slug: string,
+  projectId: string,
+  sessionId: string,
+  body: { instructions?: string },
+): Promise<SessionSummaryResult> {
+  return apiFetch<SessionSummaryResult>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/qa/sessions/${encodeURIComponent(sessionId)}/summary`,
     {
       method: 'POST',
       body: JSON.stringify(body),

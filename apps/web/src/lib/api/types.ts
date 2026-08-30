@@ -548,6 +548,19 @@ export interface AskRagQaResult {
   assistantMessage: RagQaMessage;
 }
 
+/**
+ * `POST /workspaces/:slug/projects/:projectId/qa/sessions/:sessionId/summary` のレスポンス。
+ * 保存はされていない。`description` は候補で、`PATCH .../projects/:projectId` で別途保存する。
+ */
+export interface SessionSummaryResult {
+  description: string;
+  currentDescription: string | null;
+  /** 会話が上限を超えていて、直近の一部だけを要約対象にした。 */
+  transcriptTruncated: boolean;
+  /** 生成された概要が上限文字数で切り詰められた。 */
+  descriptionTruncated: boolean;
+}
+
 // ----- AI 利用状況(設定 → 利用状況タブ、Day 29 API) -----
 
 /** AI 機能種別(`Feature` enum、packages/db/prisma/schema.prisma と同期)。 */
@@ -561,6 +574,7 @@ export const FEATURES = [
   'PRODUCT_DIAGNOSIS',
   'IDEA_VALIDATION',
   'ANNOUNCEMENT_GEN',
+  'DESCRIPTION_SYNC',
   'OTHER',
 ] as const;
 export type Feature = (typeof FEATURES)[number];
@@ -581,6 +595,7 @@ export const FEATURE_META: Record<Feature, { label: string }> = {
   PRODUCT_DIAGNOSIS: { label: 'プロダクト診断' },
   IDEA_VALIDATION: { label: 'アイデア検証' },
   ANNOUNCEMENT_GEN: { label: '告知文生成' },
+  DESCRIPTION_SYNC: { label: '概要への反映' },
   OTHER: { label: 'その他' },
 };
 
@@ -608,6 +623,7 @@ export const FEATURE_CREDIT_COSTS: Record<
   PRODUCT_DIAGNOSIS: 6,
   /** ADR-014: Sonnet 4 + Tool Use(多チャネル一括)、`FEATURE_CREDIT_OVERRIDES` で override 済。 */
   ANNOUNCEMENT_GEN: 4,
+  DESCRIPTION_SYNC: 3,
 };
 
 /** `GET /workspaces/:slug/usage` のレスポンス(当月のテナント AI 利用状況サマリ、ADR-012)。 */

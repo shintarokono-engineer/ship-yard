@@ -34,7 +34,7 @@ const SIGN_UP_SENT_KEY = `${STORAGE_KEY_PREFIX}sign-up-sent`;
 const PRICING_VIEWED_KEY = `${STORAGE_KEY_PREFIX}pricing-viewed`;
 
 /** AI 生成機能の識別子(GA4 の `feature` パラメータ)。 */
-export const ANALYTICS_FEATURES = ['document', 'lp', 'checklist'] as const;
+export const ANALYTICS_FEATURES = ['document', 'lp', 'checklist', 'description'] as const;
 export type AnalyticsFeature = (typeof ANALYTICS_FEATURES)[number];
 
 /** LP 上の CTA 設置位置(GA4 の `location` パラメータ)。 */
