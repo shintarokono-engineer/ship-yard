@@ -807,6 +807,15 @@ export type ScoreBreakdown<A extends string = string> = Record<
   { score: number; comment: string }
 >;
 
+/**
+ * 改善提案の取得元(F17)。API の `CreateChecklistFromSuggestionsDto.source` と同値。
+ * 診断と検証で `suggestions` の形は同型だが、評価軸の集合が違うため区別が要る。
+ */
+export const SUGGESTION_SOURCES = ['DIAGNOSIS', 'IDEA_VALIDATION'] as const;
+
+/** `SUGGESTION_SOURCES` の要素型。 */
+export type SuggestionSource = (typeof SUGGESTION_SOURCES)[number];
+
 /** 改善提案 1 件。優先度 + どの軸を改善するかを紐付け。 */
 export interface Suggestion<A extends string = string> {
   priority: 'HIGH' | 'MEDIUM' | 'LOW';

@@ -27,6 +27,7 @@ import type {
   RagQaSession,
   RagQaSessionDetail,
   ServiceScore,
+  SuggestionSource,
   Workspace,
 } from './types';
 
@@ -388,6 +389,38 @@ export async function generateChecklist(
 ): Promise<{ items: ChecklistItem[] }> {
   return apiFetch<{ items: ChecklistItem[] }>(
     `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/checklist/generate`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+/**
+ * `POST /workspaces/:slug/projects/:projectId/checklist/from-suggestions`
+ *
+ * 診断 / 検証の改善提案を Haiku 4.5 + Tool Use で実行可能なタスクへ分解し、最大 12 件を
+ * 既存項目の後ろに一括追加する(F17)。1 対 1 の転記ではなく分解なので、1 つの提案が
+ * 技術とマーケに跨る場合も項目ごとに Category が付く。
+ *
+ * **提案の本文は送らない。** `sourceId` と配列 index だけを渡し、本文は API 側が DB から
+ * 引き直す(任意文字列をプロンプトに載せる経路を作らないため)。
+ *
+ * 何件選んでも AI 呼び出しは 1 回で、プラン別 AI クレジットを 1cr 消費する
+ * (ADR-012、Feature は CHECKLIST_GEN を再利用)。
+ */
+export async function createChecklistFromSuggestions(
+  slug: string,
+  projectId: string,
+  body: {
+    source: SuggestionSource;
+    sourceId: string;
+    indexes: number[];
+    instructions?: string;
+  },
+): Promise<{ items: ChecklistItem[] }> {
+  return apiFetch<{ items: ChecklistItem[] }>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/checklist/from-suggestions`,
     {
       method: 'POST',
       body: JSON.stringify(body),
