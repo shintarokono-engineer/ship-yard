@@ -4,11 +4,11 @@ import {
   AI_MODEL_SONNET,
   ANNOUNCEMENT_GEN_MAX_TOKENS,
   ANNOUNCEMENT_GEN_TEMPERATURE,
-} from '../ai/ai.constants';
-import { AIBadResponseError } from '../ai/ai-error';
-import { AnthropicService } from '../ai/anthropic.service';
-import { AI_PERSONA_INTRO } from '../ai/prompts';
-import { extractToolUseBlock } from '../ai/tool-use';
+} from '../ai/_shared/ai.constants';
+import { AIBadResponseError } from '../ai/_shared/ai-error';
+import { AnthropicService } from '../ai/_shared/anthropic.service';
+import { AI_PERSONA_INTRO } from '../ai/_shared/prompts';
+import { extractToolUseBlock } from '../ai/_shared/tool-use';
 
 import { parseAnnouncementDrafts, SUBMIT_ANNOUNCEMENT_DRAFTS_TOOL } from './announcement-tool';
 import { ANNOUNCEMENT_CHANNELS } from './announcement-types';

@@ -13,9 +13,9 @@ import {
 
 import { Feature } from '@shipyard/db';
 
-import { AI_MODEL_SONNET } from '../ai/ai.constants';
-import { AIUsageService } from '../ai/ai-usage.service';
-import { RagSearchService } from '../ai/rag-search.service';
+import { AI_MODEL_SONNET } from '../ai/_shared/ai.constants';
+import { AIUsageService } from '../ai/_shared/ai-usage.service';
+import { RagSearchService } from '../ai/_shared/rag-search.service';
 import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
 import { CurrentWorkspace } from '../auth/current-workspace.decorator';
 import { Roles, WRITER_ROLES } from '../auth/roles';

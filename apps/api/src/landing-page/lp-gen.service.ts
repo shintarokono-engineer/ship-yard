@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 
-import { AI_MODEL_SONNET } from '../ai/ai.constants';
-import { AIBadResponseError } from '../ai/ai-error';
-import { AnthropicService } from '../ai/anthropic.service';
-import { formatReferenceSection, type RagReference } from '../ai/format-reference';
-import { AI_PERSONA_INTRO } from '../ai/prompts';
-import { extractToolUseBlock } from '../ai/tool-use';
+import { AI_MODEL_SONNET } from '../ai/_shared/ai.constants';
+import { AIBadResponseError } from '../ai/_shared/ai-error';
+import { AnthropicService } from '../ai/_shared/anthropic.service';
+import { formatReferenceSection, type RagReference } from '../ai/_shared/format-reference';
+import { AI_PERSONA_INTRO } from '../ai/_shared/prompts';
+import { extractToolUseBlock } from '../ai/_shared/tool-use';
 import {
   LP_GEN_MAX_TOKENS,
   parseLpBlocks,

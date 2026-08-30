@@ -9,17 +9,17 @@ import {
   WEB_SEARCH_MAX_USES,
   WEB_SEARCH_TOOL_NAME,
   WEB_SEARCH_TOOL_TYPE,
-} from '../ai/ai.constants';
-import { AIUsageService } from '../ai/ai-usage.service';
-import { AnthropicService } from '../ai/anthropic.service';
-import { AI_PERSONA_INTRO } from '../ai/prompts';
-import { extractToolUseBlock } from '../ai/tool-use';
+} from '../ai/_shared/ai.constants';
+import { AIUsageService } from '../ai/_shared/ai-usage.service';
+import { AnthropicService } from '../ai/_shared/anthropic.service';
+import { AI_PERSONA_INTRO } from '../ai/_shared/prompts';
+import { extractToolUseBlock } from '../ai/_shared/tool-use';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatStructuredBriefForPrompt } from '../projects/project-brief.constants';
 import { formatRubricForPrompt } from './diagnosis.constants';
 import { parseDiagnosisOutput, SUBMIT_SERVICE_SCORE_TOOL } from './diagnosis-schema';
 import type { DiagnosisOutput } from './diagnosis-types';
-import { translateAIProviderError } from '../ai/ai-error';
+import { translateAIProviderError } from '../ai/_shared/ai-error';
 
 /**
  * プロダクト診断(PRODUCT_DIAGNOSIS、ADR-013)の Service。
