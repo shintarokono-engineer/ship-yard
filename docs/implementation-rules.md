@@ -43,6 +43,21 @@
 
 ## フロントエンド(Next.js App Router / React)
 
+- **UI コンポーネントは自作せず shadcn を取り込んで使う**(`npx shadcn@latest add <name>`)
+  - table / checkbox / progress / セグメント等、shadcn に相当するものがある UI を `div` + Tailwind で組まない
+  - 既存の `components/ui/` に無ければ**まず registry を確認**する。無い場合のみ自作する
+  - 見た目の調整は `className` で上書きする。生成物本体を書き換えるのは、上書きでは届かない場合に限り、理由をコメントに残す(再生成で戻るため)
+  - shadcn 生成物(`components/ui/**`)の lint 指摘は原則追随しない。手で直すと次の `add` で上書きされる
+
+## コメント
+
+- **コードを読めば分かることは書かない**。「何をしているか」ではなく、**読んでも分からない「なぜ」だけ**を書く
+- 変更の**経緯を残さない**(「以前は〜だった」「〜という問題があったので」)。履歴は git が持つ
+- 長さは原則 1〜3 行。背景の説明が長くなるものは ADR か `docs/` に書き、コメントからは参照だけする
+- 書く価値があるのは主に次のケース
+  - その書き方をやめると壊れる制約(例: `forceMount` を外すと閉じた時に値が送信されない)
+  - 仕様・外部ライブラリの非自明な挙動への対処
+  - あえて標準から外した理由
 - **`<body>` には固定属性のみ置く**(固定 `className` は OK。theme 切替・動的 class・状態フラグ等の動的属性を `<body>` に付けない)
   - 理由: ブラウザ拡張(ColorZilla / Grammarly 等)が `<body>` に属性を注入することによる hydration mismatch を、`apps/web/src/app/layout.tsx` で `suppressHydrationWarning` を付けて抑制している。この prop は **1 階層分のあらゆる属性差分を全て無視する** ため、`<body>` 経由で動的状態を扱うと本物のバグも黙殺される
   - 動的な状態(theme / lang 切替 / 装飾 class 等)は **`<html>`** か中の Client Component で扱う
