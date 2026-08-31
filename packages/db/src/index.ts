@@ -33,6 +33,8 @@ export {
   DeliveryStatus,
   // F20 トライアル終了通知
   TrialNotificationKind,
+  // ADR-016 長時間 AI 処理の進行状態
+  AiJobStatus,
 } from '@prisma/client';
 
 // model 由来の型(値ではない)。Service / Controller の戻り値型として使う。
@@ -48,6 +50,8 @@ export type {
   BlogPost,
   // F20 トライアル終了通知
   TrialNotification,
+  // ADR-016 長時間 AI 処理の進行状態
+  AiJob,
 } from '@prisma/client';
 
 // マルチテナントのリクエストコンテキスト(ADR-002)

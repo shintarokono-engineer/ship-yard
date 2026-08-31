@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 
 import { Feature, type Plan, type Prisma, type ServiceScore } from '@shipyard/db';
 
@@ -11,6 +11,7 @@ import {
   WEB_SEARCH_TOOL_NAME,
   WEB_SEARCH_TOOL_TYPE,
 } from '../ai/shared/ai.constants';
+import { AiJobService } from '../ai/shared/ai-job.service';
 import { AIUsageService, sumCostJpy } from '../ai/shared/ai-usage.service';
 import { AnthropicService } from '../ai/shared/anthropic.service';
 import { AI_PERSONA_INTRO } from '../ai/shared/prompts';
@@ -20,7 +21,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { formatStructuredBriefForPrompt } from '../projects/project-brief.constants';
 import { formatRubricForPrompt } from './diagnosis.constants';
 import { parseDiagnosisOutput, SUBMIT_SERVICE_SCORE_TOOL } from './diagnosis-schema';
-import type { DiagnosisOutput } from './diagnosis-types';
 import { translateAIProviderError } from '../ai/shared/ai-error';
 
 /**
@@ -38,6 +38,7 @@ export class ProductDiagnosisService {
     private readonly prisma: PrismaService,
     private readonly anthropic: AnthropicService,
     private readonly aiUsage: AIUsageService,
+    private readonly aiJobs: AiJobService,
   ) {}
 
   async getHistory(tenantId: string, projectId: string): Promise<ServiceScore[]> {
@@ -71,17 +72,28 @@ export class ProductDiagnosisService {
    *   7. `ServiceScore` INSERT + AIUsage 2 段記録(PRODUCT_DIAGNOSIS + Web Search 使用時 OTHER)
    *   8. 結果を返す
    */
-  async runDiagnosis(input: {
+  async startDiagnosis(input: {
     tenantId: string;
     projectId: string;
     userId: string;
     plan: Plan;
     instructions?: string;
-  }): Promise<{ score: ServiceScore; output: DiagnosisOutput }> {
+  }): Promise<{ jobId: string }> {
     // 1. プラン quota チェック(Free フォールバック 403 / Pro/Team 月次上限)+ クレジット予約。
     //    本機能固有の月次回数上限をまず確認し、続いてクレジットを AI 呼び出しの「前」に原子的に予約する
     //    (TOCTOU 回避、ADR-012)。2-step 生成なので turnCount:2(Sonnet 3cr × 2 = 6cr)。
     //    以降で失敗したら catch で予約を解放し、失敗した診断でクレジットを消費しない。
+    // 多重実行の抑止(ADR-016)。同期実行時代はレスポンス待ちでボタンが無効化され二重送信が
+    // 実質防がれていたが、即座に応答するようになったため連打で N 件が並走し N × 10cr が予約される。
+    // **クレジット予約の前**に弾くこと。
+    const running = await this.aiJobs.findRunning(
+      input.tenantId,
+      input.projectId,
+      Feature.PRODUCT_DIAGNOSIS,
+    );
+    if (running) {
+      throw new ConflictException('このプロジェクトでは診断が実行中です。完了までお待ちください。');
+    }
     await this.aiUsage.assertWithinDiagnosisQuota({ id: input.tenantId, plan: input.plan });
     const reservationId = await this.aiUsage.reserveCredits(
       { id: input.tenantId, plan: input.plan },
@@ -92,6 +104,35 @@ export class ProductDiagnosisService {
         turnCount: 2,
       },
     );
+
+    // 2. ジョブを作成し、AI 実行は切り離して即座に応答する(ADR-016)。
+    //    診断は 88〜113 秒かかり Vercel Hobby の関数実行上限(60 秒)と FE の API_TIMEOUT_MS
+    //    (55 秒)を超えるため、同期実行では UI から完走できない。App Runner は常駐 Node プロセスの
+    //    ため、レスポンス送出後も背景で処理を続けられる(キュー不要)。
+    //    quota とクレジット予約は**同期のまま**にしてある。実行できない場合に 403 を即返すため。
+    const jobId = await this.aiJobs.start({
+      tenantId: input.tenantId,
+      projectId: input.projectId,
+      feature: Feature.PRODUCT_DIAGNOSIS,
+      createdById: input.userId,
+      reservationId,
+    });
+    // 意図的に await しない。例外は execute 側で必ず捕捉するので unhandled rejection にならない。
+    void this.executeDiagnosis(input, reservationId, jobId);
+    return { jobId };
+  }
+
+  /**
+   * 診断の本体(背景実行、ADR-016)。
+   *
+   * **この関数は絶対に throw してはならない。**呼び出し元は `void` で切り離しており、
+   * 例外が漏れると unhandled rejection になる。失敗はすべて `AiJob` に FAILED として記録する。
+   */
+  private async executeDiagnosis(
+    input: { tenantId: string; projectId: string; userId: string; instructions?: string },
+    reservationId: string,
+    jobId: string,
+  ): Promise<void> {
     try {
       // 2. Project + 関連データ収集
       const project = await this.prisma.project.findFirst({
@@ -369,13 +410,20 @@ export class ProductDiagnosisService {
         });
       }
 
-      return { score, output };
+      await this.aiJobs.complete(jobId, score.id);
     } catch (err) {
       // AI 呼び出し / パース / 永続化のいずれかが失敗したら予約を解放する(失敗診断で課金しない)。
       await this.aiUsage.releaseReservation(reservationId);
       // SDK 例外は既定フィルタで 500 + 汎用文言になり、クレジット枯渇のような運用側の
-      // 設定不備とコードのバグを区別できないため、ここで HTTP 例外へ翻訳する。
-      throw translateAIProviderError(err, 'PRODUCT_DIAGNOSIS', this.logger);
+      // 設定不備とコードのバグを区別できないため HTTP 例外へ翻訳し、その文言をジョブに残す。
+      // 背景実行なので throw せず、ポーリングで拾えるように FAILED として記録する。
+      const translated = translateAIProviderError(err, 'PRODUCT_DIAGNOSIS', this.logger);
+      await this.aiJobs.fail(
+        jobId,
+        translated instanceof Error
+          ? translated.message
+          : 'プロダクト診断の実行に失敗しました。時間をおいて再実行してください。',
+      );
     }
   }
 }

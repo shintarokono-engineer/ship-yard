@@ -2,6 +2,7 @@ import { Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { AiJobRows } from '@/components/score/ai-job-rows';
 import { EmptyState } from '@/components/empty-state';
 import { RecommendationBadge } from '@/components/score/recommendation-badge';
 import { ProjectBreadcrumbs } from '@/components/project-breadcrumbs';
@@ -12,6 +13,7 @@ import {
   fetchUsage,
   fetchWorkspace,
   listIdeaValidations,
+  listIdeaValidationJobs,
 } from '@/lib/api/workspaces';
 import { formatDateTime } from '@/lib/format';
 
@@ -43,8 +45,9 @@ export default async function IdeaValidationsPage({
   const project = await fetchProject(slug, projectId);
   if (!project) notFound();
 
-  const [validations, usage] = await Promise.all([
+  const [validations, jobs, usage] = await Promise.all([
     listIdeaValidations(slug, projectId),
+    listIdeaValidationJobs(slug, projectId),
     fetchUsage(slug),
   ]);
   const canWrite = isWriterRole(workspace.role);
@@ -64,6 +67,9 @@ export default async function IdeaValidationsPage({
           {canWrite && <RunValidationDialog slug={slug} projectId={projectId} usage={usage} />}
         </div>
       </div>
+
+      {/* 実行中 / 直近の失敗を履歴の上に出す(ADR-016)。完了すると消え、結果行に置き換わる。 */}
+      <AiJobRows jobs={jobs} runningLabel="検証を実行中" />
 
       {hasValidations ? (
         <ul className="space-y-2">

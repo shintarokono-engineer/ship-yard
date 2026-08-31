@@ -17,8 +17,13 @@ export interface RunValidationFormState {
   formError?: string;
   /** Pro/Team へのアップグレード導線を出すかどうか(`quota_exceeded` 種別)。 */
   quotaExceeded?: boolean;
-  /** 成功時に作成された IdeaValidation の ID(Dialog 側が結果ページへ遷移する)。 */
-  createdId?: string;
+  /**
+   * 実行開始に成功したときの `AiJob` ID(ADR-016)。
+   *
+   * アイデア検証は 88〜113 秒かかり Vercel Hobby の関数実行上限を超えるため、Server Action は
+   * 完了を待たずにここまでで返る。クライアントはこの ID で進行状態をポーリングする。
+   */
+  jobId?: string;
   /** 再表示用の入力値。 */
   instructions?: string;
 }

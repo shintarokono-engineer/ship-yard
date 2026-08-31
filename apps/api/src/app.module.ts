@@ -1,6 +1,7 @@
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
+import { AiJobService } from './ai/shared/ai-job.service';
 import { AIUsageService } from './ai/shared/ai-usage.service';
 import { AnthropicModule } from './ai/shared/anthropic.module';
 import { ChecklistGenController } from './ai/checklist-gen/checklist-gen.controller';
@@ -113,6 +114,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     ChecklistService,
     DocumentsService,
     AIUsageService,
+    AiJobService,
     DraftGenService,
     ChecklistGenService,
     SuggestionTasksService,

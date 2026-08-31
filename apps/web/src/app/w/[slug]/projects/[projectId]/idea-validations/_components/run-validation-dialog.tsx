@@ -2,7 +2,8 @@
 
 import { Lightbulb } from 'lucide-react';
 import Link from 'next/link';
-import { useActionState, useMemo, useState } from 'react';
+import { useActionState, useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 import { FormField } from '@/app/w/[slug]/_shared/form-field';
 import { CreditCostBadge } from '@/components/credit-cost-badge';
@@ -35,8 +36,8 @@ import {
  * 成功時は作成された IdeaValidation の結果ページへ遷移する(URL の `[id]` 部分)。
  */
 /**
- * 成功時の遷移は Server Action 側の `redirect()` が担当する(useEffect + router.push は使わない、
- * Next.js dev の遅延コンパイルとレースコンディションを避けるため)。
+ * 実行開始に成功したら Dialog を閉じるだけで、結果ページへは遷移しない(ADR-016)。
+ * 検証は 88〜113 秒かかり完了を待てないため、進行は一覧の「実行中」 行が示す。
  * クライアント側でハンドルするのは「入力検証エラー」「クレジット超過」「BE エラー」 等の state のみ。
  */
 export function RunValidationDialog({
@@ -57,6 +58,15 @@ export function RunValidationDialog({
     boundAction,
     INITIAL_RUN_VALIDATION_FORM_STATE,
   );
+  // 実行開始に成功したら Dialog を閉じて toast を出す(ADR-016)。結果ページへは遷移しない。
+  // state を deps にすることで同値の再 submit でも反応する(既存ダイアログと同パターン)。
+  useEffect(() => {
+    if (state.ok && state.jobId) {
+      toast.success('検証を開始しました。完了すると一覧に結果が表示されます');
+      setOpen(false);
+    }
+  }, [state]);
+
   const [length, setLength] = useState(state.instructions?.length ?? 0);
 
   return (

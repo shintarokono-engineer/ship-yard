@@ -2,7 +2,8 @@
 
 import { Gauge } from 'lucide-react';
 import Link from 'next/link';
-import { useActionState, useMemo, useState } from 'react';
+import { useActionState, useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 import { FormField } from '@/app/w/[slug]/_shared/form-field';
 import { CreditCostBadge } from '@/components/credit-cost-badge';
@@ -30,11 +31,11 @@ import {
  *
  * IN_DEV / BETA / LAUNCHED / ARCHIVED 段階のプロジェクトを対象に、サービスレベルを 5 軸で
  * スコア化する。Pro / Team 限定、約 1〜2 分かかる。
- * 成功時は作成された ServiceScore の結果ページへ遷移する。
+ * 実行を開始すると一覧に「実行中」 行が出る(完了を待たない)。
  */
 /**
- * 成功時の遷移は Server Action 側の `redirect()` が担当する(useEffect + router.push は使わない、
- * Next.js dev の遅延コンパイルとレースコンディションを避けるため)。
+ * 実行開始に成功したら Dialog を閉じるだけで、結果ページへは遷移しない(ADR-016)。
+ * 診断は 88〜113 秒かかり完了を待てないため、進行は一覧の「実行中」 行が示す。
  * クライアント側でハンドルするのは「入力検証エラー」「クレジット超過」「BE エラー」 等の state のみ。
  */
 export function RunDiagnosisDialog({
@@ -55,6 +56,15 @@ export function RunDiagnosisDialog({
     boundAction,
     INITIAL_RUN_DIAGNOSIS_FORM_STATE,
   );
+  // 実行開始に成功したら Dialog を閉じて toast を出す(ADR-016)。結果ページへは遷移しない。
+  // state を deps にすることで同値の再 submit でも反応する(既存ダイアログと同パターン)。
+  useEffect(() => {
+    if (state.ok && state.jobId) {
+      toast.success('診断を開始しました。完了すると一覧に結果が表示されます');
+      setOpen(false);
+    }
+  }, [state]);
+
   const [length, setLength] = useState(state.instructions?.length ?? 0);
 
   return (

@@ -359,6 +359,7 @@ FAILED FAILED
     Feature feature 
     AiJobStatus status 
     String resultId "❓"
+    String reservationId "❓"
     String errorMessage "❓"
     DateTime createdAt 
     DateTime updatedAt 

@@ -2,11 +2,18 @@ import { Gauge } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { AiJobRows } from '@/components/score/ai-job-rows';
 import { EmptyState } from '@/components/empty-state';
 import { ProjectBreadcrumbs } from '@/components/project-breadcrumbs';
 import { isWriterRole } from '@/lib/api/types';
 import { featurePageDescription, PROJECT_FEATURE_META } from '@/lib/project-features';
-import { fetchProject, fetchUsage, fetchWorkspace, listDiagnoses } from '@/lib/api/workspaces';
+import {
+  fetchProject,
+  fetchUsage,
+  fetchWorkspace,
+  listDiagnoses,
+  listDiagnosisJobs,
+} from '@/lib/api/workspaces';
 import { formatDateTime } from '@/lib/format';
 
 import { RunDiagnosisDialog } from './_components/run-diagnosis-dialog';
@@ -37,7 +44,11 @@ export default async function DiagnosesPage({
   const project = await fetchProject(slug, projectId);
   if (!project) notFound();
 
-  const [diagnoses, usage] = await Promise.all([listDiagnoses(slug, projectId), fetchUsage(slug)]);
+  const [diagnoses, jobs, usage] = await Promise.all([
+    listDiagnoses(slug, projectId),
+    listDiagnosisJobs(slug, projectId),
+    fetchUsage(slug),
+  ]);
   const canWrite = isWriterRole(workspace.role);
   const hasDiagnoses = diagnoses.length > 0;
 
@@ -53,6 +64,9 @@ export default async function DiagnosesPage({
           {canWrite && <RunDiagnosisDialog slug={slug} projectId={projectId} usage={usage} />}
         </div>
       </div>
+
+      {/* 実行中 / 直近の失敗を履歴の上に出す(ADR-016)。完了すると消え、結果行に置き換わる。 */}
+      <AiJobRows jobs={jobs} runningLabel="診断を実行中" />
 
       {hasDiagnoses ? (
         <ul className="space-y-2">

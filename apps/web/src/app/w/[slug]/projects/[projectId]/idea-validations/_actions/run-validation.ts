@@ -2,7 +2,6 @@
 
 import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 
 import { classifyAiApiError } from '@/app/w/[slug]/_shared/ai-form';
 import { ApiError } from '@/lib/api/errors';
@@ -44,10 +43,10 @@ export async function runValidationAction(
     return { ok: false, fieldError: parsed.fieldError, instructions: parsed.instructions };
   }
 
-  let createdId: string;
+  let jobId: string;
   try {
-    const validation = await runIdeaValidation(slug, projectId, parsed.instructions);
-    createdId = validation.id;
+    const started = await runIdeaValidation(slug, projectId, parsed.instructions);
+    jobId = started.jobId;
   } catch (e) {
     if (e instanceof ApiError) {
       const classified = classifyAiApiError(e);
@@ -106,9 +105,10 @@ export async function runValidationAction(
     throw e;
   }
 
-  // 成功時:キャッシュを無効化して結果ページへ遷移する。redirect は内部で throw するので、
-  // この行より下のコードには到達しない(Next.js フレームワークが redirect を処理して 303 を返す)。
+  // 実行開始に成功。**ここでは結果ページへ遷移しない**(ADR-016)。
+  // アイデア検証は 88〜113 秒かかるため完了を待てない。一覧に「実行中」 行を出すためキャッシュだけ
+  // 無効化し、`jobId` を返してクライアント側にポーリングを任せる。
   revalidatePath(`/w/${slug}/projects/${projectId}/idea-validations`);
   revalidatePath(`/w/${slug}/projects/${projectId}`);
-  redirect(`/w/${slug}/projects/${projectId}/idea-validations/${createdId}`);
+  return { ok: true, jobId };
 }

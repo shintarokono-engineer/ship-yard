@@ -53,23 +53,41 @@
 
 ## Prisma マイグレーション
 
-### `migrate dev` が生成した SQL は必ず読む(消してはいけないものを消す)
+### 必ず `--create-only` で生成し、適用**前**に中身を直す
 
-`npx prisma migrate dev` は **schema.prisma で管理していないオブジェクトを drift と見なして削除する SQL を混ぜてくる**。生成物をそのまま採用してはいけない。**毎回**次の 2 つが混入するので、migration.sql から手で除去し、除去した旨をファイル冒頭のコメントに残す。
+`npx prisma migrate dev` は **schema.prisma で管理していないオブジェクトを drift と見なして削除する SQL を混ぜてくる**。生成物をそのまま採用してはいけない。
+
+**手順を守ること。生成と適用を分ける。**
+
+```bash
+# 1. 適用せずに生成する
+cd packages/db && npx prisma migrate dev --name <name> --create-only
+
+# 2. migration.sql を開いて下表の混入を除去し、除去した旨をファイル冒頭のコメントに残す
+
+# 3. 適用する
+npx prisma migrate dev
+```
+
+**`--create-only` を付けずに生成すると、その場で DB に適用されてしまう。**後からファイルを編集しても DB は元に戻らないため、**ファイルが「実際に起きたこと」を記述しなくなり、次回以降ドリフト扱いになる**(`Drift detected` → DB リセット要求)。ADR-016 でこれを踏み、適用済みの migration に FK 文を書き戻して復旧した。
+
+除去する対象:
 
 | 混入するもの                                                                                          | 対処         | 理由                                                                                               |
 | ----------------------------------------------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------- |
 | `DROP INDEX "ProjectDocument_embedding_hnsw_idx"`                                                     | **除去する** | RAG の HNSW インデックス(ADR-005)。Prisma が認識できないだけで、消すとベクトル検索が全件走査になる |
 | `ServiceScore_createdById_fkey` / `IdeaValidation_createdById_fkey` の DropForeignKey + AddForeignKey | **除去する** | 同一制約の付け直しでしかなく、どの migration のスコープにも属さない                                |
 
-除去し忘れると**ローカル DB からもインデックスが実際に消える**。消してしまった場合は次で復旧する。
+除去し忘れると**ローカル DB からもインデックスが実際に消える**(ADR-016 で実際に消えた)。消してしまった場合は次で復旧する。
 
 ```sql
 CREATE INDEX IF NOT EXISTS "ProjectDocument_embedding_hnsw_idx"
   ON "ProjectDocument" USING hnsw (embedding vector_cosine_ops);
 ```
 
-migration.sql を手で直したら `_prisma_migrations` の checksum も実ファイルに合わせる(下記)。
+`--create-only` で作ったファイルは**まだ適用されていない**ので、編集しても checksum の付け合わせは発生しない。すでに適用してしまった後に気付いた場合だけ、下記の checksum 合わせが要る。
+
+**除去してよいのは「適用前」だけ**。すでに適用済みの migration から後追いで消すと、ファイルと DB が食い違ってドリフトになる。その場合は消さずに残し、理由をコメントに書く(`20260830133026_add_ai_job` がこの例)。
 
 **実績**: Day 14 / 15 / 26 / 27 / 49 と ADR-016 で毎回踏んでいる。過去は各 migration.sql のコメントにしか書かれておらず、`migrate dev` を叩くたびに同じ罠にかかっていたため本ファイルに昇格した。
 
@@ -77,7 +95,7 @@ migration.sql を手で直したら `_prisma_migrations` の checksum も実フ�
 
 Prisma は migration.sql の SHA-256 を `_prisma_migrations.checksum` に記録しており、**適用後にファイルを編集すると次の `migrate dev` が DB リセットを要求する**(`We need to reset the "public" schema`)。**リセットするとローカルの全データが消える**ので実行しないこと。コメントの追記だけでも checksum は変わる。
 
-編集が避けられなかった場合(上記の DROP 除去など)は、リセットせず checksum を実ファイルに合わせる。
+**まず `--create-only` を使えばこの状況自体が起きない**(上記)。それでも編集が避けられなかった場合は、リセットせず checksum を実ファイルに合わせる。
 
 ```bash
 NEW=$(shasum -a 256 packages/db/prisma/migrations/<name>/migration.sql | awk '{print $1}')

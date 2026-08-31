@@ -3,6 +3,8 @@ import { cache } from 'react';
 import { apiFetch } from './client';
 import { ApiError, nullOnNotFound } from './errors';
 import type {
+  AiJobStarted,
+  AiJobView,
   AskRagQaResult,
   CategoryDomain,
   Category,
@@ -697,20 +699,41 @@ export async function listPublishedLandingPages(): Promise<PublicLandingPageRef[
 /**
  * `POST /workspaces/:slug/projects/:projectId/diagnoses`
  *
- * プロダクト診断を新規実行(Sonnet 4 + Web Search Tool + Tool Use、30-60 秒)。
- * Pro/Team プラン限定、Free フォールバック状態は 403。月次上限到達も 403。
+ * プロダクト診断の実行を**開始**する(ADR-016)。診断は 88〜113 秒かかり Vercel Hobby の
+ * 関数実行上限(60 秒)を超えるため、結果は返らず `jobId` だけが返る。呼び出し側は
+ * `fetchDiagnosisJob` で進行状態をポーリングし、DONE になったら `resultId` で結果を取得する。
+ *
+ * 認可・月次上限・クレジット予約は同期で行われるため、実行できない場合はここで 403 になる。
  */
 export async function runDiagnosis(
   slug: string,
   projectId: string,
   instructions?: string,
-): Promise<ServiceScore> {
-  return apiFetch<ServiceScore>(
+): Promise<AiJobStarted> {
+  return apiFetch<AiJobStarted>(
     `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/diagnoses`,
     {
       method: 'POST',
       body: JSON.stringify(instructions?.trim() ? { instructions: instructions.trim() } : {}),
     },
+  );
+}
+
+/** `GET /workspaces/:slug/projects/:projectId/diagnoses/jobs/:jobId` — 進行状態(ポーリング用)。 */
+export async function fetchDiagnosisJob(
+  slug: string,
+  projectId: string,
+  jobId: string,
+): Promise<AiJobView> {
+  return apiFetch<AiJobView>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/diagnoses/jobs/${encodeURIComponent(jobId)}`,
+  );
+}
+
+/** `GET /workspaces/:slug/projects/:projectId/diagnoses/jobs` — 実行中 / 直近失敗のジョブ(履歴一覧に混ぜる)。 */
+export async function listDiagnosisJobs(slug: string, projectId: string): Promise<AiJobView[]> {
+  return apiFetch<AiJobView[]>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/diagnoses/jobs`,
   );
 }
 
@@ -738,8 +761,11 @@ export const fetchDiagnosis = cache(
 /**
  * `POST /workspaces/:slug/projects/:projectId/idea-validations`
  *
- * アイデア検証を新規実行(Sonnet 4 + Web Search Tool + Tool Use、30-60 秒)。
- * Pro/Team プラン限定、Free フォールバック 403。
+ * アイデア検証の実行を**開始**する(ADR-016)。検証は 88〜113 秒かかり Vercel Hobby の
+ * 関数実行上限(60 秒)を超えるため、結果は返らず `jobId` だけが返る。呼び出し側は
+ * `fetchIdeaValidationJob` で進行状態をポーリングし、DONE になったら `resultId` で結果を取得する。
+ *
+ * 認可・月次上限・クレジット予約は同期で行われるため、実行できない場合はここで 403 になる。
  * Project の詳細情報フィールド(targetUsers / problemStatement / proposedFeatures / pricingModel / description)が
  * すべて空の場合は 400(編集画面で入力を促す)。
  */
@@ -747,13 +773,34 @@ export async function runIdeaValidation(
   slug: string,
   projectId: string,
   instructions?: string,
-): Promise<IdeaValidation> {
-  return apiFetch<IdeaValidation>(
+): Promise<AiJobStarted> {
+  return apiFetch<AiJobStarted>(
     `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/idea-validations`,
     {
       method: 'POST',
       body: JSON.stringify(instructions?.trim() ? { instructions: instructions.trim() } : {}),
     },
+  );
+}
+
+/** `GET /workspaces/:slug/projects/:projectId/idea-validations/jobs/:jobId` — 進行状態(ポーリング用)。 */
+export async function fetchIdeaValidationJob(
+  slug: string,
+  projectId: string,
+  jobId: string,
+): Promise<AiJobView> {
+  return apiFetch<AiJobView>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/idea-validations/jobs/${encodeURIComponent(jobId)}`,
+  );
+}
+
+/** `GET /workspaces/:slug/projects/:projectId/idea-validations/jobs` — 実行中 / 直近失敗のジョブ。 */
+export async function listIdeaValidationJobs(
+  slug: string,
+  projectId: string,
+): Promise<AiJobView[]> {
+  return apiFetch<AiJobView[]>(
+    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/idea-validations/jobs`,
   );
 }
 

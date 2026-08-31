@@ -15,8 +15,13 @@ export interface RunDiagnosisFormState {
   formError?: string;
   /** Pro/Team へのアップグレード導線を出すかどうか(`quota_exceeded` 種別)。 */
   quotaExceeded?: boolean;
-  /** 成功時に作成された ServiceScore の ID。 */
-  createdId?: string;
+  /**
+   * 実行開始に成功したときの `AiJob` ID(ADR-016)。
+   *
+   * プロダクト診断は 88〜113 秒かかり Vercel Hobby の関数実行上限を超えるため、Server Action は
+   * 完了を待たずにここまでで返る。クライアントはこの ID で進行状態をポーリングする。
+   */
+  jobId?: string;
   instructions?: string;
 }
 

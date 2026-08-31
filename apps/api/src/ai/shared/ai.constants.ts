@@ -74,6 +74,26 @@ export const FEATURE_CREDIT_OVERRIDES: Partial<Record<Feature, number>> = {
   [Feature.IDEA_VALIDATION]: 5,
 };
 
+/**
+ * `AiJob` が RUNNING のまま放置されたときに「取り残し」 と判定するまでの時間(ms、ADR-016)。
+ *
+ * App Runner の再起動やデプロイで背景処理ごと消えても `status` は RUNNING のまま残るため、
+ * ポーリングの読み取り時にこの時間を超えていたら FAILED に倒す。
+ *
+ * 値は「正常系が絶対に超えない下限」 から決める。2-step の各ターンは `ANTHROPIC_REQUEST_TIMEOUT_MS`
+ * (180 秒)が上限で、リトライ `AI_MAX_RETRIES`(2)を含めても最悪 180 × 2 ターン × 3 回 = 18 分。
+ * 実測は 88〜153 秒なので、余裕を取って 20 分とする。短すぎると正常な処理を失敗扱いにする。
+ */
+export const AI_JOB_STALE_MS = 20 * 60 * 1000;
+
+/**
+ * 履歴一覧に失敗ジョブを出し続ける期間(ms、ADR-016)。
+ *
+ * 古い失敗が残り続けても行動につながらないので絞るが、「実行したのに結果が無い。
+ * クレジットはどうなったのか」 を後から確認できる必要があるため、一晩越しでも見える 24 時間とする。
+ */
+export const AI_JOB_RECENT_FAILURE_MS = 24 * 60 * 60 * 1000;
+
 /** Team プランの 1 seat(メンバー)あたり月次クレジット上限(ADR-012)。共有プールで `seats × 800 cr` が上限。 */
 export const TEAM_CREDITS_PER_SEAT = 800;
 
