@@ -4,6 +4,14 @@ import { useOptimistic, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from '@/components/ui/item';
 import { cn } from '@/lib/utils';
 import { ITEM_STATUS_META, type ChecklistItem, type ItemStatus } from '@/lib/api/types';
 
@@ -70,9 +78,11 @@ export function ChecklistItemRow({
   };
 
   return (
-    <div
+    <Item
+      variant="outline"
+      size="sm"
       className={cn(
-        'group hover:bg-accent/30 flex items-start gap-3 rounded-md border border-l-2 px-3 py-2 transition-colors',
+        'hover:bg-accent/30 border-l-2 px-3 py-2 transition-colors',
         indent && 'ml-8',
         // 状態を左端の線と面で示し、完了・対象外は沈めて未着手の行が浮くようにする。
         status === 'IN_PROGRESS' ? 'border-l-amber-500' : 'border-l-transparent',
@@ -80,35 +90,35 @@ export function ChecklistItemRow({
         status === 'NOT_APPLICABLE' && 'opacity-55',
       )}
     >
-      <div className="mt-0.5">
+      <ItemMedia>
         <StatusCheckbox
           checked={isDone}
           onToggle={handleToggle}
           disabled={!canWrite}
           label={`${item.title} を ${isDone ? '未完了' : '完了'} にする`}
         />
-      </div>
-      <div className="min-w-0 flex-1 space-y-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={cn('text-sm', isDone && 'text-muted-foreground line-through')}>
-            {item.title}
-          </span>
+      </ItemMedia>
+
+      <ItemContent className="gap-1">
+        <ItemTitle className="flex-wrap font-normal">
+          {/* 取消線は継承されるので、バッジまで掛からないようタイトルだけを包む。 */}
+          <span className={cn(isDone && 'text-muted-foreground line-through')}>{item.title}</span>
           {showStatusBadge && (
             <Badge variant={meta.badgeVariant} className={meta.badgeClassName}>
               {meta.label}
             </Badge>
           )}
-        </div>
+        </ItemTitle>
         {item.description && (
-          <p className="text-muted-foreground line-clamp-2 text-xs whitespace-pre-wrap">
+          <ItemDescription className="text-xs whitespace-pre-wrap">
             {item.description}
-          </p>
+          </ItemDescription>
         )}
-      </div>
+      </ItemContent>
+
       {canWrite && (
-        <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-          {/* TASK_SPLIT は親タスク(parentId=null)のみ対象。サブタスクのさらに分解は階層 2 段までの仕様外。
-              呼び出し側がその条件で `splitAction` を渡す / 渡さないを決める。 */}
+        <ItemActions className="gap-1 opacity-0 transition-opacity group-hover/item:opacity-100 focus-within:opacity-100">
+          {/* TASK_SPLIT は親タスク(parentId=null)のみ対象。呼び出し側が渡す / 渡さないを決める。 */}
           {splitAction}
           <EditChecklistItemDialog slug={slug} projectId={projectId} item={item} />
           <DeleteChecklistItemButton
@@ -117,8 +127,8 @@ export function ChecklistItemRow({
             item={item}
             subtaskCount={subtaskCount}
           />
-        </div>
+        </ItemActions>
       )}
-    </div>
+    </Item>
   );
 }
