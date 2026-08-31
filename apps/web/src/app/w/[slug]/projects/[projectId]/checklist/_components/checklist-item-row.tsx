@@ -74,9 +74,7 @@ export function ChecklistItemRow({
       className={cn(
         'group hover:bg-accent/30 flex items-start gap-3 rounded-md border border-l-2 px-3 py-2 transition-colors',
         indent && 'ml-8',
-        // 状態を左端の線と面で示す。全行が同じ見た目だと、13 行並んだときに
-        // 「残っているのはどれか」 を数字とチェックボックスから読み取るしかなかった。
-        // 完了・対象外は面ごと沈めて、手を付けるべき行だけが浮くようにする。
+        // 状態を左端の線と面で示し、完了・対象外は沈めて未着手の行が浮くようにする。
         status === 'IN_PROGRESS' ? 'border-l-amber-500' : 'border-l-transparent',
         isDone && 'bg-muted/40 opacity-65',
         status === 'NOT_APPLICABLE' && 'opacity-55',

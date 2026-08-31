@@ -65,8 +65,7 @@ export interface ProjectFormDefaults {
  * - `defaults` … 編集時の現在値(state.fields が無いときの fallback として使う)
  * - `variant` … `'name-only'` は名前のみ表示し概要・状態を省く(AI 壁打ちモード、§9.7)
  *
- * **カウンタは `InputGroup` の内側に置く**。フィールド枠の外(ラベル行の右端)に出すと、
- * スクロール領域のスクロールバーと重なって数字の末尾が欠ける(Sheet / Dialog の両方で再現)。
+ * カウンタは `InputGroup` の内側に置く。枠の外に出すとスクロールバーと重なって数字が欠ける。
  */
 export function ProjectFormFields({
   state,
@@ -143,10 +142,7 @@ export function ProjectFormFields({
             defaultValue={initialName}
             onChange={(e) => setNameLength(e.currentTarget.value.length)}
           />
-          {/*
-            条件付きでマウントすると live region が「後から挿入された」 扱いになり読み上げられず、
-            上限到達時の `text-destructive` も出せない。常時マウントして中身だけ変える。
-          */}
+          {/* live region は常時マウントする(後から挿入すると読み上げられない)。 */}
           <InputGroupAddon align="inline-end">
             <CharCounter current={nameLength} max={NAME_MAX_LENGTH} />
           </InputGroupAddon>
@@ -183,11 +179,7 @@ export function ProjectFormFields({
             </InputGroup>
           </FormField>
 
-          {/*
-            5 個固定で順序のある段階なので、開かないと中身が見えない Select ではなく
-            全部が一度に見えるセグメントにする。現在地と残りの段階が同時に読める。
-            グループなので `as="fieldset"`(legend でグループ名を読ませる)。
-          */}
+          {/* 5 個固定で順序のある段階なので、全部が一度に見えるセグメントにする。 */}
           <FormField as="fieldset" id="status" label="ライフサイクル状態" errors={statusErrors}>
             {/* ToggleGroup は button 群なので FormData に載らない。値は hidden input で送る。 */}
             <input type="hidden" name="status" value={status} />
@@ -208,8 +200,7 @@ export function ProjectFormFields({
                 <ToggleGroupItem
                   key={s}
                   value={s}
-                  // 既定の on 状態は `bg-accent`(淡い紫)で、5 個並ぶと現在地が判別しづらい。
-                  // セグメントコントロールの慣習どおり選択中を塗って浮かせる。
+                  // 既定の on 状態(bg-accent)は 5 個並ぶと判別しづらいので塗って浮かせる。
                   className="data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground flex-1 whitespace-nowrap data-[state=on]:font-medium"
                 >
                   {PROJECT_STATUS_META[s].label}
@@ -220,13 +211,7 @@ export function ProjectFormFields({
 
           {/*
             ADR-013 改訂版「構造化入力 v2」(Day 46.5 案 A)の詳細情報フィールド。
-            - 上段: 構造化セレクト 2 軸(ドメイン分類 + 課金モデル統合、B2C/B2B 両対応)
-            - 下段: 自由補足 4 つ(textarea、プレースホルダーで「何を書くか」 を誘導)
             アイデア検証(IDEA 状態)/ プロダクト診断(IN_DEV 以降)の入力源として AI が読む。
-
-            ネイティブ `<details>` から Radix Collapsible に変更している。`<details>` は
-            マーカー(▶/▼)が OS 依存で他の Radix 製 UI から浮くうえ、開閉状態を
-            トリガー側の見た目に反映できなかった。
           */}
           <Collapsible
             open={briefOpen}
@@ -246,21 +231,14 @@ export function ProjectFormFields({
               />
             </CollapsibleTrigger>
             {/*
-              `forceMount` は必須。既定の Radix Collapsible は閉じている間 children を
-              unmount するため、折りたたんだまま保存すると中の 6 フィールドが FormData に
-              載らず、`updateProjectAction` が「空文字 = クリア」 と解釈して既存値を
-              null で潰す(ネイティブ `<details>` は閉じても子を DOM に残すので起きなかった)。
-
-              ただし `forceMount` を付けると Radix 側の `present` が常に true になり、
-              閉じていても `hidden` が付かず中身が見えたままになる。表示制御は自前で行う
-              (`display: none` 配下のフォームコントロールも FormData には載るので送信は保たれる)。
+              `forceMount` 必須。外すと閉じている間 children が unmount され、折りたたんだまま
+              保存したときに中の 6 フィールドが FormData から落ちて既存値が null で潰れる。
+              ただし forceMount 時は Radix が `hidden` を付けないので表示制御は自前で行う
+              (display:none 配下のフォームコントロールも送信はされる)。
             */}
             <CollapsibleContent forceMount hidden={!briefOpen}>
               <div className="space-y-5 border-t px-3 py-4">
-                {/*
-                  JSX の改行はそのまま半角スペースになる。日本語の文中で折り返すと
-                  「(組織向け) どちら」 のように不要な空きが出るので、1 つの文字列で渡す。
-                */}
+                {/* JSX の改行は半角スペースになるため、1 つの文字列で渡す。 */}
                 <p className="text-muted-foreground text-xs leading-relaxed">
                   {
                     '以下を具体的に書くほど AI 診断の精度が上がります。B2C(個人向け) / B2B(組織向け) どちらのプロダクトでも入力できます。'

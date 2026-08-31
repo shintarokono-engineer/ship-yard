@@ -115,10 +115,7 @@ export default async function ReadmePage({
         </div>
       </div>
 
-      {/*
-        履歴パネルは 2 版以上あるときだけ出す。カラムを常時確保すると v1 だけのときに
-        右へ 240px + gap の死んだ余白ができ、本文だけが左に寄って右端が揃わなくなる。
-      */}
+      {/* 履歴パネルは 2 版以上のときだけ。カラムを常時確保すると v1 だけのとき余白が残る。 */}
       <div
         className={
           versions.length > 1 ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_240px]' : 'grid gap-6'

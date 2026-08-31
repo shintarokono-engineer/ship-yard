@@ -16,15 +16,10 @@ import { DeleteProjectDialog } from './delete-project-dialog';
 import { EditProjectSheet } from './edit-project-sheet';
 
 /**
- * プロジェクト詳細ヘッダーの操作群。
+ * プロジェクト詳細ヘッダーの操作群。編集を主アクション、削除はオーバーフローメニューに置く。
  *
- * 以前は `[編集][削除]` を並べており、ページ内で最も彩度の高い要素(赤の塗り)が
- * 破壊的操作になっていた。編集を主アクション、削除をオーバーフローメニューに退避し、
- * 視覚的な重みを実際の使用頻度に合わせている。
- *
- * 開閉 state をここで持つのは削除ダイアログだけ。メニュー項目から開くため外部制御が要る。
- * 編集 Sheet は自前のトリガーと state を内包する(成功時のクローズを render 中に行うので、
- * 開閉を親に持たせると別コンポーネントの render 中更新になってしまう)。
+ * 開閉 state をここで持つのは削除ダイアログだけ(メニュー項目から開くため外部制御が要る)。
+ * 編集 Sheet はトリガーと state を内包する(理由は `EditProjectSheet` のコメント)。
  */
 export function ProjectActions({
   slug,
@@ -39,9 +34,8 @@ export function ProjectActions({
 }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  // ダイアログを閉じたあとのフォーカス戻し先。`onCloseAutoFocus` を止めている都合で
-  // Radix の自動復帰が効かず、放っておくとキーボード利用者が `<body>` に落ちる
-  // (メニュー項目は AlertDialog が開いた時点で unmount 済みなので復帰先にならない)。
+  // `onCloseAutoFocus` を止めているため Radix の自動復帰が効かない。
+  // 戻し先を持たないとダイアログを閉じたときフォーカスが <body> に落ちる。
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
 
   if (!canWrite && !canDelete) return null;
@@ -57,10 +51,7 @@ export function ProjectActions({
               <MoreHorizontal aria-hidden="true" />
             </Button>
           </DropdownMenuTrigger>
-          {/*
-            メニューを閉じるときの自動フォーカス復帰を止める。
-            止めないと、開いた直後の AlertDialog からフォーカスがトリガーへ引き戻される。
-          */}
+          {/* 止めないと、開いた直後の AlertDialog からフォーカスがトリガーへ引き戻される。 */}
           <DropdownMenuContent align="end" onCloseAutoFocus={(e) => e.preventDefault()}>
             <DropdownMenuItem
               onSelect={() => setDeleteOpen(true)}

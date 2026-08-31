@@ -9,8 +9,7 @@ import { cn } from '@/lib/utils';
  * 状態と Server Action の呼び出しは親の `ChecklistItemRow` が持つ。
  * チェック状態と取消線を同じ楽観値から描くため、ここでは状態を持たない。
  *
- * 既定の `bg-primary`(violet)ではなく emerald に寄せているのは、「完了」 の色として
- * ブランドアクセントより緑のほうが直感的なため(素の `<input>` 時代の `accent-emerald-600` を踏襲)。
+ * 「完了」 の色はブランドの violet ではなく emerald にする。
  */
 export function StatusCheckbox({
   checked,

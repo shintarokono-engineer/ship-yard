@@ -401,19 +401,14 @@ export const ITEM_STATUSES = ['TODO', 'IN_PROGRESS', 'DONE', 'NOT_APPLICABLE'] a
 export type ItemStatus = (typeof ITEM_STATUSES)[number];
 
 /**
- * カテゴリの表示ラベルと識別色。
+ * カテゴリの表示ラベルと識別色。色相を離した 5 色で、文字を読む前に識別できるようにする。
  *
- * 以前は `label` だけを持っていたため、5 つのセクションが「見出しの文字」 でしか区別できず、
- * 同じ形の行が並ぶチェックリストでは、どこが何のカテゴリか読み取るのに毎回文字を読む必要があった。
- * 色相を離した 5 色を割り当てて、文字を読む前に識別できるようにする。
- *
- * Tailwind はクラス名を静的に走査するため、色名から動的に組み立てず完成形の文字列で持つ
+ * Tailwind はクラス名を静的に走査するため、動的に組み立てず完成形の文字列で持つ
  * (`PROJECT_STATUS_META.badgeClassName` と同じ方針)。
  *
  * - `accentClassName`   … セクション左端の色帯
  * - `dotClassName`      … 見出しのドット
- * - `progressClassName` … shadcn `Progress` のトラックと Indicator を同系色に塗る
- *   (Indicator は `data-slot="progress-indicator"` を持つのでセレクタで上書きする)
+ * - `progressClassName` … `Progress` のトラックと Indicator を同系色に塗る
  */
 export const CATEGORY_META: Record<
   Category,

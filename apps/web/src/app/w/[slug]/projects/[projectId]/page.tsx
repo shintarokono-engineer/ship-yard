@@ -29,11 +29,8 @@ import { GenerateReadmeDialog } from './readme/_components/generate-readme-dialo
 const README_PREVIEW_CHARS = 200;
 
 /**
- * Markdown 記法を落として本文の «読める先頭» を取り出す。
- *
- * プレビューは 200 字で切るため `MarkdownViewer` に流すと記法の途中で千切れる。
- * かといって生のまま出すと `# 見出し` や `**強調**` が記号ごと見えてしまうので、
- * 行頭記号とインライン装飾だけ剥がしたプレーンテキストにする。
+ * Markdown 記法を落として本文の先頭を取り出す。
+ * 200 字で切るため `MarkdownViewer` には流せず、記号だけ剥がしてプレーンにする。
  */
 function toPlainPreview(markdown: string, max: number): string {
   const plain = markdown
@@ -62,8 +59,7 @@ function toPlainPreview(markdown: string, max: number): string {
  * - 子リソースのエントリポイント(チェックリスト / 壁打ち / LP / 検証 or 診断)
  *
  * レイアウトは本文(概要・README)+ サイドバー(状態・機能導線)の 2 カラム。
- * 1 カラムで全幅に流していたときは概要 1 行が 70〜80 全角文字になり、日本語の可読行長
- * (35〜45 文字)を大きく超えていた。本文カラム側でさらに `max-w` を掛けて詰める。
+ * 本文カラムには `max-w` を掛けて日本語の可読行長(35〜45 文字)に寄せる。
  */
 export default async function ProjectDetailPage({
   params,
@@ -90,12 +86,9 @@ export default async function ProjectDetailPage({
   const sortedReadmes = readmes.toSorted((a, b) => b.version - a.version);
   const latestReadme = sortedReadmes[0] ?? null;
 
-  // 一覧 API(`DOCUMENT_LIST_SELECT`)は `content` を返さない。一覧の戻り値だけで
-  // プレビューを組むと本文が常に空になり、「v1(1 件)」 と 「README はまだありません」 が
-  // 同時に出る。本文は 1 件取得 API から取り直す。
-  //
-  // `latestReadme.id` が必要なため上の `Promise.all` には混ぜられず、詳細ページの
-  // クリティカルパスに 1 往復増える。減らすなら一覧 API 側に短いプレビュー列を持たせる。
+  // 一覧 API(`DOCUMENT_LIST_SELECT`)は `content` を返さないので本文は 1 件取得 API から取る。
+  // `latestReadme.id` が要るため上の `Promise.all` には混ぜられず 1 往復増える。
+  // 減らすなら一覧 API 側に短いプレビュー列を持たせる。
   const latestReadmeWithContent = latestReadme
     ? await fetchDocument(slug, projectId, latestReadme.id)
     : null;
@@ -140,10 +133,7 @@ export default async function ProjectDetailPage({
         <div className="min-w-0 space-y-6">
           <Card>
             <CardHeader>
-              {/*
-                `CardTitle` は `<div>`(card.tsx)。そのまま使うとページの見出しが h1 だけになり、
-                スクリーンリーダーの見出しナビゲーションから概要 / README が消える。
-              */}
+              {/* `CardTitle` は <div> なので、見出しナビゲーションのために h2 を使う。 */}
               <h2 className="text-sm leading-none font-semibold">概要</h2>
             </CardHeader>
             <CardContent>
@@ -206,12 +196,7 @@ export default async function ProjectDetailPage({
                   </div>
                 </>
               ) : latestReadmeWithContent ? (
-                /*
-                  ドキュメントは存在するが本文が空(タイトルだけの版)。
-                  ここで「README はまだありません」 を出すと、ヘッダーの `v1` や
-                  `編集 / 履歴` と矛盾し、`AI で生成` が画面に 2 つ出てしまう。
-                  README ページ側と同じ `readmeBody` の文言を使う。
-                */
+                /* ドキュメントはあるが本文が空。「まだありません」 だとヘッダーの v1 と矛盾する。 */
                 <div className="space-y-3">
                   <InlineEmpty>
                     {canWrite
@@ -231,7 +216,6 @@ export default async function ProjectDetailPage({
                   </div>
                 </div>
               ) : (
-                /* 全画面の空状態と同じ部品を使う。カード内なので余白だけ詰める。 */
                 <EmptyState
                   icon={FileText}
                   title="README はまだありません"
@@ -345,10 +329,7 @@ function FeatureItem({
         </ItemContent>
         <div className="ml-auto flex shrink-0 items-center gap-1.5">
           {badge && <span className="text-muted-foreground text-xs tabular-nums">{badge}</span>}
-          {/*
-            `Pro` に短縮すると Team プラン(¥2,800/人)の利用者が「自分は対象外」 と読む。
-            機能ページ側の `PLAN_LIMITED_NOTE` も「Pro / Team 限定機能です。」 なので表記を揃える。
-          */}
+          {/* 機能ページ側の `PLAN_LIMITED_NOTE` と表記を揃える(Team の利用者が対象外と誤読する)。 */}
           {meta.planLimited && (
             <Badge variant="outline" className="text-[10px] font-normal whitespace-nowrap">
               Pro / Team

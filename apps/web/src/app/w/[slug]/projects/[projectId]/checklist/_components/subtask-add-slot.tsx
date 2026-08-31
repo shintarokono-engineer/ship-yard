@@ -27,8 +27,7 @@ export function SubtaskAddSlot({
 
   if (!open) {
     return (
-      // 全項目の間に常時挟まると行のリズムを乱すので、既定は控えめにして
-      // ホバー / フォーカスで前に出す(存在は分かる濃さを残す)。
+      // 行の間に常時挟まるので既定は控えめにし、ホバー / フォーカスで前に出す。
       <div className="ml-8">
         <Button
           variant="ghost"

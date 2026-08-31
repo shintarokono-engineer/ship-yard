@@ -144,10 +144,7 @@ export function GenerateAnnouncementDialog({
               <div className="flex flex-wrap gap-4">
                 {DELIVERY_CHANNELS.map((c: DeliveryChannel) => (
                   <label key={c} className="flex cursor-pointer items-center gap-2 text-sm">
-                    {/*
-                      Radix Checkbox は実体が <button>。フォーム内では name/value を持つ
-                      hidden input を内部で生成するので、FormData.getAll('channels') は従来どおり。
-                    */}
+                    {/* Radix Checkbox は hidden input を内部生成するので getAll('channels') は従来どおり。 */}
                     <Checkbox name="channels" value={c} disabled={pending} />
                     {DELIVERY_CHANNEL_META[c].label}
                   </label>

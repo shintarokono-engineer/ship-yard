@@ -19,14 +19,10 @@ import { deleteProjectAction, type DeleteProjectFormState } from '../_actions/de
 const INITIAL_STATE: DeleteProjectFormState = { ok: false };
 
 /**
- * プロジェクト削除の確認ダイアログ。
+ * プロジェクト削除の確認ダイアログ。トリガーは `ProjectActions` のメニュー側にある。
  *
- * 以前は赤い `destructive` ボタンをヘッダーに常時出していたが、ページ内で最も彩度の高い要素が
- * 破壊的操作になり、主要導線(機能カード)より目立っていた。トリガーは `ProjectActions` の
- * オーバーフローメニューに移し、ここは確認だけを担う。
- *
- * 素の Dialog ではなく AlertDialog を使うのは、破壊的操作の確認は
- * 「明示的にどちらかを選ぶまで閉じない」 のが適切なため(外側クリックで閉じない)。
+ * Dialog ではなく AlertDialog なのは、破壊的操作は明示的に選ぶまで閉じないのが適切なため
+ * (外側クリックで閉じない)。
  *
  * 子リソース(チェックリスト / ドキュメント)も連鎖削除される旨を明示し、
  * 件数を表示してユーザーに影響範囲を把握させる。成功時は Server Action 側で

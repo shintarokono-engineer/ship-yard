@@ -21,19 +21,11 @@ import { ProjectFormFields } from '../../../_shared/project-form-fields';
 import { updateProjectAction, type ProjectFormState } from '../_actions/update-project';
 
 /**
- * プロジェクト編集パネル(右スライドの Sheet)。
+ * プロジェクト編集パネル(右スライドの Sheet)。フィールドが 9 個あり、Dialog では縦が足りない。
  *
- * 以前は Dialog(`max-h-[90vh]`)だったが、入力フィールドが 9 個あるため
- * 「ヘッダーだけ固定 + 中身は狭い窓をスクロール」 という構造になり、
- * スクロールするとフィールドのラベルが流れて入力欄だけが残っていた。
- * Sheet は縦をビューポート全高使えるので、同じ内容でも 1 画面に収まりやすい。
- *
- * **開閉 state はこのコンポーネントが持ち、トリガーも内包する。**
- * 成功時のクローズは render 中の prev-state 比較で行うが(`useEffect` は使わない。
- * 連続編集でも `state` の reference が変わるため確実に発火する)、これは
- * **自分の state を更新する場合のみ** 許されるパターン。開閉を親に持たせて
- * render 中に親の setter を呼ぶと「別コンポーネントを render 中に更新した」 ことになり、
- * React が `Cannot update a component while rendering a different component` を出す。
+ * 開閉 state はこのコンポーネントが持ちトリガーも内包する。成功時のクローズを render 中の
+ * prev-state 比較で行うため(`useEffect` は使わない)、更新先が自分の state である必要がある。
+ * 開閉を親に持たせると `Cannot update a component while rendering a different component` になる。
  */
 export function EditProjectSheet({ slug, project }: { slug: string; project: Project }) {
   const [open, setOpen] = useState(false);
@@ -99,7 +91,7 @@ export function EditProjectSheet({ slug, project }: { slug: string; project: Pro
         </SheetHeader>
 
         <form action={handleSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
-          {/* ネイティブのスクロールバーはカウンタやラベルに重なる。Radix の overlay 型に寄せる。 */}
+          {/* ネイティブのスクロールバーはカウンタに重なるので overlay 型を使う。 */}
           <ScrollArea className="min-h-0 flex-1">
             <div className="space-y-5 px-6 py-5">
               <ProjectFormFields

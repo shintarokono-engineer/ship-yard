@@ -31,11 +31,8 @@ import { SubtaskAddSlot } from './_components/subtask-add-slot';
  *
  * カテゴリ別の Collapsible セクションを縦に並べ、各セクション内で position 順に親→サブ階層表示。
  *
- * **初期表示は全カテゴリを畳む**。全開だと 57 件で 10 画面ぶんスクロールする一方、畳めば
- * 色帯 + 進捗バー + 件数が 1 画面に収まり、そのままサマリービューとして読める。
- * セクションは `CATEGORY_META` の識別色で色帯・ドット・進捗バーを描く。同じ形の行が
- * 十数個並ぶ画面なので、区切り線だけでは「どこが何のカテゴリで、どこまで終わっているか」 が
- * 読み取れなかった(色と進捗バーは文字を読む前に伝わる)。
+ * 初期表示は全カテゴリを畳む。畳んだ状態が色帯 + 進捗バー + 件数のサマリービューになる。
+ * セクションの識別色は `CATEGORY_META` から取る。
  *
  * `?done=hide` で完了項目を隠す。フィルタ中でも件数・進捗は全件から数える
  * (数字まで動くと「終わったのか隠れているのか」 が区別できないため)。
@@ -88,10 +85,6 @@ export default async function ChecklistPage({
           {canWrite && <GenerateChecklistDialog slug={slug} projectId={projectId} usage={usage} />}
         </div>
 
-        {/*
-          全体進捗。カテゴリ別のバーはセクションごとに出るが、「リリースまであと何割か」 は
-          どこにも無く、5 つの数字を足し算しないと分からなかった。
-        */}
         {totalAll > 0 && (
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1">
             <Progress
@@ -103,12 +96,9 @@ export default async function ChecklistPage({
               {totalAll} 件中 {doneAll} 件完了
             </span>
             {/*
-              トグル 1 個だと、ラベルが「押したらこうなる」 を指すのか「いまこうなっている」 を
-              指すのか読み手に判断できない(「すべて表示」 が現状なのか操作なのか分からない)。
-              選択肢を 2 つ並べて、効いている方を塗る形にする。
-
-              見た目は ToggleGroup と同じセグメントだが、実体はページ遷移なのでリンクで組む
-              (Radix ToggleGroup は radio 相当のセマンティクスを付けるため、遷移には合わない)。
+              トグル 1 個だとラベルが現在の状態を指すのか操作を指すのか判断できないので、
+              選択肢を 2 つ並べて効いている方を塗る。実体はページ遷移なのでリンクで組む
+              (Radix ToggleGroup は radio 相当のセマンティクスになり遷移には合わない)。
             */}
             <ButtonGroup className="ml-auto" aria-label="表示する項目">
               {[
@@ -141,16 +131,12 @@ export default async function ChecklistPage({
           const isEmptyByFilter = hideDone && group.parents.length === 0 && totalCount > 0;
           return (
             /*
-              `forceMount` は付けない。ここは 1 行ずつ独立した Server Action で更新するので、
+              `forceMount` は付けない。1 行ずつ独立した Server Action で更新するので、
               閉じても保存済みデータは失われない(まとめて submit するフォームではない)。
-              項目数が多くなるページなので、畳んだカテゴリを DOM から外せる利点を取る。
-              畳んでいる間は追加フォームの入力途中が保持されない点だけ従来と異なる。
             */
             <Collapsible
               key={category}
-              // 既定は畳む。5 カテゴリ全開だと初期表示が 10 画面ぶんスクロールする一方、
-              // 畳めば色帯 + 進捗バー + 件数が 1 画面に収まりサマリーとして読める。
-              // 「未完了のみ」 を選んだときは中身を見たい意図なので開いておく。
+              // 「未完了のみ」 は中身を見たい意図なので開く。それ以外は畳む。
               defaultOpen={hideDone}
               className={cn(
                 'group overflow-hidden rounded-lg border border-l-4',
@@ -190,8 +176,7 @@ export default async function ChecklistPage({
                 {group.parents.length === 0 ? (
                   <InlineEmpty>
                     {isEmptyByFilter
-                      ? // 「項目が無い」 のではなく「全部終わっている」。 フィルタ中だけの表現。
-                        EMPTY_MESSAGES.checklistCategoryAllDone
+                      ? EMPTY_MESSAGES.checklistCategoryAllDone
                       : canWrite
                         ? EMPTY_MESSAGES.checklistCategory.canWrite
                         : EMPTY_MESSAGES.checklistCategory.readOnly}
@@ -306,11 +291,7 @@ function countDone(group: CategoryGroup): number {
 
 /**
  * カテゴリ内の項目総数(親 + サブタスク)。
- *
- * `subtasks` は `Map<parentId, ChecklistItem[]>` なので `.size` は「サブタスクを持つ親の数」 で、
- * サブタスクの件数ではない。以前は `parents.length + subtasks.size` を分母にしていたため、
- * 1 つの親に複数のサブタスクがぶら下がると分母が実際より小さくなり、`countDone`(全件を数える)
- * と釣り合わずに「5 / 3」 のような表示になりえた。
+ * `subtasks` は `Map<parentId, ChecklistItem[]>` なので `.size` を件数に使わないこと。
  */
 function countItems(group: CategoryGroup): number {
   let count = group.parents.length;

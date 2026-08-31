@@ -29,12 +29,8 @@ export function FormField({
   label: string;
   required?: boolean;
   /**
-   * ラベル脇の補足(`Markdown 可` など)。
-   *
-   * `<label>` / `<legend>` の内側に描画するので accessible name の一部になり、
-   * 「概要 Markdown 可」 と読み上げられる。ラベル文字列に直接混ぜるのと読み上げ結果は同じで、
-   * 違いは見た目(サイズ・色を落とす)だけ。名前から外したい補足はここではなく
-   * `aria-describedby` で結ぶこと。
+   * ラベル脇の補足(`Markdown 可` など)。`<label>` の内側に描くので accessible name に含まれる。
+   * 名前から外したい補足は `aria-describedby` で結ぶこと。
    */
   hint?: string;
   counter?: { current: number; max: number };

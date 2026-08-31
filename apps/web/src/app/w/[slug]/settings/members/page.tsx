@@ -146,7 +146,7 @@ function MemberTable({
   currentUserId: string | undefined;
 }) {
   return (
-    // 横スクロールのラッパーは `Table` が内包するので、ここは枠線だけ持つ。
+    // 横スクロールのラッパーは `Table` が内包する。
     <div className="rounded-md border">
       <Table>
         <TableHeader className="bg-muted/40">
@@ -179,7 +179,7 @@ function MemberTable({
             const memberName = m.user.name?.trim() || m.user.email;
             return (
               <TableRow key={m.userId}>
-                {/* `TableCell` の既定は whitespace-nowrap。名前 + メールの 2 段は折り返させる。 */}
+                {/* 既定の whitespace-nowrap だと名前 + メールの 2 段が折り返せない。 */}
                 <TableCell className="px-4 py-3 whitespace-normal">
                   <div className="font-medium">
                     {memberName}
