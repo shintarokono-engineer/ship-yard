@@ -699,7 +699,7 @@ export async function listPublishedLandingPages(): Promise<PublicLandingPageRef[
 /**
  * `POST /workspaces/:slug/projects/:projectId/diagnoses`
  *
- * プロダクト診断の実行を**開始**する(ADR-016)。診断は 88〜113 秒かかり Vercel Hobby の
+ * プロダクト診断の実行を**開始**する(ADR-017)。診断は 88〜113 秒かかり Vercel Hobby の
  * 関数実行上限(60 秒)を超えるため、結果は返らず `jobId` だけが返る。呼び出し側は
  * `fetchDiagnosisJob` で進行状態をポーリングし、DONE になったら `resultId` で結果を取得する。
  *
@@ -761,7 +761,7 @@ export const fetchDiagnosis = cache(
 /**
  * `POST /workspaces/:slug/projects/:projectId/idea-validations`
  *
- * アイデア検証の実行を**開始**する(ADR-016)。検証は 88〜113 秒かかり Vercel Hobby の
+ * アイデア検証の実行を**開始**する(ADR-017)。検証は 88〜113 秒かかり Vercel Hobby の
  * 関数実行上限(60 秒)を超えるため、結果は返らず `jobId` だけが返る。呼び出し側は
  * `fetchIdeaValidationJob` で進行状態をポーリングし、DONE になったら `resultId` で結果を取得する。
  *

@@ -34,7 +34,7 @@ import {
  * 実行を開始すると一覧に「実行中」 行が出る(完了を待たない)。
  */
 /**
- * 実行開始に成功したら Dialog を閉じるだけで、結果ページへは遷移しない(ADR-016)。
+ * 実行開始に成功したら Dialog を閉じるだけで、結果ページへは遷移しない(ADR-017)。
  * 診断は 88〜113 秒かかり完了を待てないため、進行は一覧の「実行中」 行が示す。
  * クライアント側でハンドルするのは「入力検証エラー」「クレジット超過」「BE エラー」 等の state のみ。
  */
@@ -56,7 +56,7 @@ export function RunDiagnosisDialog({
     boundAction,
     INITIAL_RUN_DIAGNOSIS_FORM_STATE,
   );
-  // 実行開始に成功したら Dialog を閉じて toast を出す(ADR-016)。結果ページへは遷移しない。
+  // 実行開始に成功したら Dialog を閉じて toast を出す(ADR-017)。結果ページへは遷移しない。
   // state を deps にすることで同値の再 submit でも反応する(既存ダイアログと同パターン)。
   useEffect(() => {
     if (state.ok && state.jobId) {

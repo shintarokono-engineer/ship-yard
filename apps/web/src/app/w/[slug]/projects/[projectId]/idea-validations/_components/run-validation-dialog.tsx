@@ -36,7 +36,7 @@ import {
  * 成功時は作成された IdeaValidation の結果ページへ遷移する(URL の `[id]` 部分)。
  */
 /**
- * 実行開始に成功したら Dialog を閉じるだけで、結果ページへは遷移しない(ADR-016)。
+ * 実行開始に成功したら Dialog を閉じるだけで、結果ページへは遷移しない(ADR-017)。
  * 検証は 88〜113 秒かかり完了を待てないため、進行は一覧の「実行中」 行が示す。
  * クライアント側でハンドルするのは「入力検証エラー」「クレジット超過」「BE エラー」 等の state のみ。
  */
@@ -58,7 +58,7 @@ export function RunValidationDialog({
     boundAction,
     INITIAL_RUN_VALIDATION_FORM_STATE,
   );
-  // 実行開始に成功したら Dialog を閉じて toast を出す(ADR-016)。結果ページへは遷移しない。
+  // 実行開始に成功したら Dialog を閉じて toast を出す(ADR-017)。結果ページへは遷移しない。
   // state を deps にすることで同値の再 submit でも反応する(既存ダイアログと同パターン)。
   useEffect(() => {
     if (state.ok && state.jobId) {

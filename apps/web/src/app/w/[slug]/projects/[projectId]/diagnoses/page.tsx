@@ -65,7 +65,7 @@ export default async function DiagnosesPage({
         </div>
       </div>
 
-      {/* 実行中 / 直近の失敗を履歴の上に出す(ADR-016)。完了すると消え、結果行に置き換わる。 */}
+      {/* 実行中 / 直近の失敗を履歴の上に出す(ADR-017)。完了すると消え、結果行に置き換わる。 */}
       <AiJobRows jobs={jobs} runningLabel="診断を実行中" />
 
       {hasDiagnoses ? (

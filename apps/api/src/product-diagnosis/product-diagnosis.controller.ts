@@ -31,7 +31,7 @@ import { ProductDiagnosisService } from './product-diagnosis.service';
  *   - GET   /workspaces/:slug/projects/:projectId/diagnoses             履歴一覧(全テナントメンバー)
  *   - GET   /workspaces/:slug/projects/:projectId/diagnoses/:id         単件取得(全テナントメンバー)
  *
- * POST は結果を返さない(ADR-016)。診断は 88〜113 秒かかり Vercel Hobby の関数実行上限(60 秒)を
+ * POST は結果を返さない(ADR-017)。診断は 88〜113 秒かかり Vercel Hobby の関数実行上限(60 秒)を
  * 超えるため、実行を投げて `jobId` を返し、クライアントは進行状態をポーリングする。
  *
  * 認証 → 所属解決 → ロール検証は `ClerkAuthGuard` → `WorkspaceGuard` + `@Roles(...)` が担う
@@ -87,7 +87,7 @@ export class ProductDiagnosisController {
   /**
    * GET /workspaces/:slug/projects/:projectId/diagnoses/jobs/:jobId
    *
-   * 実行中ジョブの進行状態を返す(ADR-016 のポーリング用)。
+   * 実行中ジョブの進行状態を返す(ADR-017 のポーリング用)。
    * `status = DONE` になったら `resultId` を使って結果ページへ遷移する。
    * 閲覧のみなので `@Roles` は付けない(実行者以外も進行を見られる)。
    *
@@ -96,7 +96,7 @@ export class ProductDiagnosisController {
   /**
    * GET /workspaces/:slug/projects/:projectId/diagnoses/jobs
    *
-   * 履歴一覧に混ぜて表示する「実行中」「直近の失敗」 のジョブを返す(ADR-016)。
+   * 履歴一覧に混ぜて表示する「実行中」「直近の失敗」 のジョブを返す(ADR-017)。
    * DONE は結果本体が一覧に出るため含まない。
    *
    * **`@Get(':id')` より前に定義すること。**

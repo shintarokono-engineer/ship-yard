@@ -58,7 +58,7 @@ export const FEATURE_CREDIT_OVERRIDES: Partial<Record<Feature, number>> = {
   // ADR-014:Sonnet 4 + Tool Use で Twitter + Blog をマルチチャネル一括生成、max_tokens 3072 + tool 呼び出しオーバーヘッド
   [Feature.ANNOUNCEMENT_GEN]: 4,
 
-  // ADR-016 / F23:Web Search + 2-step で実コストがモデル基準から大きく乖離するため固定する。
+  // ADR-017 / F23:Web Search + 2-step で実コストがモデル基準から大きく乖離するため固定する。
   //
   // **値は turnCount(= 2)に掛かるので 5 = 10cr。** ここを空けておくと `MODEL_CREDITS` から
   // 自動計算され、turn 1 を Haiku にした結果 4cr に下がってしまう。そうなると Pro の 300cr で
@@ -75,7 +75,7 @@ export const FEATURE_CREDIT_OVERRIDES: Partial<Record<Feature, number>> = {
 };
 
 /**
- * `AiJob` が RUNNING のまま放置されたときに「取り残し」 と判定するまでの時間(ms、ADR-016)。
+ * `AiJob` が RUNNING のまま放置されたときに「取り残し」 と判定するまでの時間(ms、ADR-017)。
  *
  * App Runner の再起動やデプロイで背景処理ごと消えても `status` は RUNNING のまま残るため、
  * ポーリングの読み取り時にこの時間を超えていたら FAILED に倒す。
@@ -87,7 +87,7 @@ export const FEATURE_CREDIT_OVERRIDES: Partial<Record<Feature, number>> = {
 export const AI_JOB_STALE_MS = 20 * 60 * 1000;
 
 /**
- * 履歴一覧に失敗ジョブを出し続ける期間(ms、ADR-016)。
+ * 履歴一覧に失敗ジョブを出し続ける期間(ms、ADR-017)。
  *
  * 古い失敗が残り続けても行動につながらないので絞るが、「実行したのに結果が無い。
  * クレジットはどうなったのか」 を後から確認できる必要があるため、一晩越しでも見える 24 時間とする。

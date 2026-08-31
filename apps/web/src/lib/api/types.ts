@@ -1096,11 +1096,11 @@ export interface PublicBlogPost {
   tenant: { slug: string };
 }
 
-/** `AiJob.status`(ADR-016)。DONE は結果本体が一覧に出るため、一覧 API では返らない。 */
+/** `AiJob.status`(ADR-017)。DONE は結果本体が一覧に出るため、一覧 API では返らない。 */
 export type AiJobStatus = 'RUNNING' | 'DONE' | 'FAILED';
 
 /**
- * 長時間 AI 処理(プロダクト診断 / アイデア検証)の進行状態(ADR-016)。
+ * 長時間 AI 処理(プロダクト診断 / アイデア検証)の進行状態(ADR-017)。
  *
  * これらは 88〜113 秒かかり Vercel Hobby の関数実行上限(60 秒)と `API_TIMEOUT_MS`(55 秒)を
  * 超えるため、POST は結果ではなく `jobId` を返す。結果は `resultId` から別途取得する。

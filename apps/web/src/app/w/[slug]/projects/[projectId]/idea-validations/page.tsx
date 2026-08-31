@@ -68,7 +68,7 @@ export default async function IdeaValidationsPage({
         </div>
       </div>
 
-      {/* 実行中 / 直近の失敗を履歴の上に出す(ADR-016)。完了すると消え、結果行に置き換わる。 */}
+      {/* 実行中 / 直近の失敗を履歴の上に出す(ADR-017)。完了すると消え、結果行に置き換わる。 */}
       <AiJobRows jobs={jobs} runningLabel="検証を実行中" />
 
       {hasValidations ? (

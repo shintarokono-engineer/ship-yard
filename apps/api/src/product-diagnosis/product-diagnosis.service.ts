@@ -83,7 +83,7 @@ export class ProductDiagnosisService {
     //    本機能固有の月次回数上限をまず確認し、続いてクレジットを AI 呼び出しの「前」に原子的に予約する
     //    (TOCTOU 回避、ADR-012)。2-step 生成なので turnCount:2(Sonnet 3cr × 2 = 6cr)。
     //    以降で失敗したら catch で予約を解放し、失敗した診断でクレジットを消費しない。
-    // 多重実行の抑止(ADR-016)。同期実行時代はレスポンス待ちでボタンが無効化され二重送信が
+    // 多重実行の抑止(ADR-017)。同期実行時代はレスポンス待ちでボタンが無効化され二重送信が
     // 実質防がれていたが、即座に応答するようになったため連打で N 件が並走し N × 10cr が予約される。
     // **クレジット予約の前**に弾くこと。
     const running = await this.aiJobs.findRunning(
@@ -105,7 +105,7 @@ export class ProductDiagnosisService {
       },
     );
 
-    // 2. ジョブを作成し、AI 実行は切り離して即座に応答する(ADR-016)。
+    // 2. ジョブを作成し、AI 実行は切り離して即座に応答する(ADR-017)。
     //    診断は 88〜113 秒かかり Vercel Hobby の関数実行上限(60 秒)と FE の API_TIMEOUT_MS
     //    (55 秒)を超えるため、同期実行では UI から完走できない。App Runner は常駐 Node プロセスの
     //    ため、レスポンス送出後も背景で処理を続けられる(キュー不要)。
@@ -123,7 +123,7 @@ export class ProductDiagnosisService {
   }
 
   /**
-   * 診断の本体(背景実行、ADR-016)。
+   * 診断の本体(背景実行、ADR-017)。
    *
    * **この関数は絶対に throw してはならない。**呼び出し元は `void` で切り離しており、
    * 例外が漏れると unhandled rejection になる。失敗はすべて `AiJob` に FAILED として記録する。

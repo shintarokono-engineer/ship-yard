@@ -7,7 +7,7 @@ import type { AIUsageService } from './ai-usage.service';
 import type { PrismaService } from '../../prisma/prisma.service';
 
 /**
- * `AiJobService` のテスト(ADR-016)。
+ * `AiJobService` のテスト(ADR-017)。
  *
  * 守りたいのは「取り残し」 の扱い。App Runner が再起動すると背景処理ごと消えるが `status` は
  * RUNNING のまま残り、**クレジット予約行も残ってユーザーの当月枠を食う**。同期実行では

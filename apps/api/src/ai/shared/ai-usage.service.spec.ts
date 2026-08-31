@@ -31,7 +31,7 @@ describe('creditsForUsage(ADR-012 / ADR-014)', () => {
   });
 
   it('診断 / 検証の cr はモデルに依存しない(turn 1 を Haiku にしても下がらない)', () => {
-    // ADR-016 の要:実費を下げても cr が追随して下がると、Pro の 300cr で回せる回数が
+    // ADR-017 の要:実費を下げても cr が追随して下がると、Pro の 300cr で回せる回数が
     // 増えて削減分が相殺される。支出の天井を決めているのは実費ではなく cr 価格なので、
     // override でモデル式から切り離してある。ここが崩れると赤字構造に戻る。
     expect(creditsForUsage(AI_MODEL_HAIKU, Feature.PRODUCT_DIAGNOSIS, 2)).toBe(10);

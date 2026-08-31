@@ -39,7 +39,7 @@
 - **2-step 機能(`PRODUCT_DIAGNOSIS` / `IDEA_VALIDATION`)はターンごとにモデルを分ける**(ADR-016)。
   turn 1(Web 検索 + 競合の要約)は Haiku、turn 2(rubric に沿った採点)は Sonnet。
   実測でトークンの 63% が turn 1 に乗るため、採点しない turn を Haiku にするのが最大のコスト削減になる
-  (¥50.1 → ¥27.8 / 回、スコア・競合件数は変化なし)。**turn 1 を Sonnet に戻すとコストが倍近くなる**
+  (¥50.1 → ¥27.0〜30.8 / 回、実測 6 件。スコア・競合件数は変化なし)。**turn 1 を Sonnet に戻すとコストが倍近くなる**
 - モデルが混在する機能の `AIUsage.costJpy` は `sumCostJpy` で turn ごとに積算する
   (行の `model` 単価だけで見積もると実費を 4 割ほど過大に記録する)
 - Tool Use は構造化出力が必要な場面のみ。利用箇所はコードコメントで理由を残す

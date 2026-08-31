@@ -74,13 +74,13 @@ export class IdeaValidationController {
   /**
    * GET /workspaces/:slug/projects/:projectId/idea-validations/jobs/:jobId
    *
-   * 実行中ジョブの進行状態を返す(ADR-016 のポーリング用)。
+   * 実行中ジョブの進行状態を返す(ADR-017 のポーリング用)。
    * **`@Get(':id')` より前に定義すること。**後ろに置くと `jobs` が `:id` にマッチする。
    */
   /**
    * GET /workspaces/:slug/projects/:projectId/idea-validations/jobs
    *
-   * 履歴一覧に混ぜて表示する「実行中」「直近の失敗」 のジョブを返す(ADR-016)。
+   * 履歴一覧に混ぜて表示する「実行中」「直近の失敗」 のジョブを返す(ADR-017)。
    * DONE は結果本体が一覧に出るため含まない。
    *
    * **`@Get(':id')` より前に定義すること。**

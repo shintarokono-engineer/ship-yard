@@ -6,13 +6,13 @@ import type { Logger } from '@nestjs/common';
  * `AIUsage` は turn1 + turn2 の**合算しか記録しない**ため、コスト削減の検討に必要な
  * 「どちらの turn が重いか」「turn 2 の入力のうち何割が turn 1 の再送か」が分からない。
  *
- * ADR-016 以降、turn 2 へは turn 1 の**最終 text だけ**を渡している(`extractTextContentOrNull`)。
+ * ADR-017 以降、turn 2 へは turn 1 の**最終 text だけ**を渡している(`extractTextContentOrNull`)。
  * `turn1.content` のブロック種別ごとの文字数を出しているのは、**その判断が今も妥当かを監視するため**。
  * `text 以外` が肥大しても turn 2 には乗らないが、turn 1 側の入力として課金されるので、
  * 検索回数(`WEB_SEARCH_MAX_USES`)の調整判断に使う。
  *
  * 2026-08-30 の実測では 1 回あたり tokensIn 67,831 / ¥41.65(Web Search 料金は別途最大 ¥7.5)。
- * ADR-016 の対策後は ¥20.35 まで下がった。
+ * ADR-017 の対策後は ¥20.35 まで下がった。
  *
  * **恒久ログとして残す。**診断 / 検証は月 30 回上限(300cr ÷ 10cr)で量が知れており、
  * 2-step のコスト配分は今後もチューニング対象(turn 数削減・非同期化)であるため観測を続ける。

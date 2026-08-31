@@ -33,7 +33,7 @@ export {
   DeliveryStatus,
   // F20 トライアル終了通知
   TrialNotificationKind,
-  // ADR-016 長時間 AI 処理の進行状態
+  // ADR-017 長時間 AI 処理の進行状態
   AiJobStatus,
 } from '@prisma/client';
 
@@ -50,7 +50,7 @@ export type {
   BlogPost,
   // F20 トライアル終了通知
   TrialNotification,
-  // ADR-016 長時間 AI 処理の進行状態
+  // ADR-017 長時間 AI 処理の進行状態
   AiJob,
 } from '@prisma/client';
 

@@ -105,7 +105,7 @@ export async function runValidationAction(
     throw e;
   }
 
-  // 実行開始に成功。**ここでは結果ページへ遷移しない**(ADR-016)。
+  // 実行開始に成功。**ここでは結果ページへ遷移しない**(ADR-017)。
   // アイデア検証は 88〜113 秒かかるため完了を待てない。一覧に「実行中」 行を出すためキャッシュだけ
   // 無効化し、`jobId` を返してクライアント側にポーリングを任せる。
   revalidatePath(`/w/${slug}/projects/${projectId}/idea-validations`);
