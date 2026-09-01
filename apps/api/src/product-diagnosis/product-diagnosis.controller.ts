@@ -4,7 +4,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Param,
   Post,
   UseGuards,
@@ -25,9 +24,8 @@ import { ProductDiagnosisService } from './product-diagnosis.service';
 /**
  * プロダクト診断(PRODUCT_DIAGNOSIS、ADR-013)の API(Day 43)。
  *
- * 4 エンドポイント:
+ * 3 エンドポイント:
  *   - POST  /workspaces/:slug/projects/:projectId/diagnoses             実行開始(WRITER_ROLES、202 + jobId)
- *   - GET   /workspaces/:slug/projects/:projectId/diagnoses/jobs/:jobId 進行状態(全テナントメンバー)
  *   - GET   /workspaces/:slug/projects/:projectId/diagnoses             履歴一覧(全テナントメンバー)
  *   - GET   /workspaces/:slug/projects/:projectId/diagnoses/:id         単件取得(全テナントメンバー)
  *
@@ -85,38 +83,18 @@ export class ProductDiagnosisController {
   }
 
   /**
-   * GET /workspaces/:slug/projects/:projectId/diagnoses/jobs/:jobId
-   *
-   * 実行中ジョブの進行状態を返す(ADR-017 のポーリング用)。
-   * `status = DONE` になったら `resultId` を使って結果ページへ遷移する。
-   * 閲覧のみなので `@Roles` は付けない(実行者以外も進行を見られる)。
-   *
-   * **`@Get(':id')` より前に定義すること。**後ろに置くと `jobs` が `:id` にマッチする。
-   */
-  /**
    * GET /workspaces/:slug/projects/:projectId/diagnoses/jobs
    *
    * 履歴一覧に混ぜて表示する「実行中」「直近の失敗」 のジョブを返す(ADR-017)。
    * DONE は結果本体が一覧に出るため含まない。
+   * 閲覧のみなので `@Roles` は付けない(実行者以外も進行を見られる)。
    *
-   * **`@Get(':id')` より前に定義すること。**
+   * **`@Get(':id')` より前に定義すること。**後ろに置くと `jobs` が `:id` にマッチする。
    */
   @Get('jobs')
   async activeJobs(@CurrentWorkspace() ws: WorkspaceAccess, @Param('projectId') projectId: string) {
     const project = await this.projects.getOwnedOrThrow(ws.tenantId, projectId);
     return this.aiJobs.listActive(ws.tenantId, project.id, Feature.PRODUCT_DIAGNOSIS);
-  }
-
-  @Get('jobs/:jobId')
-  async job(
-    @CurrentWorkspace() ws: WorkspaceAccess,
-    @Param('projectId') projectId: string,
-    @Param('jobId') jobId: string,
-  ) {
-    const project = await this.projects.getOwnedOrThrow(ws.tenantId, projectId);
-    const job = await this.aiJobs.get(ws.tenantId, project.id, jobId);
-    if (!job) throw new NotFoundException('ジョブが見つかりません。');
-    return job;
   }
 
   /**

@@ -701,7 +701,7 @@ export async function listPublishedLandingPages(): Promise<PublicLandingPageRef[
  *
  * プロダクト診断の実行を**開始**する(ADR-017)。診断は 88〜113 秒かかり Vercel Hobby の
  * 関数実行上限(60 秒)を超えるため、結果は返らず `jobId` だけが返る。呼び出し側は
- * `fetchDiagnosisJob` で進行状態をポーリングし、DONE になったら `resultId` で結果を取得する。
+ * 履歴一覧が `listDiagnosisJobs` で進行状態を引き、完了すると結果行に置き換わる。
  *
  * 認可・月次上限・クレジット予約は同期で行われるため、実行できない場合はここで 403 になる。
  */
@@ -716,17 +716,6 @@ export async function runDiagnosis(
       method: 'POST',
       body: JSON.stringify(instructions?.trim() ? { instructions: instructions.trim() } : {}),
     },
-  );
-}
-
-/** `GET /workspaces/:slug/projects/:projectId/diagnoses/jobs/:jobId` — 進行状態(ポーリング用)。 */
-export async function fetchDiagnosisJob(
-  slug: string,
-  projectId: string,
-  jobId: string,
-): Promise<AiJobView> {
-  return apiFetch<AiJobView>(
-    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/diagnoses/jobs/${encodeURIComponent(jobId)}`,
   );
 }
 
@@ -763,7 +752,7 @@ export const fetchDiagnosis = cache(
  *
  * アイデア検証の実行を**開始**する(ADR-017)。検証は 88〜113 秒かかり Vercel Hobby の
  * 関数実行上限(60 秒)を超えるため、結果は返らず `jobId` だけが返る。呼び出し側は
- * `fetchIdeaValidationJob` で進行状態をポーリングし、DONE になったら `resultId` で結果を取得する。
+ * 履歴一覧が `listIdeaValidationJobs` で進行状態を引き、完了すると結果行に置き換わる。
  *
  * 認可・月次上限・クレジット予約は同期で行われるため、実行できない場合はここで 403 になる。
  * Project の詳細情報フィールド(targetUsers / problemStatement / proposedFeatures / pricingModel / description)が
@@ -780,17 +769,6 @@ export async function runIdeaValidation(
       method: 'POST',
       body: JSON.stringify(instructions?.trim() ? { instructions: instructions.trim() } : {}),
     },
-  );
-}
-
-/** `GET /workspaces/:slug/projects/:projectId/idea-validations/jobs/:jobId` — 進行状態(ポーリング用)。 */
-export async function fetchIdeaValidationJob(
-  slug: string,
-  projectId: string,
-  jobId: string,
-): Promise<AiJobView> {
-  return apiFetch<AiJobView>(
-    `/workspaces/${encodeURIComponent(slug)}/projects/${encodeURIComponent(projectId)}/idea-validations/jobs/${encodeURIComponent(jobId)}`,
   );
 }
 

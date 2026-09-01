@@ -134,50 +134,6 @@ export class AiJobService {
   }
 
   /**
-   * ジョブを 1 件取得する(ポーリング用)。テナント + プロジェクトで絞るため他テナントは見えない。
-   *
-   * **取り残しの回収**: App Runner が再起動すると背景処理ごと消えるが `status` は RUNNING のまま残る。
-   * ユーザーを無限に待たせないよう、`updatedAt` が `AI_JOB_STALE_MS` より古い RUNNING は
-   * FAILED に倒して返す。倒した結果を永続化するのは、次回以降のポーリングで同じ判定を繰り返さないため。
-   */
-  async get(tenantId: string, projectId: string, jobId: string): Promise<AiJobView | null> {
-    const job = await this.prisma.aiJob.findFirst({
-      where: { id: jobId, tenantId, projectId },
-      select: {
-        id: true,
-        status: true,
-        resultId: true,
-        errorMessage: true,
-        createdAt: true,
-        updatedAt: true,
-        reservationId: true,
-      },
-    });
-    if (!job) return null;
-
-    const isStale =
-      job.status === AiJobStatus.RUNNING && Date.now() - job.updatedAt.getTime() > AI_JOB_STALE_MS;
-    if (!isStale) {
-      return {
-        id: job.id,
-        status: job.status,
-        resultId: job.resultId,
-        errorMessage: job.errorMessage,
-        createdAt: job.createdAt,
-      };
-    }
-
-    const errorMessage = await this.reclaimStale(job);
-    return {
-      id: job.id,
-      status: AiJobStatus.FAILED,
-      resultId: null,
-      errorMessage,
-      createdAt: job.createdAt,
-    };
-  }
-
-  /**
    * 一覧に混ぜて見せるジョブを返す(ADR-017、履歴一覧の「実行中」 行用)。
    *
    * 返すのは **RUNNING と、直近の FAILED だけ**。DONE は結果本体(`ServiceScore` /

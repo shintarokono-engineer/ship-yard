@@ -4,7 +4,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Param,
   Post,
   UseGuards,
@@ -72,35 +71,17 @@ export class IdeaValidationController {
   }
 
   /**
-   * GET /workspaces/:slug/projects/:projectId/idea-validations/jobs/:jobId
-   *
-   * 実行中ジョブの進行状態を返す(ADR-017 のポーリング用)。
-   * **`@Get(':id')` より前に定義すること。**後ろに置くと `jobs` が `:id` にマッチする。
-   */
-  /**
    * GET /workspaces/:slug/projects/:projectId/idea-validations/jobs
    *
    * 履歴一覧に混ぜて表示する「実行中」「直近の失敗」 のジョブを返す(ADR-017)。
    * DONE は結果本体が一覧に出るため含まない。
    *
-   * **`@Get(':id')` より前に定義すること。**
+   * **`@Get(':id')` より前に定義すること。**後ろに置くと `jobs` が `:id` にマッチする。
    */
   @Get('jobs')
   async activeJobs(@CurrentWorkspace() ws: WorkspaceAccess, @Param('projectId') projectId: string) {
     const project = await this.projects.getOwnedOrThrow(ws.tenantId, projectId);
     return this.aiJobs.listActive(ws.tenantId, project.id, Feature.IDEA_VALIDATION);
-  }
-
-  @Get('jobs/:jobId')
-  async job(
-    @CurrentWorkspace() ws: WorkspaceAccess,
-    @Param('projectId') projectId: string,
-    @Param('jobId') jobId: string,
-  ) {
-    const project = await this.projects.getOwnedOrThrow(ws.tenantId, projectId);
-    const job = await this.aiJobs.get(ws.tenantId, project.id, jobId);
-    if (!job) throw new NotFoundException('ジョブが見つかりません。');
-    return job;
   }
 
   /**

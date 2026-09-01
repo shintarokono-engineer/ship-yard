@@ -47,27 +47,23 @@ function runningJob(ageMs: number, reservationId: string | null = 'res_1') {
   };
 }
 
-describe('AiJobService.get', () => {
-  it('存在しなければ null', async () => {
-    const { service } = makeService({ job: null });
-    expect(await service.get('t1', 'p1', 'job_1')).toBeNull();
-  });
-
+describe('AiJobService.listActive', () => {
   it('新しい RUNNING はそのまま返す(取り残し扱いにしない)', async () => {
-    const { service, releaseReservation, updateMany } = makeService({ job: runningJob(1000) });
-    const view = await service.get('t1', 'p1', 'job_1');
-    expect(view?.status).toBe('RUNNING');
+    const { service, releaseReservation, updateMany } = makeService({ jobs: [runningJob(1000)] });
+    const views = await service.listActive('t1', 'p1', Feature.PRODUCT_DIAGNOSIS);
+    expect(views[0]?.status).toBe('RUNNING');
     expect(releaseReservation).not.toHaveBeenCalled();
     expect(updateMany).not.toHaveBeenCalled();
   });
 
   it('古い RUNNING は FAILED に倒し、クレジット予約を解放する', async () => {
     const { service, releaseReservation, updateMany } = makeService({
-      job: runningJob(AI_JOB_STALE_MS + 1000),
+      jobs: [runningJob(AI_JOB_STALE_MS + 1000)],
     });
-    const view = await service.get('t1', 'p1', 'job_1');
+    const views = await service.listActive('t1', 'p1', Feature.PRODUCT_DIAGNOSIS);
 
-    expect(view?.status).toBe('FAILED');
+    expect(views).toHaveLength(1);
+    expect(views[0]?.status).toBe('FAILED');
     expect(releaseReservation).toHaveBeenCalledWith('res_1');
     // 二重解放を防ぐため reservationId を null に戻している
     expect(updateMany).toHaveBeenCalledWith(
@@ -76,40 +72,28 @@ describe('AiJobService.get', () => {
   });
 
   it('取り残しの文言はクレジットについて断定しない', async () => {
-    // 予約解放に失敗する可能性があるため「消費されていません」 と言い切らない(実際に誤りだった)
-    const { service } = makeService({ job: runningJob(AI_JOB_STALE_MS + 1000) });
-    const view = await service.get('t1', 'p1', 'job_1');
-    expect(view?.errorMessage).not.toContain('クレジット');
+    // 予約解放が失敗する可能性があるため「消費されていません」 と言い切らない(実際に誤りだった)
+    const { service } = makeService({ jobs: [runningJob(AI_JOB_STALE_MS + 1000)] });
+    const views = await service.listActive('t1', 'p1', Feature.PRODUCT_DIAGNOSIS);
+    expect(views[0]?.errorMessage).not.toContain('クレジット');
   });
 
   it('予約解放が失敗しても FAILED 化は進める', async () => {
     const { service, updateMany } = makeService({
-      job: runningJob(AI_JOB_STALE_MS + 1000),
+      jobs: [runningJob(AI_JOB_STALE_MS + 1000)],
       release: vi.fn().mockRejectedValue(new Error('db down')),
     });
-    const view = await service.get('t1', 'p1', 'job_1');
-    expect(view?.status).toBe('FAILED');
+    const views = await service.listActive('t1', 'p1', Feature.PRODUCT_DIAGNOSIS);
+    expect(views[0]?.status).toBe('FAILED');
     expect(updateMany).toHaveBeenCalled();
   });
 
   it('予約 ID が無ければ解放を呼ばない', async () => {
     const { service, releaseReservation } = makeService({
-      job: runningJob(AI_JOB_STALE_MS + 1000, null),
+      jobs: [runningJob(AI_JOB_STALE_MS + 1000, null)],
     });
-    await service.get('t1', 'p1', 'job_1');
+    await service.listActive('t1', 'p1', Feature.PRODUCT_DIAGNOSIS);
     expect(releaseReservation).not.toHaveBeenCalled();
-  });
-});
-
-describe('AiJobService.listActive', () => {
-  it('古い RUNNING は FAILED として返す', async () => {
-    const { service, releaseReservation } = makeService({
-      jobs: [runningJob(AI_JOB_STALE_MS + 1000)],
-    });
-    const views = await service.listActive('t1', 'p1', Feature.PRODUCT_DIAGNOSIS);
-    expect(views).toHaveLength(1);
-    expect(views[0]?.status).toBe('FAILED');
-    expect(releaseReservation).toHaveBeenCalledWith('res_1');
   });
 
   it('DONE は問い合わせ対象に含めない(結果本体が一覧に出るため)', async () => {

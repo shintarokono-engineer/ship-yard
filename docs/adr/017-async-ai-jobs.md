@@ -84,8 +84,7 @@ POST /workspaces/:slug/projects/:projectId/diagnoses
   ├ AI 実行を void で切り離す                  … 背景
   └ 202 { jobId } を返す                       … 実測 0.66 秒
 
-GET .../diagnoses/jobs/:jobId  → 進行状態(ポーリング)
-GET .../diagnoses/jobs         → 実行中 / 直近失敗(履歴一覧に混ぜる)
+GET .../diagnoses/jobs         → 実行中 / 直近失敗(履歴一覧に混ぜる。これをポーリングする)
 ```
 
 ### 認可とクレジット予約を同期に残す
