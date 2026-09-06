@@ -19,7 +19,9 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { trackGenerationCompleted } from '@/lib/analytics';
+import { cn } from '@/lib/utils';
 import {
   CATEGORIES,
   CATEGORY_META,
@@ -77,15 +79,6 @@ export function GenerateChecklistDialog({
     }
   }, [state]);
 
-  const toggleCategory = (c: Category) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(c)) next.delete(c);
-      else next.add(c);
-      return next;
-    });
-  };
-
   const submitDisabled = pending || selected.size === 0;
 
   return (
@@ -117,33 +110,34 @@ export function GenerateChecklistDialog({
             label="生成するカテゴリ"
             errors={state.fieldErrors?.categories}
           >
-            <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map((c) => {
-                const checked = selected.has(c);
-                return (
-                  <label
-                    key={c}
-                    className={
-                      'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors ' +
-                      (checked
-                        ? 'border-foreground bg-foreground text-background'
-                        : 'border-input text-muted-foreground hover:bg-accent/30')
-                    }
-                  >
-                    <input
-                      type="checkbox"
-                      name="categories"
-                      value={c}
-                      checked={checked}
-                      onChange={() => toggleCategory(c)}
-                      disabled={pending}
-                      className="sr-only"
-                    />
-                    {CATEGORY_META[c].label}
-                  </label>
-                );
-              })}
-            </div>
+            {/* ToggleGroup は button 群なので FormData に載らない。選択ぶんを hidden input で送る。 */}
+            {[...selected].map((c) => (
+              <input key={c} type="hidden" name="categories" value={c} />
+            ))}
+            <ToggleGroup
+              type="multiple"
+              variant="outline"
+              // 複数選択なので連結させず、独立したチップとして並べる。
+              spacing={2}
+              value={[...selected]}
+              onValueChange={(next) => setSelected(new Set(next as Category[]))}
+              className="flex-wrap justify-start"
+            >
+              {CATEGORIES.map((c) => (
+                <ToggleGroupItem
+                  key={c}
+                  value={c}
+                  disabled={pending}
+                  className="data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground gap-1.5 text-xs"
+                >
+                  <span
+                    className={cn('size-2 shrink-0 rounded-full', CATEGORY_META[c].dotClassName)}
+                    aria-hidden="true"
+                  />
+                  {CATEGORY_META[c].label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
           </FormField>
 
           <FormField

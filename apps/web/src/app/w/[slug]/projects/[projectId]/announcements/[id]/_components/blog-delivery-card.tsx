@@ -1,12 +1,13 @@
 'use client';
 
 import { useActionState, useMemo, useState } from 'react';
-import { ExternalLink, Newspaper, Pencil, Send } from 'lucide-react';
+import { ChevronDown, ExternalLink, Newspaper, Pencil, Send } from 'lucide-react';
 
 import { FormField } from '@/app/w/[slug]/_shared/form-field';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Dialog,
   DialogContent,
@@ -110,14 +111,20 @@ export function BlogDeliveryCard({
             <p className="text-muted-foreground text-xs italic">概要: {content.summary}</p>
           )}
         </div>
-        <details className="text-sm">
-          <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-xs">
+        <Collapsible className="group text-sm">
+          <CollapsibleTrigger className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 flex cursor-pointer items-center gap-1 rounded-sm text-xs outline-none focus-visible:ring-[3px]">
+            <ChevronDown
+              className="size-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180"
+              aria-hidden="true"
+            />
             本文プレビュー({blogPost.body.length.toLocaleString()} 文字)
-          </summary>
-          <pre className="bg-muted/40 mt-2 max-h-72 overflow-y-auto whitespace-pre-wrap rounded-md p-3 font-sans text-sm">
-            {blogPost.body}
-          </pre>
-        </details>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <pre className="bg-muted/40 mt-2 max-h-72 overflow-y-auto rounded-md p-3 font-sans text-sm whitespace-pre-wrap">
+              {blogPost.body}
+            </pre>
+          </CollapsibleContent>
+        </Collapsible>
         <div className="text-muted-foreground space-y-1 text-xs">
           <p>
             slug: <code className="rounded bg-black/5 px-1 dark:bg-white/10">{blogPost.slug}</code>

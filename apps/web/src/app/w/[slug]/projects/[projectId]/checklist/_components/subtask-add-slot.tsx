@@ -27,12 +27,13 @@ export function SubtaskAddSlot({
 
   if (!open) {
     return (
+      // 行の間に常時挟まるので既定は控えめにし、ホバー / フォーカスで前に出す。
       <div className="ml-8">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setOpen(true)}
-          className="text-muted-foreground h-7 px-2 text-xs"
+          className="text-muted-foreground h-7 px-2 text-xs opacity-55 transition-opacity hover:opacity-100 focus-visible:opacity-100"
         >
           <Plus aria-hidden="true" />
           サブタスクを追加
