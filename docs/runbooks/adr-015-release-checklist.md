@@ -28,6 +28,17 @@
 
 ## 2. DB マイグレーション
 
+**通常はスクリプトで行う。**
+
+```bash
+pnpm db:deploy:prod --status   # 未適用の一覧と各 migration.sql の実行文を表示(読み取りのみ)
+pnpm db:deploy:prod            # 同上 → 確認プロンプト → migrate deploy → 適用後の検証
+```
+
+`infra/scripts/prod-migrate.sh` が、以下の手動手順(ポートフォワード → パスワード取得 → status → DROP INDEX の検査 → deploy → HNSW / 未適用 0 / `shipyard_app` 権限の確認 → ポートフォワードの後始末)をそのまま実行する。パスワードは画面に出ない。
+
+以下は手動で行う場合、またはスクリプトの中身を確認したい場合の手順。
+
 本番 RDS は VPC 内。`production-cutover.md` §6.2 の SSM ポートフォワードを張り、マスターパスワードは Secrets Manager から読む(画面に出さない)。
 
 ```bash
