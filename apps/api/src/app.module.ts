@@ -50,6 +50,8 @@ import { OwnershipController } from './members/ownership.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProductDiagnosisController } from './product-diagnosis/product-diagnosis.controller';
 import { ProductDiagnosisService } from './product-diagnosis/product-diagnosis.service';
+import { PublicCheckController } from './public-check/public-check.controller';
+import { PublicCheckService } from './public-check/public-check.service';
 import { ProjectsController } from './projects/projects.controller';
 import { ProjectsService } from './projects/projects.service';
 import { StripeModule } from './stripe/stripe.module';
@@ -96,6 +98,8 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     LandingPageController,
     PublicLandingPageController,
     ProductDiagnosisController,
+    // ADR-015: 未認証で叩ける公開アイデア検証。guard を付けない別 controller に分離してある。
+    PublicCheckController,
     IdeaValidationController,
     InvitationsController,
     PublicInvitationsController,
@@ -129,6 +133,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     LandingPageService,
     LpGenService,
     ProductDiagnosisService,
+    PublicCheckService,
     IdeaValidationService,
     AnnouncementGenService,
     AnnouncementService,
