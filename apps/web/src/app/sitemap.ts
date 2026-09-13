@@ -9,6 +9,7 @@ import { getSiteUrl } from '@/lib/site-url';
  *
  * 未認証で公開されるページのみ列挙する:
  *  - マーケティング LP(`/`)
+ *  - 無料公開アイデア検証ツール(`/check`、ADR-015)
  *  - 公開済みランディングページ(`/p/{slug}/{projectId}`)
  *  - 公開済みブログ記事(`/p/{slug}/{projectId}/blog/{postSlug}`、ADR-014)
  *
@@ -21,6 +22,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const entries: MetadataRoute.Sitemap = [
     { url: `${base}/`, changeFrequency: 'weekly', priority: 1 },
+    // 無料公開アイデア検証ツール(ADR-015)。`/check/{id}`(結果)は noindex なので載せない。
+    { url: `${base}/check`, changeFrequency: 'weekly', priority: 0.9 },
   ];
 
   const [publishedLps, publishedBlogs] = await Promise.all([

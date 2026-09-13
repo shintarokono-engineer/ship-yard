@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 import { NeorieWordmark } from '@/components/neorie-logo';
 
-/** マーケティング LP のフッター。 */
+/** マーケティング LP と `/check` で共有するフッター。 */
 export function SiteFooter() {
   return (
     <footer className="bg-card border-t">
@@ -14,18 +14,18 @@ export function SiteFooter() {
           </p>
         </div>
         <nav aria-label="フッター" className="flex items-center gap-6 text-sm">
-          <a
-            href="#features"
+          <Link
+            href="/#features"
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
             機能
-          </a>
-          <a
-            href="#pricing"
+          </Link>
+          <Link
+            href="/#pricing"
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
             料金
-          </a>
+          </Link>
           <Link
             href="/sign-in"
             className="text-muted-foreground hover:text-foreground transition-colors"

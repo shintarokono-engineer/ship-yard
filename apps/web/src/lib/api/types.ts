@@ -948,6 +948,63 @@ export interface IdeaValidation {
   createdAt: string;
 }
 
+// ============================================================================
+// 無料公開アイデア検証 `/check`(ADR-015)
+// ============================================================================
+
+/** 公開版が採点する 3 軸。BE の `PUBLIC_CHECK_AXES` と同じ並びを保つこと。 */
+export const PUBLIC_CHECK_AXES = [
+  'problemClarity',
+  'targetClarity',
+  'differentiation',
+] as const satisfies readonly ValidationAxis[];
+
+/** `PUBLIC_CHECK_AXES` の要素型。 */
+export type PublicCheckAxis = (typeof PUBLIC_CHECK_AXES)[number];
+
+/** 公開版では採点せず、**ロック表示にする** 2 軸(ADR-015)。非表示にはしない。 */
+export const PUBLIC_CHECK_LOCKED_AXES = [
+  'competitiveAdvantage',
+  'marketPotential',
+] as const satisfies readonly ValidationAxis[];
+
+/** 評価軸 1 つの満点。診断・検証・公開版で共通(BE の `VALIDATION_AXIS_MAX_SCORE` と同値)。 */
+export const AXIS_MAX_SCORE = 20;
+
+/**
+ * 内部スコア(3 軸 × 20 点 = 0〜60)を 100 点満点へ正規化する係数(ADR-015)。
+ *
+ * 正規化は表示層だけの仕事で、保存側は一切正規化しない。
+ */
+export const PUBLIC_CHECK_SCORE_SCALE = 5 / 3;
+
+/** 内部値(0〜60)を表示用の 100 点満点へ正規化する。 */
+export function toDisplayScore(internalScore: number): number {
+  return Math.round(internalScore * PUBLIC_CHECK_SCORE_SCALE);
+}
+
+/** `GET /public/idea-checks/:id` / `POST /public/idea-checks` のレスポンス。 */
+export interface PublicCheck {
+  /** 推測不能 ID。結果 URL に載り、これを知っていることが閲覧と引き換えの権限になる。 */
+  id: string;
+  ideaText: string;
+  /** **内部値 0〜60**(3 軸 × 20 点)。表示時は `toDisplayScore` で 100 点満点に直す。 */
+  totalScore: number;
+  breakdown: ScoreBreakdown<PublicCheckAxis>;
+  suggestions: Suggestion<PublicCheckAxis>[];
+  /** opt-in 共有済みか。共有済みでも `noindex` は維持する。 */
+  shared: boolean;
+  /** 登録へ引き換え済みか。 */
+  claimed: boolean;
+  createdAt: string;
+}
+
+/** API が上限到達を伝えるコード。文言の出し分けに使う(BE の `PUBLIC_CHECK_ERROR_CODE` と一致)。 */
+export const PUBLIC_CHECK_ERROR_CODE = {
+  DAILY_LIMIT_REACHED: 'PUBLIC_CHECK_DAILY_LIMIT_REACHED',
+  IP_RATE_LIMITED: 'PUBLIC_CHECK_IP_RATE_LIMITED',
+} as const;
+
 /** suggestion.priority の表示メタ(色 + ラベル、UI のバッジで使う)。 */
 export const SUGGESTION_PRIORITY_META: Record<
   Suggestion['priority'],
