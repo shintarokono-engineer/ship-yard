@@ -850,17 +850,17 @@ model TrialNotification {
 /// 進行状態のために nullable 化しない)。本テーブルは進行状態と結果への参照だけを持つ。
 model AiJob {
   /// 内部 ID(cuid)
-  id           String      @id @default(cuid())
+  id            String      @id @default(cuid())
   /// 所属テナント ID(マルチテナント分離キー、必須)
-  tenantId     String
+  tenantId      String
   /// 所属プロジェクト ID
-  projectId    String
+  projectId     String
   /// 対象機能。現状は PRODUCT_DIAGNOSIS / IDEA_VALIDATION の 2 つ
-  feature      Feature
+  feature       Feature
   /// 進行状態
-  status       AiJobStatus @default(RUNNING)
+  status        AiJobStatus @default(RUNNING)
   /// 完了時の結果 ID(`ServiceScore.id` または `IdeaValidation.id`)。RUNNING / FAILED では null
-  resultId     String?
+  resultId      String?
   /// 実行中に押さえている `AIUsage` の予約行 ID(ADR-012 のクレジット予約)。
   ///
   /// **取り残しの回収でクレジットを解放するために持つ。** 予約は AI 呼び出しの前に INSERT され、
@@ -869,13 +869,13 @@ model AiJob {
   /// 確定・解放・取り残し回収のいずれかを終えたら null に戻す(二重解放の防止)。
   reservationId String?
   /// 失敗時のユーザー向けメッセージ。DONE では null
-  errorMessage String?
+  errorMessage  String?
   /// 実行者 User ID
-  createdById  String
-  createdAt    DateTime    @default(now())
+  createdById   String
+  createdAt     DateTime    @default(now())
   /// 最終更新日時。**RUNNING のまま古くなった行を「取り残し」と判定するのに使う**
   /// (App Runner の再起動で処理が消えても RUNNING が残り続けるため)
-  updatedAt    DateTime    @updatedAt
+  updatedAt     DateTime    @updatedAt
 
   tenant    Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -892,4 +892,52 @@ enum AiJobStatus {
   RUNNING
   DONE
   FAILED
+}
+
+/// 無料公開アイデア検証 `/check` の結果(ADR-015)。
+///
+/// **テナントに属さない例外モデル**(`User` / `WebhookEvent` と同じ扱い)。
+/// `TENANT_SCOPED_MODELS`(許可リスト)には**意図的に登録していない**。
+model PublicIdeaCheck {
+  /// 結果 URL に載る推測不能 ID(`randomBytes(16).toString('base64url')` = 22 文字)。
+  /// これを知っていること自体が閲覧と引き換えの権限になるため、単調増加成分を持つ `cuid()` は使わない。
+  id                String    @id
+  /// ユーザーが入力したアイデア文(`PUBLIC_CHECK_INPUT_MAX_CHARS` 以内)
+  ideaText          String
+  /// 総合スコア。**内部値 0〜60**(3 軸 × 20 点)。100 点への正規化は表示層でのみ行う
+  totalScore        Int
+  /// 3 軸ブレークダウン(problemClarity / targetClarity / differentiation、各 0-20 + コメント)
+  breakdown         Json
+  /// 改善提案 3〜5 件(priority / title / body / axis)
+  suggestions       Json
+  /// 実費監視用。`AIUsage` はテナント単位の課金記録なので、公開診断は代わりにここに持つ
+  tokensIn          Int
+  tokensOut         Int
+  costJpy           Decimal   @db.Decimal(10, 4)
+  /// opt-in で共有された時刻。`null` なら未共有。**共有済みは保持期間の対象外**
+  sharedAt          DateTime?
+  /// 持ち越しで引き換えたテナント ID。撤退条件の「転換」判定に使う。
+  /// **FK は張らない**(テナントへの所属を意味せず、テナント削除で消える必要も無いため)
+  claimedByTenantId String?
+  claimedAt         DateTime?
+  /// レート制限の補助キー。生 IP は保存せず `HMAC-SHA256(ip, PUBLIC_CHECK_IP_SALT)` を持つ。
+  /// 窓を過ぎたら日次バッチで `null` にする
+  ipHash            String?
+  createdAt         DateTime  @default(now())
+
+  /// 日次の実行件数集計と保持期間の purge のため
+  @@index([createdAt])
+  /// IP ハッシュ単位のレート制限(直近 N 分の件数)のため
+  @@index([ipHash, createdAt])
+}
+
+/// `/check` の日次実行回数カウンタ(ADR-015、**費用の天井の主防御**)。
+///
+/// **`PublicIdeaCheck` の件数で数えてはいけない**(失敗した実行が残らず天井が破れる)。
+/// AI 呼び出しの**前**に加算し、失敗しても戻さない。
+model PublicCheckUsage {
+  /// 集計対象日(UTC の日付境界)。`AIUsage` の月次上限判定が UTC 月なのに合わせている
+  date  DateTime @id @db.Date
+  /// その日の実行回数。`PUBLIC_CHECK_DAILY_LIMIT` を超えたら 429
+  count Int      @default(0)
 }

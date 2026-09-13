@@ -52,6 +52,9 @@ export type {
   TrialNotification,
   // ADR-017 長時間 AI 処理の進行状態
   AiJob,
+  // ADR-015 無料公開アイデア検証 `/check`(テナントを持たない)
+  PublicIdeaCheck,
+  PublicCheckUsage,
 } from '@prisma/client';
 
 // マルチテナントのリクエストコンテキスト(ADR-002)

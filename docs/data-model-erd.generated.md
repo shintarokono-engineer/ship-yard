@@ -365,6 +365,29 @@ FAILED FAILED
     DateTime updatedAt 
     }
   
+
+  "PublicIdeaCheck" {
+    String id "🗝️"
+    String ideaText 
+    Int totalScore 
+    Json breakdown 
+    Json suggestions 
+    Int tokensIn 
+    Int tokensOut 
+    Decimal costJpy 
+    DateTime sharedAt "❓"
+    String claimedByTenantId "❓"
+    DateTime claimedAt "❓"
+    String ipHash "❓"
+    DateTime createdAt 
+    }
+  
+
+  "PublicCheckUsage" {
+    DateTime date "🗝️"
+    Int count 
+    }
+  
     "Tenant" |o--|| "Plan" : "enum:plan"
     "Tenant" }o--|| "User" : "owner"
     "TenantMember" |o--|| "Role" : "enum:role"
