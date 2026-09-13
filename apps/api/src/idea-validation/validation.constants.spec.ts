@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   formatValidationRubricForPrompt,
+  PUBLIC_CHECK_AXES,
   VALIDATION_AXES,
   VALIDATION_AXIS_RUBRIC,
   VALIDATION_RECOMMENDATION_GUIDANCE,
@@ -78,5 +79,25 @@ describe('formatValidationRubricForPrompt', () => {
     lines.forEach((line, idx) => {
       expect(line.startsWith(`${idx + 1}. **${VALIDATION_AXES[idx]}**`)).toBe(true);
     });
+  });
+});
+
+describe('PUBLIC_CHECK_AXES(無料公開版、ADR-015)', () => {
+  it('Web Search なしで採点できる 3 軸だけを持つ', () => {
+    expect(PUBLIC_CHECK_AXES).toEqual(['problemClarity', 'targetClarity', 'differentiation']);
+  });
+
+  it('ロックする 2 軸を含まない', () => {
+    expect(PUBLIC_CHECK_AXES as readonly string[]).not.toContain('competitiveAdvantage');
+    expect(PUBLIC_CHECK_AXES as readonly string[]).not.toContain('marketPotential');
+  });
+
+  it('有料版と同じ rubric 本体を使う(基準を二重に持たない)', () => {
+    const publicPrompt = formatValidationRubricForPrompt(PUBLIC_CHECK_AXES);
+    for (const axis of PUBLIC_CHECK_AXES) {
+      expect(publicPrompt).toContain(VALIDATION_AXIS_RUBRIC[axis].criteria);
+    }
+    expect(publicPrompt.split('\n')).toHaveLength(PUBLIC_CHECK_AXES.length);
+    expect(publicPrompt).not.toContain(VALIDATION_AXIS_RUBRIC.competitiveAdvantage.criteria);
   });
 });

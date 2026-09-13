@@ -22,6 +22,22 @@ export const VALIDATION_AXES = [
 /** `VALIDATION_AXES` の要素型。 */
 export type ValidationAxis = (typeof VALIDATION_AXES)[number];
 
+/**
+ * 無料公開版 `/check` が採点する軸(ADR-015)。
+ *
+ * `competitiveAdvantage` / `marketPotential` を外すのは、rubric が Web Search で取得した
+ * 実競合を参照する前提で書かれているため。UI 上はロック表示にする。
+ * **rubric 本体は有料版と共有する**(公開版だけ別基準にすると事前開示が成り立たない)。
+ */
+export const PUBLIC_CHECK_AXES = [
+  'problemClarity',
+  'targetClarity',
+  'differentiation',
+] as const satisfies readonly ValidationAxis[];
+
+/** `PUBLIC_CHECK_AXES` の要素型。 */
+export type PublicCheckAxis = (typeof PUBLIC_CHECK_AXES)[number];
+
 /** 各軸の最大点(rubric 設計、ADR-013 改訂版)。5 軸 × 20 = 100 点満点。 */
 export const VALIDATION_AXIS_MAX_SCORE = 20;
 
@@ -69,9 +85,15 @@ export const VALIDATION_AXIS_RUBRIC: Record<ValidationAxis, { label: string; cri
   },
 };
 
-/** rubric を 1 つの Markdown 文字列に整形(system prompt 注入用)。 */
-export function formatValidationRubricForPrompt(): string {
-  const lines = VALIDATION_AXES.map((axis, idx) => {
+/**
+ * rubric を 1 つの Markdown 文字列に整形(system prompt 注入用)。
+ *
+ * 軸を引数で受け取るのは、無料公開版 `/check` が 3 軸だけを採点するため(ADR-015)。
+ */
+export function formatValidationRubricForPrompt(
+  axes: readonly ValidationAxis[] = VALIDATION_AXES,
+): string {
+  const lines = axes.map((axis, idx) => {
     const rubric = VALIDATION_AXIS_RUBRIC[axis];
     return `${idx + 1}. **${axis}** (${rubric.label}、${VALIDATION_AXIS_MAX_SCORE}点満点): ${rubric.criteria}`;
   });
