@@ -17,7 +17,7 @@ import { SuggestionTasksDialog } from '../../_components/suggestion-tasks-dialog
 /**
  * `/w/{slug}/projects/{projectId}/diagnoses/{id}` — プロダクト診断 1 件の結果ページ。
  *
- * 5 軸ブレークダウン(差別化 / ターゲット明確性 / 機能完成度 / リリース準備度 / 競合優位性)、
+ * 5 軸ブレークダウン(差別化の実効性 / 対象の到達可能性 / 機能完成度 / リリース準備度 / 競合優位性)、
  * 改善提案、競合参照を表示する。全テナントメンバーが閲覧可。IdeaValidation と違い
  * recommendation(GO/PIVOT/NO_GO)は無い。
  */

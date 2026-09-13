@@ -1,13 +1,15 @@
 # -----------------------------------------------------------------------------
-# 内部ジョブの日次実行(F20 トライアル終了通知、ADR-012 v1.x)
+# 内部ジョブの日次実行
+#   - F20 トライアル終了通知(ADR-012 v1.x)
+#   - ADR-015 公開診断結果の保持期間 purge
 #
 # EventBridge Scheduler は任意の HTTPS を直接ターゲットにできない(ターゲットは Lambda /
 # SQS / SNS 等の AWS API のみ)ため、Rule + API destination の構成を採る。
 # 将来 F15 Reconciliation バッチを足すときは、rule / target / api_destination を
 # 1 組追加すれば済む(connection と IAM ロールの trust policy は汎用なので共用できる)。
-# ただし IAM ロールにアタッチしているポリシー(eventbridge_invoke_api)の resources は
-# 現状 trial_reminders の ARN を単一指定しているため、新しい api_destination の ARN を
-# この resources に追加する編集が別途必要になる。
+# ただし IAM ロールにアタッチしているポリシー(eventbridge_invoke_api)の resources には
+# api_destination の ARN を列挙する必要があるため、追加時はそこにも足すこと
+# (足し忘れると EventBridge が 403 で叩けず、バッチが静かに動かなくなる)。
 # -----------------------------------------------------------------------------
 
 # API key 認証。値は Secrets Manager の INTERNAL_JOB_TOKEN と一致させる(手動投入)。
@@ -51,6 +53,30 @@ resource "aws_cloudwatch_event_target" "trial_reminders" {
   role_arn = aws_iam_role.eventbridge_invoke_api.arn
 }
 
+# --- ADR-015: 公開診断結果の保持期間 purge ---
+# 未共有かつ 30 日を過ぎた結果を削除し、レート制限に使わなくなった ipHash を落とす。
+resource "aws_cloudwatch_event_api_destination" "public_check_purge" {
+  name                             = "${local.name_prefix}-public-check-purge"
+  description                      = "公開診断結果の保持期間バッチの起動先"
+  invocation_endpoint              = "https://api.${var.domain_name}/internal/jobs/public-check-purge"
+  http_method                      = "POST"
+  invocation_rate_limit_per_second = 1
+  connection_arn                   = aws_cloudwatch_event_connection.internal_job.arn
+}
+
+resource "aws_cloudwatch_event_rule" "public_check_purge_daily" {
+  name                = "${local.name_prefix}-public-check-purge-daily"
+  description         = "毎日 18:00 UTC(03:00 JST)に公開診断結果の保持期間バッチを起動する"
+  # トライアル通知(03:00 UTC)と時刻をずらし、DB 負荷が重ならないようにする。
+  schedule_expression = "cron(0 18 * * ? *)"
+}
+
+resource "aws_cloudwatch_event_target" "public_check_purge" {
+  rule     = aws_cloudwatch_event_rule.public_check_purge_daily.name
+  arn      = aws_cloudwatch_event_api_destination.public_check_purge.arn
+  role_arn = aws_iam_role.eventbridge_invoke_api.arn
+}
+
 # --- EventBridge が API destination を叩くための実行ロール ---
 
 data "aws_iam_policy_document" "eventbridge_assume" {
@@ -72,7 +98,10 @@ resource "aws_iam_role" "eventbridge_invoke_api" {
 data "aws_iam_policy_document" "eventbridge_invoke_api" {
   statement {
     actions   = ["events:InvokeApiDestination"]
-    resources = [aws_cloudwatch_event_api_destination.trial_reminders.arn]
+    resources = [
+      aws_cloudwatch_event_api_destination.trial_reminders.arn,
+      aws_cloudwatch_event_api_destination.public_check_purge.arn,
+    ]
   }
 }
 

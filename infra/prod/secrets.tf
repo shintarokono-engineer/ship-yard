@@ -39,6 +39,9 @@ locals {
     # Connection(scheduler.tf)に設定する値と一致させること。不一致だと日次バッチが 401 で
     # 失敗し続ける(FailedInvocations アラームで検知される)。
     "INTERNAL_JOB_TOKEN",
+    # 公開アイデア検証(/check、ADR-015)でクライアント IP をハッシュ化するときのソルト。
+    # 未設定でも起動は止まらないが、IP 単位のレート制限が無効になる(補助層のため fail open)。
+    "PUBLIC_CHECK_IP_SALT",
   ]
 }
 

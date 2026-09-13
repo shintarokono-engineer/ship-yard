@@ -38,6 +38,13 @@ const isPublicRoute = createRouteMatcher([
   '/sign-in-complete',
   '/invite/(.*)',
   '/p/(.*)',
+  // 無料公開アイデア検証(ADR-015)。**`/check/(.*)` にしないこと。**引き換え
+  // `/check/{id}/claim` はテナントを作る処理で、認証必須でなければならない。
+  '/check',
+  '/check/:id',
+  // 結果ページの OG 画像。拡張子が無いため matcher の除外に引っかからず middleware を通る。
+  // ここに書かないと `auth.protect()` に捕まり、クローラに 404 が返る(上の `/opengraph-image` と同じ)。
+  '/check/:id/opengraph-image',
 ]);
 
 // /w/{slug}/... の slug を抽出(形式チェックはページ側で実施)

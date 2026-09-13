@@ -1,6 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 
+import { DIAGNOSIS_AXIS_RUBRIC } from '../../product-diagnosis/diagnosis.constants';
+import { VALIDATION_AXIS_RUBRIC } from '../../idea-validation/validation.constants';
 import { pickSuggestions } from './suggestion-source';
 
 /** 診断側の正常な提案 3 件(axis は DIAGNOSIS_AXES の値)。 */
@@ -19,7 +21,12 @@ describe('pickSuggestions', () => {
   it('axis を日本語ラベルに解決する', () => {
     const picked = pickSuggestions(DIAGNOSIS_SUGGESTIONS, [0], 'DIAGNOSIS');
     expect(picked).toEqual([
-      { priority: 'HIGH', axisLabel: '差別化', title: '差別化を明文化する', body: '本文 A' },
+      {
+        priority: 'HIGH',
+        axisLabel: DIAGNOSIS_AXIS_RUBRIC.differentiation.label,
+        title: '差別化を明文化する',
+        body: '本文 A',
+      },
     ]);
   });
 
@@ -33,7 +40,7 @@ describe('pickSuggestions', () => {
       { priority: 'HIGH', axis: 'marketPotential', title: '市場を調べる', body: '本文' },
     ];
     const picked = pickSuggestions(validation, [0], 'IDEA_VALIDATION');
-    expect(picked.map((s) => s.axisLabel)).toEqual(['市場性']);
+    expect(picked.map((s) => s.axisLabel)).toEqual([VALIDATION_AXIS_RUBRIC.marketPotential.label]);
   });
 
   it('診断の軸を検証として解釈しようとしたらスキップされる(source ごとに軸集合が違う)', () => {

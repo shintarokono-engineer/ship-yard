@@ -656,8 +656,13 @@ export const FEATURE_CREDIT_COSTS: Record<
   TASK_SPLIT: 1,
   REFINE_DOC: 3,
   RAG_QA: 3,
-  IDEA_VALIDATION: 6,
-  PRODUCT_DIAGNOSIS: 6,
+  /**
+   * ADR-016: Web Search + 2-step で実コストがモデル基準から乖離するため
+   * `FEATURE_CREDIT_OVERRIDES` で 10cr に固定(override 値 5 × turnCount 2)。
+   * BE の `ai.constants.ts` と必ず同じ値を保つこと(ズレると実行前バッジが嘘をつく)。
+   */
+  IDEA_VALIDATION: 10,
+  PRODUCT_DIAGNOSIS: 10,
   /** ADR-014: Sonnet 4 + Tool Use(多チャネル一括)、`FEATURE_CREDIT_OVERRIDES` で override 済。 */
   ANNOUNCEMENT_GEN: 4,
   DESCRIPTION_SYNC: 3,
@@ -825,20 +830,29 @@ export type ValidationAxis = (typeof VALIDATION_AXES)[number];
 export const VALIDATION_RECOMMENDATIONS = ['GO', 'PIVOT', 'NO_GO'] as const;
 export type ValidationRecommendation = (typeof VALIDATION_RECOMMENDATIONS)[number];
 
-/** 各軸の日本語ラベル(プロダクト診断)。レーダーチャート / 棒グラフ表示用。 */
+/**
+ * 各軸の日本語ラベル(プロダクト診断)。レーダーチャート / 棒グラフ表示用。
+ *
+ * BE の `diagnosis.constants.ts` の `DIAGNOSIS_AXIS_RUBRIC[].label` と同じ文字列を保つこと
+ * (BE は提案の axisLabel に、FE は表示に使う。片方だけ変えるとズレる)。
+ */
 export const DIAGNOSIS_AXIS_LABEL: Record<DiagnosisAxis, string> = {
-  differentiation: '差別化',
-  targetClarity: 'ターゲット明確性',
+  differentiation: '差別化の実効性',
+  targetClarity: '対象の到達可能性',
   featureCompleteness: '機能完成度',
   releaseReadiness: 'リリース準備度',
   competitiveAdvantage: '競合優位性',
 };
 
-/** 各軸の日本語ラベル(アイデア検証)。 */
+/**
+ * 各軸の日本語ラベル(アイデア検証)。
+ *
+ * BE の `validation.constants.ts` の `VALIDATION_AXIS_RUBRIC[].label` と同じ文字列を保つこと。
+ */
 export const VALIDATION_AXIS_LABEL: Record<ValidationAxis, string> = {
-  problemClarity: '問題明確性',
-  targetClarity: 'ターゲット明確性',
-  differentiation: '差別化',
+  problemClarity: '課題の強度',
+  targetClarity: '対象の到達可能性',
+  differentiation: '打ち手の妥当性',
   competitiveAdvantage: '競合優位性',
   marketPotential: '市場性',
 };
@@ -933,6 +947,63 @@ export interface IdeaValidation {
   createdById: string;
   createdAt: string;
 }
+
+// ============================================================================
+// 無料公開アイデア検証 `/check`(ADR-015)
+// ============================================================================
+
+/** 公開版が採点する 3 軸。BE の `PUBLIC_CHECK_AXES` と同じ並びを保つこと。 */
+export const PUBLIC_CHECK_AXES = [
+  'problemClarity',
+  'targetClarity',
+  'differentiation',
+] as const satisfies readonly ValidationAxis[];
+
+/** `PUBLIC_CHECK_AXES` の要素型。 */
+export type PublicCheckAxis = (typeof PUBLIC_CHECK_AXES)[number];
+
+/** 公開版では採点せず、**ロック表示にする** 2 軸(ADR-015)。非表示にはしない。 */
+export const PUBLIC_CHECK_LOCKED_AXES = [
+  'competitiveAdvantage',
+  'marketPotential',
+] as const satisfies readonly ValidationAxis[];
+
+/** 評価軸 1 つの満点。診断・検証・公開版で共通(BE の `VALIDATION_AXIS_MAX_SCORE` と同値)。 */
+export const AXIS_MAX_SCORE = 20;
+
+/**
+ * 内部スコア(3 軸 × 20 点 = 0〜60)を 100 点満点へ正規化する係数(ADR-015)。
+ *
+ * 正規化は表示層だけの仕事で、保存側は一切正規化しない。
+ */
+export const PUBLIC_CHECK_SCORE_SCALE = 5 / 3;
+
+/** 内部値(0〜60)を表示用の 100 点満点へ正規化する。 */
+export function toDisplayScore(internalScore: number): number {
+  return Math.round(internalScore * PUBLIC_CHECK_SCORE_SCALE);
+}
+
+/** `GET /public/idea-checks/:id` / `POST /public/idea-checks` のレスポンス。 */
+export interface PublicCheck {
+  /** 推測不能 ID。結果 URL に載り、これを知っていることが閲覧と引き換えの権限になる。 */
+  id: string;
+  ideaText: string;
+  /** **内部値 0〜60**(3 軸 × 20 点)。表示時は `toDisplayScore` で 100 点満点に直す。 */
+  totalScore: number;
+  breakdown: ScoreBreakdown<PublicCheckAxis>;
+  suggestions: Suggestion<PublicCheckAxis>[];
+  /** opt-in 共有済みか。共有済みでも `noindex` は維持する。 */
+  shared: boolean;
+  /** 登録へ引き換え済みか。 */
+  claimed: boolean;
+  createdAt: string;
+}
+
+/** API が上限到達を伝えるコード。文言の出し分けに使う(BE の `PUBLIC_CHECK_ERROR_CODE` と一致)。 */
+export const PUBLIC_CHECK_ERROR_CODE = {
+  DAILY_LIMIT_REACHED: 'PUBLIC_CHECK_DAILY_LIMIT_REACHED',
+  IP_RATE_LIMITED: 'PUBLIC_CHECK_IP_RATE_LIMITED',
+} as const;
 
 /** suggestion.priority の表示メタ(色 + ラベル、UI のバッジで使う)。 */
 export const SUGGESTION_PRIORITY_META: Record<
@@ -1117,4 +1188,28 @@ export interface PublicBlogPost {
   publishedAt: string;
   project: { id: string; name: string };
   tenant: { slug: string };
+}
+
+/** `AiJob.status`(ADR-017)。DONE は結果本体が一覧に出るため、一覧 API では返らない。 */
+export type AiJobStatus = 'RUNNING' | 'DONE' | 'FAILED';
+
+/**
+ * 長時間 AI 処理(プロダクト診断 / アイデア検証)の進行状態(ADR-017)。
+ *
+ * これらは 88〜113 秒かかり Vercel Hobby の関数実行上限(60 秒)と `API_TIMEOUT_MS`(55 秒)を
+ * 超えるため、POST は結果ではなく `jobId` を返す。結果は `resultId` から別途取得する。
+ */
+export interface AiJobView {
+  id: string;
+  status: AiJobStatus;
+  /** DONE のときだけ入る。`ServiceScore.id` または `IdeaValidation.id`。 */
+  resultId: string | null;
+  /** FAILED のときだけ入る。ユーザー向けの文言。 */
+  errorMessage: string | null;
+  createdAt: string;
+}
+
+/** 実行開始 API(202)のレスポンス。 */
+export interface AiJobStarted {
+  jobId: string;
 }

@@ -127,6 +127,14 @@ FAILED FAILED
 LAST_DAY LAST_DAY
         }
     
+
+
+        AiJobStatus {
+            RUNNING RUNNING
+DONE DONE
+FAILED FAILED
+        }
+    
   "User" {
     String id "🗝️"
     String clerkUserId 
@@ -345,6 +353,41 @@ LAST_DAY LAST_DAY
     DateTime sentAt 
     }
   
+
+  "AiJob" {
+    String id "🗝️"
+    Feature feature 
+    AiJobStatus status 
+    String resultId "❓"
+    String reservationId "❓"
+    String errorMessage "❓"
+    DateTime createdAt 
+    DateTime updatedAt 
+    }
+  
+
+  "PublicIdeaCheck" {
+    String id "🗝️"
+    String ideaText 
+    Int totalScore 
+    Json breakdown 
+    Json suggestions 
+    Int tokensIn 
+    Int tokensOut 
+    Decimal costJpy 
+    DateTime sharedAt "❓"
+    String claimedByTenantId "❓"
+    DateTime claimedAt "❓"
+    String ipHash "❓"
+    DateTime createdAt 
+    }
+  
+
+  "PublicCheckUsage" {
+    DateTime date "🗝️"
+    Int count 
+    }
+  
     "Tenant" |o--|| "Plan" : "enum:plan"
     "Tenant" }o--|| "User" : "owner"
     "TenantMember" |o--|| "Role" : "enum:role"
@@ -397,4 +440,9 @@ LAST_DAY LAST_DAY
     "BlogPost" |o--|o "Delivery" : "delivery"
     "TrialNotification" |o--|| "TrialNotificationKind" : "enum:kind"
     "TrialNotification" }o--|| "Tenant" : "tenant"
+    "AiJob" |o--|| "Feature" : "enum:feature"
+    "AiJob" |o--|| "AiJobStatus" : "enum:status"
+    "AiJob" }o--|| "Tenant" : "tenant"
+    "AiJob" }o--|| "Project" : "project"
+    "AiJob" }o--|| "User" : "createdBy"
 ```

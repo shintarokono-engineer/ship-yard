@@ -26,6 +26,24 @@ export function estimateCostJpy(model: string, tokensIn: number, tokensOut: numb
   return (usd * USD_PER_JPY).toFixed(4);
 }
 
+/**
+ * 複数モデルにまたがる 1 回の機能実行の円コストを合算する(ADR-016)。
+ *
+ * `AIUsage` は 1 行 1 モデルしか持てないが、2-step 機能は turn 1 = Haiku(調査)/
+ * turn 2 = Sonnet(採点)とモデルが異なる。行に記録した model だけで見積もると
+ * turn 1 のトークンまで Sonnet 単価で計算され、**実費を 4 割ほど過大に記録してしまう**。
+ * コスト削減の効果を DB から検証できなくなるため、呼び出し側で turn ごとに積算する。
+ */
+export function sumCostJpy(
+  parts: ReadonlyArray<{ model: string; tokensIn: number; tokensOut: number }>,
+): string {
+  const usd = parts.reduce((acc, part) => {
+    const p = MODEL_PRICING_USD_PER_MTOK[part.model] ?? FALLBACK_PRICING_USD_PER_MTOK;
+    return acc + (part.tokensIn / 1_000_000) * p.in + (part.tokensOut / 1_000_000) * p.out;
+  }, 0);
+  return (usd * USD_PER_JPY).toFixed(4);
+}
+
 /** ある AI 呼び出しが消費する AI クレジット数(ADR-012 / ADR-014)。
  * `Feature.OTHER`(裏方 embedding / RAG 検索など、ユーザー明示的でない機能)は cr 消費なし。
  * `FEATURE_CREDIT_OVERRIDES` に登録された Feature(Tool Use や Web Search で実コストが乖離するもの)は
@@ -331,10 +349,17 @@ export class AIUsageService {
     });
   }
 
-  /** 予約した AIUsage 行に実際の tokens / costJpy を確定する(AI 成功後)。credits は予約時のまま。 */
+  /**
+   * 予約した AIUsage 行に実際の tokens / costJpy を確定する(AI 成功後)。credits は予約時のまま。
+   *
+   * `costJpy` は既定で行の model 単価から見積もるが、**2-step でモデルが混在する機能**
+   * (PRODUCT_DIAGNOSIS / IDEA_VALIDATION は turn 1 = Haiku / turn 2 = Sonnet)は
+   * `sumCostJpy` で turn ごとに積算した値を渡すこと(ADR-016)。
+   */
   async finalizeReservation(
     reservationId: string,
     tokens: { tokensIn: number; tokensOut: number },
+    costJpy?: string,
   ): Promise<void> {
     const row = await this.prisma.aIUsage.findUnique({
       where: { id: reservationId },
@@ -346,7 +371,7 @@ export class AIUsageService {
       data: {
         tokensIn: tokens.tokensIn,
         tokensOut: tokens.tokensOut,
-        costJpy: estimateCostJpy(row.model, tokens.tokensIn, tokens.tokensOut),
+        costJpy: costJpy ?? estimateCostJpy(row.model, tokens.tokensIn, tokens.tokensOut),
       },
     });
   }

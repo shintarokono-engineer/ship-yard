@@ -1,6 +1,7 @@
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
+import { AiJobService } from './ai/shared/ai-job.service';
 import { AIUsageService } from './ai/shared/ai-usage.service';
 import { AnthropicModule } from './ai/shared/anthropic.module';
 import { ChecklistGenController } from './ai/checklist-gen/checklist-gen.controller';
@@ -49,6 +50,10 @@ import { OwnershipController } from './members/ownership.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProductDiagnosisController } from './product-diagnosis/product-diagnosis.controller';
 import { ProductDiagnosisService } from './product-diagnosis/product-diagnosis.service';
+import { PublicCheckClaimController } from './public-check/public-check-claim.controller';
+import { PublicCheckClaimService } from './public-check/public-check-claim.service';
+import { PublicCheckController } from './public-check/public-check.controller';
+import { PublicCheckService } from './public-check/public-check.service';
 import { ProjectsController } from './projects/projects.controller';
 import { ProjectsService } from './projects/projects.service';
 import { StripeModule } from './stripe/stripe.module';
@@ -95,6 +100,10 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     LandingPageController,
     PublicLandingPageController,
     ProductDiagnosisController,
+    // ADR-015: 未認証で叩ける公開アイデア検証。guard を付けない別 controller に分離してある。
+    PublicCheckController,
+    // 持ち越し(ADR-015)。認証必須なので公開 controller とは**別に**置く。
+    PublicCheckClaimController,
     IdeaValidationController,
     InvitationsController,
     PublicInvitationsController,
@@ -113,6 +122,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     ChecklistService,
     DocumentsService,
     AIUsageService,
+    AiJobService,
     DraftGenService,
     ChecklistGenService,
     SuggestionTasksService,
@@ -127,6 +137,8 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     LandingPageService,
     LpGenService,
     ProductDiagnosisService,
+    PublicCheckService,
+    PublicCheckClaimService,
     IdeaValidationService,
     AnnouncementGenService,
     AnnouncementService,

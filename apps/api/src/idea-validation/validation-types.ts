@@ -11,24 +11,33 @@
  * + recommendation('GO' | 'PIVOT' | 'NO_GO')を追加。
  */
 
-import type { ValidationAxis, ValidationRecommendation } from './validation.constants';
+import type {
+  PublicCheckAxis,
+  ValidationAxis,
+  ValidationRecommendation,
+} from './validation.constants';
 
 /**
- * 5 軸ブレークダウン(全 5 軸を網羅、Record で型強制)。
+ * ブレークダウン(対象軸を網羅、Record で型強制)。
  *
  * 例: `{ problemClarity: { score: 14, comment: "..." }, targetClarity: ... }`
+ *
+ * 軸をジェネリックにしているのは、無料公開版 `/check` が 3 軸だけを採点するため(ADR-015)。
  */
-export type ValidationBreakdown = Record<ValidationAxis, { score: number; comment: string }>;
+export type ValidationBreakdown<A extends ValidationAxis = ValidationAxis> = Record<
+  A,
+  { score: number; comment: string }
+>;
 
 /** 改善提案 1 件(優先度付き、どの軸を改善するか紐付け)。ServiceScore.Suggestion と同型。 */
-export interface ValidationSuggestion {
+export interface ValidationSuggestion<A extends ValidationAxis = ValidationAxis> {
   priority: 'HIGH' | 'MEDIUM' | 'LOW';
   /** 提案のタイトル(1 行、60 文字以内推奨)。 */
   title: string;
   /** 提案の詳細(Markdown 可、500 文字以内推奨)。 */
   body: string;
   /** どの軸を改善するか。 */
-  axis: ValidationAxis;
+  axis: A;
 }
 
 /** 競合プロダクトのスナップショット。ServiceScore.CompetitorRef と同型。 */
@@ -39,6 +48,18 @@ export interface ValidationCompetitorRef {
   summary: string;
   /** 本アイデアとの類似性メモ(Sonnet が生成、200 文字以内)。 */
   similarityNote: string;
+}
+
+/**
+ * 無料公開版 `/check` の出力(ADR-015)。
+ *
+ * Web Search を回さないため、有料版から 3 軸・`recommendation`・`competitorRefs` を落としている。
+ */
+export interface PublicCheckOutput {
+  /** 総合スコア(**0〜60**、3 軸合計)。表示時に 5/3 倍して 100 点満点にする。 */
+  totalScore: number;
+  breakdown: ValidationBreakdown<PublicCheckAxis>;
+  suggestions: ValidationSuggestion<PublicCheckAxis>[];
 }
 
 /** Tool Use(`submit_idea_validation`)で受け取る生データの構造。 */

@@ -148,7 +148,8 @@ flowchart TB
     subgraph AWS["AWS Tokyo (ap-northeast-1)"]
         API[API Server<br/>App Runner<br/>0.5 vCPU / 1 GB]
         ECR[(ECR)]
-        Secrets[Secrets Manager<br/>API Keys 10 件]
+        Secrets[Secrets Manager<br/>API Keys 12 件]
+        EventBridge[EventBridge<br/>日次ルール ×2]
         subgraph Public["Public Subnet"]
             NAT[NAT インスタンス<br/>t4g.nano]
         end
@@ -178,11 +179,38 @@ flowchart TB
     Clerk -.Webhook.-> API
     API -->|起動時に解決| Secrets
     API -.イメージ pull.-> ECR
+    EventBridge -.POST /internal/jobs/*.-> API
 ```
 
 **ALB は使いません**。App Runner が TLS 終端・ロードバランシング・オートスケールを内包するためです(ADR-011)。
 
 構成の決定経緯は [ADR-011](adr/011-lightweight-aws-architecture.md)、実際のコード は `infra/prod/`、構築手順は [`runbooks/production-cutover.md`](runbooks/production-cutover.md)、費用は [`infrastructure-cost.md`](infrastructure-cost.md) を参照してください。
+
+### 内部日次ジョブ(EventBridge → API)
+
+定期実行は **EventBridge のルールが API の内部エンドポイントを HTTPS で叩く**形で動かす。Lambda もキューも持たず、処理本体は常時起動している App Runner の NestJS が担う。
+
+```
+EventBridge Rule(cron)
+  → API destination(https://api.<domain>/internal/jobs/<job>、POST)
+    → Connection(ヘッダ X-Internal-Job-Token を付与)
+      → NestJS JobsController(InternalJobGuard がトークンを照合)
+```
+
+| 項目       | 内容                                                                                                                                                                                         |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 認証       | 共有シークレット `INTERNAL_JOB_TOKEN`(Secrets Manager)。EventBridge Connection 側にも同じ値を手動投入する。`internal` はパス名の慣習にすぎず、エンドポイント自体はインターネットから到達可能 |
+| 重複実行   | ルールは 1 つの API destination に 1 回だけ発火するため、App Runner が複数インスタンスにスケールしても同じジョブが並走しない(NestJS Schedule を使わない理由)                                 |
+| 失敗の検知 | `FailedInvocations` メトリクスにアラーム(`infra/prod/monitoring.tf`)。トークン不一致は 401 として同じ経路で検知される                                                                        |
+| 費用       | API destination の呼び出しは 100 万回あたり約 $0.20。日次 2 本なら実質ゼロ                                                                                                                   |
+| 定義       | `infra/prod/scheduler.tf`。ジョブを足すときは rule / api_destination / target を 1 組追加し、IAM ポリシー(`eventbridge_invoke_api`)の resources に宛先 ARN を加える                          |
+
+現在乗っているジョブ:
+
+| ジョブ               | 時刻(UTC) | 内容                                                                                      |
+| -------------------- | --------- | ----------------------------------------------------------------------------------------- |
+| `trial-reminders`    | 03:00     | トライアル終了 3 日前 / 前日の通知メール(F20、ADR-012)                                    |
+| `public-check-purge` | 18:00     | 未共有の公開診断結果を 30 日で削除し、レート制限に使わなくなった `ipHash` を消す(ADR-015) |
 
 ## ネットワーク・セキュリティ
 
@@ -198,7 +226,7 @@ flowchart TB
 
 ### Secrets 管理
 
-- API キー(Anthropic / OpenAI / Stripe / Clerk / Resend)と `DATABASE_URL` は AWS Secrets Manager に **1 シークレット・11 キーの JSON** で保存(2026-08-23 F20 で `INTERNAL_JOB_TOKEN` を追加)
+- API キー(Anthropic / OpenAI / Stripe / Clerk / Resend)と `DATABASE_URL` は AWS Secrets Manager に **1 シークレット・12 キーの JSON** で保存(2026-08-23 F20 で `INTERNAL_JOB_TOKEN`、2026-09 ADR-015 で `PUBLIC_CHECK_IP_SALT` を追加)
 - Terraform は**キー構造のみ管理**し、値は手動投入(state に機密を残さない、`infra/prod/secrets.tf`)
 - App Runner は `runtime_environment_secrets` で参照し、**起動時に解決**する(値を更新したら再デプロイが必要)
 - ローカル開発は `.env.local`(コミット禁止)
@@ -262,7 +290,15 @@ flowchart TB
 
 MVP では AI 処理も告知配信も **API サーバー内で同期実行**しており、キューを持ちません(ADR-001 / ADR-011 の設計には Redis + BullMQ があるが未実装)。**「同期実行が破綻したとき」が導入時期**であり、具体的なトリガーは次の 4 つです。
 
-### トリガー 1: AI 処理がプラットフォームのタイムアウトに当たる(最有力)
+### トリガー 1: AI 処理がプラットフォームのタイムアウトに当たる(最有力)→ ✅ 2026-08-31 に発生・対処済(ADR-017)
+
+> **実際に発生した。** 診断 / 検証は 88〜90 秒かかり(ADR-016 のコスト削減前は 53〜113 秒)、`maxDuration = 60`(Vercel Hobby の上限)と
+> `apps/web/src/lib/api/client.ts` の `API_TIMEOUT_MS = 55_000` を超えていた。しかも FE が abort しても
+> API 側は検知せず処理を完走するため、**ユーザーにはエラーが出るのに結果は作られクレジットも消費される**
+> 状態だった。下記の「実行を投げて結果は後から取得する」 形を採用し、**キューは導入していない**
+> (App Runner が常駐 Node プロセスのため、レスポンス送出後も処理を継続できる)。詳細は ADR-017。
+>
+> **キュー導入の判断はトリガー 2(F21 メール一斉配信)へ持ち越し。** そこで改めて下表を比較する。
 
 **プロダクト診断 / アイデア検証は Sonnet の 2-step 呼び出し + Web Search Tool で数十秒かかります。** この待ち時間は二重の制約を受けます。
 
@@ -279,18 +315,23 @@ MVP では AI 処理も告知配信も **API サーバー内で同期実行**し
 
 ADR-014 のメール配信(`Subscriber` モデル + LP 購読フォーム + `MailSendQueue`)は **キューが前提の機能**です。数百〜数千通をレート制限つきで送り失敗をリトライするため、同期実行では成立しません。**キュー導入が確定するのはここ**です。
 
-### トリガー 3: 定期実行(cron)が必要になるとき(F15 / F20)
+### トリガー 3: 定期実行(cron)が必要になるとき(F15 / F20)→ ✅ EventBridge で対処済(キュー不要)
 
-- **F15**: Stripe の seat 数と `TenantMember.count` を照合する日次 Reconciliation バッチ
-- **F20**: トライアル終了 7 日 / 3 日前の通知メール
+- **F20**: トライアル終了 3 日前 / 前日の通知メール(2026-08-23 実装)
+- **ADR-015**: 公開診断結果の保持期間 purge(2026-09 実装)
+- **F15**(未実装): Stripe の seat 数と `TenantMember.count` を照合する日次 Reconciliation バッチ
 
-これ自体は NestJS Schedule でも書けるためキュー必須ではありません。ただし **App Runner が複数インスタンスにスケールすると同じ cron が重複実行される**ので、実行主体を 1 つに絞る仕組み(キューによる排他、または EventBridge Scheduler)が要ります。
+NestJS Schedule は **App Runner が複数インスタンスにスケールすると同じ cron が重複実行される**ため採らず、EventBridge のルールが API の内部エンドポイントを叩く形にした(上記「内部日次ジョブ」)。実行主体が EventBridge 側の 1 か所に絞られるので、キューによる排他は要らない。F15 も同じ経路に 1 組足すだけで済む。
 
 ### トリガー 4: 同時実行が増えたとき
 
 長時間の AI リクエストがインスタンスを占有します。0.5 vCPU / 1 GB の構成で診断が同時に複数走ると、後続がキュー待ちになりレイテンシが悪化します。
 
 ### 導入時に比較する選択肢
+
+> **トリガー 1 はキュー無しで対処済(ADR-017)。** App Runner が常駐 Node プロセスであることを利用して
+> 「実行を投げて結果は後から取得する」 形にしたため、下記の比較はまだ行っていない。
+> **キューが必須になるのはトリガー 2(F21 メール一斉配信)** なので、その時点で比較する。
 
 **Redis 一択ではありません。** すでに RDS があるため、PostgreSQL ベースのキュー(pg-boss 等)なら新しいマネージドサービスの契約・接続情報・監視対象を増やさずに済みます。
 
@@ -308,5 +349,5 @@ MVP 規模なら後者で足りる可能性が高いため、**実際に必要�
 - 本番デプロイ後のレイテンシ計測(Vercel → App Runner)。**特に診断 / 検証の所要時間**(上記トリガー 1)
 - 負荷試験(公開後、ユーザー数が増えた段階で)
 - Sentry / DataDog 等の有償ツールは収益化後に検討
-- 非同期処理基盤の導入 = v1.x。導入判断は上記「キューをいつ導入するか」に従う
+- 非同期処理基盤の導入 = v1.x。導入判断は上記「キューをいつ導入するか」に従う(**トリガー 1 はキュー無しで対処済、ADR-017**)
 - 規模拡大時の再評価: NAT インスタンス → NAT Gateway、RDS Single-AZ → Multi-AZ、App Runner → ECS

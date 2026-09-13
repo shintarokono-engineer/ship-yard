@@ -37,8 +37,8 @@ const PRICING_VIEWED_KEY = `${STORAGE_KEY_PREFIX}pricing-viewed`;
 export const ANALYTICS_FEATURES = ['document', 'lp', 'checklist', 'description'] as const;
 export type AnalyticsFeature = (typeof ANALYTICS_FEATURES)[number];
 
-/** LP 上の CTA 設置位置(GA4 の `location` パラメータ)。 */
-export const CTA_LOCATIONS = ['header', 'hero', 'pricing', 'footer'] as const;
+/** CTA の設置位置(GA4 の `location` パラメータ)。`check` は `/check` の Neorie 紹介セクション。 */
+export const CTA_LOCATIONS = ['header', 'hero', 'pricing', 'footer', 'check'] as const;
 export type CtaLocation = (typeof CTA_LOCATIONS)[number];
 
 /**

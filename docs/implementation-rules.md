@@ -34,12 +34,78 @@
 
 ## AI(ADR-005)
 
-- Sonnet 4: 競合調査 / ドキュメント生成 / RAG QA(品質要件が高い場面)
-- Haiku 4.5: タスク分解 / チェックリスト生成 / 文章推敲(構造化中心)
+- Sonnet 4: ドキュメント生成 / RAG QA / **採点・診断**(品質要件が高い場面)
+- Haiku 4.5: タスク分解 / チェックリスト生成 / 文章推敲 / **Web 検索と要約**(構造化中心)
+- **2-step 機能(`PRODUCT_DIAGNOSIS` / `IDEA_VALIDATION`)はターンごとにモデルを分ける**(ADR-016)。
+  turn 1(Web 検索 + 競合の要約)は Haiku、turn 2(rubric に沿った採点)は Sonnet。
+  実測でトークンの 63% が turn 1 に乗るため、採点しない turn を Haiku にするのが最大のコスト削減になる
+  (¥50.1 → ¥27.0〜30.8 / 回、実測 6 件。スコア・競合件数は変化なし)。**turn 1 を Sonnet に戻すとコストが倍近くなる**
+- モデルが混在する機能の `AIUsage.costJpy` は `sumCostJpy` で turn ごとに積算する
+  (行の `model` 単価だけで見積もると実費を 4 割ほど過大に記録する)
 - Tool Use は構造化出力が必要な場面のみ。利用箇所はコードコメントで理由を残す
 - pgvector + text-embedding-3-small(1536 次元)、HNSW インデックスで RAG
 - 全 AI 呼び出しは `AIUsage` テーブルにテナント単位で記録(プラン別 AI クレジット上限の判定にも使う、ADR-012)
-- 上限は AI クレジット制(Haiku 4.5=1cr、Sonnet 4=3cr、`Feature.OTHER`=0cr)。`AIUsage.credits` 列の月次合計が Free=0(停止)/ Pro=300 / Team=seats×800 を超えたら 403(`assertWithinPlanCredits`)。`OTHER` は 0cr で記録されるため自然に上限から除外され、ユーザー視点の「残りクレジット」と一致する
+- 上限は AI クレジット制(既定は Haiku 4.5=1cr、Sonnet 4=3cr、`Feature.OTHER`=0cr。複数ターン呼ぶ機能は `turnCount` 倍)。
+  **実コストがモデル基準から乖離する機能は `FEATURE_CREDIT_OVERRIDES` で明示的に固定する**
+  (`ANNOUNCEMENT_GEN`=4cr、`PRODUCT_DIAGNOSIS` / `IDEA_VALIDATION`=10cr)。
+  **モデルを安くしただけでは支出は減らない**。cr が自動で下がると月間の実行回数が増えて相殺されるため、
+  支出の天井を決めているのは実費ではなく cr 価格である(ADR-016)。`AIUsage.credits` 列の月次合計が Free=0(停止)/ Pro=300 / Team=seats×800 を超えたら 403(`assertWithinPlanCredits`)。`OTHER` は 0cr で記録されるため自然に上限から除外され、ユーザー視点の「残りクレジット」と一致する
+
+## Prisma マイグレーション
+
+### 必ず `--create-only` で生成し、適用**前**に中身を直す
+
+`npx prisma migrate dev` は **schema.prisma で管理していないオブジェクトを drift と見なして削除する SQL を混ぜてくる**。生成物をそのまま採用してはいけない。
+
+**手順を守ること。生成と適用を分ける。**
+
+```bash
+# 1. 適用せずに生成する
+cd packages/db && npx prisma migrate dev --name <name> --create-only
+
+# 2. migration.sql を開いて下表の混入を除去し、除去した旨をファイル冒頭のコメントに残す
+
+# 3. 適用する
+npx prisma migrate dev
+```
+
+**`--create-only` を付けずに生成すると、その場で DB に適用されてしまう。**後からファイルを編集しても DB は元に戻らないため、**ファイルが「実際に起きたこと」を記述しなくなり、次回以降ドリフト扱いになる**(`Drift detected` → DB リセット要求)。ADR-016 でこれを踏み、適用済みの migration に FK 文を書き戻して復旧した。
+
+除去する対象:
+
+| 混入するもの                                                                                          | 対処         | 理由                                                                                               |
+| ----------------------------------------------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------- |
+| `DROP INDEX "ProjectDocument_embedding_hnsw_idx"`                                                     | **除去する** | RAG の HNSW インデックス(ADR-005)。Prisma が認識できないだけで、消すとベクトル検索が全件走査になる |
+| `ServiceScore_createdById_fkey` / `IdeaValidation_createdById_fkey` の DropForeignKey + AddForeignKey | **除去する** | 同一制約の付け直しでしかなく、どの migration のスコープにも属さない                                |
+
+除去し忘れると**ローカル DB からもインデックスが実際に消える**(ADR-016 で実際に消えた)。消してしまった場合は次で復旧する。
+
+```sql
+CREATE INDEX IF NOT EXISTS "ProjectDocument_embedding_hnsw_idx"
+  ON "ProjectDocument" USING hnsw (embedding vector_cosine_ops);
+```
+
+`--create-only` で作ったファイルは**まだ適用されていない**ので、編集しても checksum の付け合わせは発生しない。すでに適用してしまった後に気付いた場合だけ、下記の checksum 合わせが要る。
+
+**除去してよいのは「適用前」だけ**。すでに適用済みの migration から後追いで消すと、ファイルと DB が食い違ってドリフトになる。その場合は消さずに残し、理由をコメントに書く(`20260830133026_add_ai_job` がこの例)。
+
+**実績**: Day 14 / 15 / 26 / 27 / 49 と ADR-016 で毎回踏んでいる。過去は各 migration.sql のコメントにしか書かれておらず、`migrate dev` を叩くたびに同じ罠にかかっていたため本ファイルに昇格した。
+
+### 適用済み migration のファイルを編集しない
+
+Prisma は migration.sql の SHA-256 を `_prisma_migrations.checksum` に記録しており、**適用後にファイルを編集すると次の `migrate dev` が DB リセットを要求する**(`We need to reset the "public" schema`)。**リセットするとローカルの全データが消える**ので実行しないこと。コメントの追記だけでも checksum は変わる。
+
+**まず `--create-only` を使えばこの状況自体が起きない**(上記)。それでも編集が避けられなかった場合は、リセットせず checksum を実ファイルに合わせる。
+
+```bash
+NEW=$(shasum -a 256 packages/db/prisma/migrations/<name>/migration.sql | awk '{print $1}')
+docker compose exec -T postgres psql -U shipyard -d shipyard \
+  -c "UPDATE \"_prisma_migrations\" SET checksum = '$NEW' WHERE migration_name = '<name>';"
+```
+
+スキーマ実体がズレていないことを必ず先に確認する(enum なら `enum_range`、インデックスなら `pg_indexes`)。ズレている場合は帳簿ではなくスキーマ側の問題なので、checksum を書き換えて隠してはいけない。
+
+**本番への影響**: 本番の `_prisma_migrations` には旧 checksum が残るため、`prisma migrate deploy` 実行時に同じ不一致が起きる。**デプロイ前に挙動を確認すること**(未検証)。
 
 ## フロントエンド(Next.js App Router / React)
 
@@ -71,7 +137,7 @@
 
 ## マジックナンバー / 設定値
 
-- 上限回数・モデル ID・単価・為替・タイムアウト等、**変更されうる値は定数ファイルに集約**する(コード中に直書きしない)。例: AI 関連は `apps/api/src/ai/ai.constants.ts`
+- 上限回数・モデル ID・単価・為替・タイムアウト等、**変更されうる値は定数ファイルに集約**する(コード中に直書きしない)。例: AI 関連は `apps/api/src/ai/shared/ai.constants.ts`
 - schema の enum がある値はマジック文字列ではなく enum(`@shipyard/db` 経由)を使う(`'PRO'` ではなく `Plan.PRO`)
 
 ## 環境変数を追加するとき(本番だけ壊れる事故の防止)
