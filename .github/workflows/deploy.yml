@@ -8,6 +8,11 @@
 #   - GitHub Variables: AWS_BOOTSTRAPPED=true
 #
 # ECR は IMMUTABLE タグ(Day 34)のため、イメージタグはコミット SHA を使う。
+#
+# 本番 DB のマイグレーションはこのワークフローでは流さない(RDS は VPC 内で届かない)。
+# 新しいマイグレーションを含むコミットは、先に手動で適用してから
+# workflow_dispatch(migrations_applied=true)で乗せる。順序の詳細は
+# docs/runbooks/adr-015-release-checklist.md §0〜§2。
 
 name: Deploy API to App Runner
 
@@ -18,6 +23,11 @@ on:
       - 'apps/api/**'
       - 'packages/**'
   workflow_dispatch:
+    inputs:
+      migrations_applied:
+        description: '新しいマイグレーションを本番 DB に適用済み(runbook §2 を実施した)'
+        type: boolean
+        default: false
 
 permissions:
   id-token: write # OIDC で AWS ロールを assume するために必要
@@ -36,12 +46,44 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # 稼働中のイメージのコミットと HEAD を比較するため、履歴全体が要る
+          fetch-depth: 0
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+
+      # 稼働中のイメージ(タグ = コミット SHA)以降に追加されたマイグレーションがあれば、
+      # 適用済みの宣言なしには乗せない。GitHub Actions から本番 RDS へは届かないため
+      # 「適用したか」は検証できず、人が runbook §2 を済ませたと宣言するためのゲート。
+      # 2026-09-13 に未適用のまま乗せて診断・検証が 6 分間 500 になった再発防止。
+      - name: Guard against unapplied migrations
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.migrations_applied) }}
+        env:
+          SERVICE_ARN: ${{ secrets.APPRUNNER_SERVICE_ARN }}
+        run: |
+          set -euo pipefail
+
+          CURRENT_SHA=$(aws apprunner describe-service \
+            --service-arn "$SERVICE_ARN" \
+            --query 'Service.SourceConfiguration.ImageRepository.ImageIdentifier' --output text \
+            | sed 's/.*://')
+
+          if ! git cat-file -e "$CURRENT_SHA^{commit}" 2>/dev/null; then
+            echo "::error::稼働中のイメージのコミット $CURRENT_SHA が履歴に見つかりません。マイグレーションの差分を判定できないため、runbook §2 を確認のうえ workflow_dispatch(migrations_applied=true)で実行してください。"
+            exit 1
+          fi
+
+          ADDED=$(git diff --diff-filter=A --name-only "$CURRENT_SHA" HEAD -- packages/db/prisma/migrations | grep '/migration.sql$' || true)
+          if [ -n "$ADDED" ]; then
+            echo "::error::稼働中のイメージ($CURRENT_SHA)以降に追加されたマイグレーションがあります。先に本番 DB へ適用し(runbook §2)、workflow_dispatch で migrations_applied=true を付けて実行してください。"
+            printf '%s\n' "$ADDED"
+            exit 1
+          fi
+          echo "新規マイグレーションなし(stable: $CURRENT_SHA → $GITHUB_SHA)"
 
       - name: Login to Amazon ECR
         id: ecr
@@ -76,7 +118,7 @@ jobs:
       # 【重要】UpdateService の SourceConfiguration は「マージ」ではなく「置き換え」。
       # イメージタグだけを組み立てて渡すと、Terraform(apprunner.tf)が設定した
       # RuntimeEnvironmentVariables(APP_BASE_URL / MAIL_FROM)、
-      # RuntimeEnvironmentSecrets(Secrets Manager の 10 キー)、
+      # RuntimeEnvironmentSecrets(Secrets Manager の 12 キー)、
       # AuthenticationConfiguration(ECR pull 用アクセスロール)が消える。
       # 消えると「起動はするが DB / Stripe / AI に繋がらない」「ECR pull に失敗する」
       # という状態になるため、現在の設定を describe-service で取得し、

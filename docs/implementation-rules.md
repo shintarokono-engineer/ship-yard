@@ -105,7 +105,7 @@ docker compose exec -T postgres psql -U shipyard -d shipyard \
 
 スキーマ実体がズレていないことを必ず先に確認する(enum なら `enum_range`、インデックスなら `pg_indexes`)。ズレている場合は帳簿ではなくスキーマ側の問題なので、checksum を書き換えて隠してはいけない。
 
-**本番への影響**: 本番の `_prisma_migrations` には旧 checksum が残るため、`prisma migrate deploy` 実行時に同じ不一致が起きる。**デプロイ前に挙動を確認すること**(未検証)。
+**本番への影響**: 本番の `_prisma_migrations` には旧 checksum が残るが、**`prisma migrate deploy` は適用済みマイグレーションの checksum を検証しない**ため止まらない(2026-09-13 に使い捨て DB で再現して確認。`migrate dev` とは挙動が違う)。本番リリースの順序は `docs/runbooks/adr-015-release-checklist.md` §0〜§2 を参照。
 
 ## フロントエンド(Next.js App Router / React)
 
