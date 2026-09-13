@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { PublicCheckPurgeService } from '../public-check/public-check-purge.service';
 import { JobsController } from './jobs.controller';
 import { TrialReminderService } from './trial-reminder.service';
 
@@ -12,6 +13,6 @@ import { TrialReminderService } from './trial-reminder.service';
  */
 @Module({
   controllers: [JobsController],
-  providers: [TrialReminderService],
+  providers: [TrialReminderService, PublicCheckPurgeService],
 })
 export class JobsModule {}

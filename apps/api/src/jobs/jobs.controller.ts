@@ -6,11 +6,15 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
+import {
+  PublicCheckPurgeService,
+  type PublicCheckPurgeResult,
+} from '../public-check/public-check-purge.service';
 import { InternalJobGuard } from './internal-job.guard';
 import { TrialReminderService, type TrialReminderResult } from './trial-reminder.service';
 
 /**
- * 内部ジョブの受け口(F20 / 将来の F15 Reconciliation)。
+ * 内部ジョブの受け口(F20 トライアル終了通知 / ADR-015 公開診断の保持期間 / 将来の F15 Reconciliation)。
  *
  * EventBridge Rule + API destination から日次で叩かれる。`TenantMiddleware` は
  * `X-Tenant-Slug` の無いリクエストを素通しするため、テナント無しで通過する(webhook と同じ経路)。
@@ -22,7 +26,10 @@ import { TrialReminderService, type TrialReminderResult } from './trial-reminder
 @Controller('internal/jobs')
 @UseGuards(InternalJobGuard)
 export class JobsController {
-  constructor(private readonly trialReminders: TrialReminderService) {}
+  constructor(
+    private readonly trialReminders: TrialReminderService,
+    private readonly publicCheckPurge: PublicCheckPurgeService,
+  ) {}
 
   /**
    * トライアル終了通知バッチを実行する。
@@ -50,5 +57,18 @@ export class JobsController {
     }
 
     return result;
+  }
+
+  /**
+   * 公開診断結果の保持期間バッチ(ADR-015)。
+   *
+   * 未共有かつ保持期間を過ぎたものを削除し、レート制限に使わなくなった `ipHash` を落とす。
+   * 1 日落ちても翌日が同じ条件で拾い直すので、例外はそのまま伝播させて
+   * `FailedInvocations` アラームに乗せる(トライアル通知のような部分失敗の扱いは不要)。
+   */
+  @Post('public-check-purge')
+  @HttpCode(200)
+  async runPublicCheckPurge(): Promise<PublicCheckPurgeResult> {
+    return this.publicCheckPurge.run();
   }
 }
